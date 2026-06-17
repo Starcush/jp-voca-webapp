@@ -188,7 +188,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
 
     try {
       await deleteWord(wordId);
-      router.replace("/words");
+      router.replace("/words?saved=deleted");
       router.refresh();
     } catch (error) {
       console.error("Failed to delete word.", error);

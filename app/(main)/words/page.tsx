@@ -12,7 +12,10 @@ type WordsPageProps = {
 
 export default async function WordsPage({ searchParams }: WordsPageProps) {
   const { saved, wordId } = await searchParams;
-  const saveStatus = saved === "created" || saved === "updated" ? saved : undefined;
+  const saveStatus =
+    saved === "created" || saved === "updated" || saved === "deleted"
+      ? saved
+      : undefined;
 
   return (
     <AppFrame

@@ -15,7 +15,7 @@ import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
 type WordFilter = "all" | "unknown" | "stale";
-type SaveStatus = "created" | "updated";
+type SaveStatus = "created" | "updated" | "deleted";
 
 const viewTabs: Array<{
   label: string;
@@ -125,6 +125,10 @@ function getSaveStatusMessage(saveStatus?: SaveStatus) {
 
   if (saveStatus === "updated") {
     return "단어를 수정했습니다.";
+  }
+
+  if (saveStatus === "deleted") {
+    return "단어를 삭제했습니다.";
   }
 
   return "";
