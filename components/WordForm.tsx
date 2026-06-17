@@ -55,6 +55,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingFurigana, setIsGeneratingFurigana] = useState(false);
 
   const loadWord = useCallback(async () => {
     if (!isEdit || !wordId || !session) {
@@ -140,6 +141,45 @@ export function WordForm({ mode, wordId }: WordFormProps) {
     }
   }
 
+  async function handleGenerateFurigana() {
+    const text = form.kanji.trim();
+
+    if (!text) {
+      setErrorMessage("한자 / 단어를 먼저 입력해주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsGeneratingFurigana(true);
+
+    try {
+      const response = await fetch("/api/furigana", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+      const data = (await response.json()) as {
+        furigana?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.furigana) {
+        throw new Error(data.error ?? "failed to generate furigana");
+      }
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        yomikataFurigana: data.furigana ?? "",
+      }));
+    } catch {
+      setErrorMessage("후리가나를 자동 생성하지 못했습니다.");
+    } finally {
+      setIsGeneratingFurigana(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="flex flex-1 items-center justify-center">
@@ -182,10 +222,11 @@ export function WordForm({ mode, wordId }: WordFormProps) {
           />
           <button
             className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled
+            disabled={isGeneratingFurigana || isSubmitting || !form.kanji.trim()}
+            onClick={handleGenerateFurigana}
             type="button"
           >
-            자동 생성
+            {isGeneratingFurigana ? "생성 중" : "자동 생성"}
           </button>
         </div>
       </label>
