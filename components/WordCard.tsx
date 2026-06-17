@@ -59,22 +59,20 @@ export function WordCard({
           aria-label={`${word.kanji} 카드 공개`}
           onClick={maskedField === "kanji" ? onToggleReveal : undefined}
         >
-          <p
-            className={`text-lg font-bold leading-7 tracking-normal text-word-kanji ${
+          <div
+            className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${
               activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
             }`}
           >
-            {word.kanji}
-          </p>
-          {word.yomikataFurigana ? (
-            <p
-              className={`text-xs font-medium leading-5 text-blue-500 ${
-                activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
-              }`}
-            >
-              {word.yomikataFurigana}
+            <p className="text-lg font-bold leading-7 tracking-normal text-word-kanji">
+              {word.kanji}
             </p>
-          ) : null}
+            {word.yomikataFurigana ? (
+              <p className="text-xs font-medium leading-5 text-blue-500">
+                {word.yomikataFurigana}
+              </p>
+            ) : null}
+          </div>
         </button>
         <div className="flex shrink-0 items-center gap-1">
           {revealHint ? (
@@ -133,28 +131,32 @@ export function WordCard({
 
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           <button
-            className={`min-h-10 rounded-md border px-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            aria-label={`${word.kanji} 알았어요`}
+            className={`grid h-9 w-9 place-items-center rounded-md border text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-slate-200 text-slate-700"
             }`}
             disabled={isUpdatingStudyStatus}
             onClick={() => onStudyStatusChange?.("known")}
+            title="알았어요"
             type="button"
           >
-            알았어요
+            ✓
           </button>
           <button
-            className={`min-h-10 rounded-md px-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            aria-label={`${word.kanji} 모르겠어요`}
+            className={`grid h-9 w-9 place-items-center rounded-md text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown ? "bg-slate-950 text-white" : "bg-red-600 text-white"
             }`}
             disabled={isUpdatingStudyStatus}
             onClick={() => onStudyStatusChange?.("unknown")}
+            title="모르겠어요"
             type="button"
           >
-            모르겠어요
+            ?
           </button>
         </div>
       </div>
