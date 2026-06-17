@@ -4,6 +4,8 @@ import type { Word } from "@/types/word";
 type WordCardProps = {
   word: Word;
   maskedField?: "kanji" | "meaning" | "example";
+  isRevealed?: boolean;
+  onToggleReveal?: () => void;
 };
 
 function formatLastSeen(word: Word) {
@@ -14,8 +16,38 @@ function formatLastSeen(word: Word) {
   return `마지막 확인 ${word.lastSeenAt.toDate().toLocaleDateString("ko-KR")}`;
 }
 
-export function WordCard({ word, maskedField }: WordCardProps) {
+function hasMaskedContent(word: Word, maskedField?: "kanji" | "meaning" | "example") {
+  if (maskedField === "kanji") {
+    return true;
+  }
+
+  if (maskedField === "meaning") {
+    return Boolean(word.meaning);
+  }
+
+  if (maskedField === "example") {
+    return Boolean(word.exampleSentence || word.exampleTranslation);
+  }
+
+  return false;
+}
+
+export function WordCard({
+  word,
+  maskedField,
+  isRevealed = false,
+  onToggleReveal,
+}: WordCardProps) {
   const lastSeenLabel = formatLastSeen(word);
+  const activeMaskedField = isRevealed ? undefined : maskedField;
+  const canToggleReveal = Boolean(
+    maskedField && hasMaskedContent(word, maskedField) && onToggleReveal,
+  );
+  const revealHint = canToggleReveal
+    ? isRevealed
+      ? "다시 가리기"
+      : "눌러서 보기"
+    : null;
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -24,10 +56,11 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           type="button"
           className="min-w-0 flex-1 text-left"
           aria-label={`${word.kanji} 카드 공개`}
+          onClick={maskedField === "kanji" ? onToggleReveal : undefined}
         >
           <p
             className={`text-xl font-bold tracking-normal text-word-kanji ${
-              maskedField === "kanji" ? "blur-sm opacity-45" : ""
+              activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
             }`}
           >
             {word.kanji}
@@ -35,7 +68,7 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           {word.yomikataFurigana ? (
             <p
               className={`mt-1 text-sm font-medium text-blue-500 ${
-                maskedField === "kanji" ? "blur-sm opacity-45" : ""
+                activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
               }`}
             >
               {word.yomikataFurigana}
@@ -55,10 +88,11 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           type="button"
           className="mt-4 w-full text-left"
           aria-label={`${word.kanji} 뜻 공개`}
+          onClick={maskedField === "meaning" ? onToggleReveal : undefined}
         >
           <p
             className={`text-base font-semibold text-word-meaning ${
-              maskedField === "meaning" ? "blur-sm opacity-45" : ""
+              activeMaskedField === "meaning" ? "blur-sm opacity-45" : ""
             }`}
           >
             {word.meaning}
@@ -71,11 +105,12 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           type="button"
           className="mt-4 w-full text-left"
           aria-label={`${word.kanji} 예문 공개`}
+          onClick={maskedField === "example" ? onToggleReveal : undefined}
         >
           {word.exampleSentence ? (
             <p
               className={`text-sm font-semibold leading-6 text-word-example ${
-                maskedField === "example" ? "blur-sm opacity-45" : ""
+                activeMaskedField === "example" ? "blur-sm opacity-45" : ""
               }`}
             >
               {word.exampleSentence}
@@ -84,12 +119,22 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           {word.exampleTranslation ? (
             <p
               className={`mt-1 text-sm leading-6 text-slate-500 ${
-                maskedField === "example" ? "blur-sm opacity-45" : ""
+                activeMaskedField === "example" ? "blur-sm opacity-45" : ""
               }`}
             >
               {word.exampleTranslation}
             </p>
           ) : null}
+        </button>
+      ) : null}
+
+      {revealHint ? (
+        <button
+          className="mt-4 min-h-10 w-full rounded-md bg-slate-100 text-sm font-bold text-slate-600"
+          onClick={onToggleReveal}
+          type="button"
+        >
+          {revealHint}
         </button>
       ) : null}
 
