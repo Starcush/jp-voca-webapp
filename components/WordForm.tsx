@@ -47,6 +47,49 @@ function normalizeInput(form: WordFormState): NewWordInput {
   };
 }
 
+function getFirebaseErrorCode(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+
+    return typeof code === "string" ? code : "";
+  }
+
+  return "";
+}
+
+function getWordFormErrorMessage(
+  error: unknown,
+  action: "load" | "save" | "delete",
+) {
+  const code = getFirebaseErrorCode(error);
+
+  if (code === "permission-denied") {
+    return "Firestore 권한이 부족합니다. Firebase Rules가 배포 환경의 프로젝트에 반영됐는지 확인해주세요.";
+  }
+
+  if (code === "not-found") {
+    return "단어를 찾을 수 없습니다. 이미 삭제됐거나 접근할 수 없는 단어일 수 있습니다.";
+  }
+
+  if (code === "unavailable") {
+    return "Firestore에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.";
+  }
+
+  if (code === "invalid-argument") {
+    return "저장할 수 없는 값이 포함되어 있습니다. 입력값을 확인한 뒤 다시 시도해주세요.";
+  }
+
+  if (action === "load") {
+    return "단어를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  if (action === "delete") {
+    return "단어를 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  return "단어를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 export function WordForm({ mode, wordId }: WordFormProps) {
   const router = useRouter();
   const session = useSession();
@@ -74,8 +117,9 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       }
 
       setForm(toFormState(word));
-    } catch {
-      setErrorMessage("단어를 불러오지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to load word.", error);
+      setErrorMessage(getWordFormErrorMessage(error, "load"));
     } finally {
       setIsLoading(false);
     }
@@ -116,8 +160,9 @@ export function WordForm({ mode, wordId }: WordFormProps) {
 
       router.replace("/words");
       router.refresh();
-    } catch {
-      setErrorMessage("단어를 저장하지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to save word.", error);
+      setErrorMessage(getWordFormErrorMessage(error, "save"));
     } finally {
       setIsSubmitting(false);
     }
@@ -135,8 +180,9 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       await deleteWord(wordId);
       router.replace("/words");
       router.refresh();
-    } catch {
-      setErrorMessage("단어를 삭제하지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to delete word.", error);
+      setErrorMessage(getWordFormErrorMessage(error, "delete"));
       setIsSubmitting(false);
     }
   }
