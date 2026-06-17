@@ -8,6 +8,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
   type CollectionReference,
@@ -15,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { WORDS_COLLECTION, wordPath } from "@/lib/firestore-paths";
-import type { NewWordInput, UpdateWordInput, Word } from "@/types/word";
+import type { NewWordInput, UpdateWordInput, Word, WordStatus } from "@/types/word";
 
 function buildCreateWordData(uid: string, input: NewWordInput) {
   return {
@@ -108,6 +109,17 @@ export async function createWord(uid: string, input: NewWordInput) {
 
 export async function updateWord(wordId: string, input: UpdateWordInput) {
   await updateDoc(wordDocument(wordId), buildUpdateWordData(input));
+}
+
+export async function updateWordStudyStatus(wordId: string, status: WordStatus) {
+  const lastSeenAt = Timestamp.now();
+
+  await updateWord(wordId, {
+    status,
+    lastSeenAt,
+  });
+
+  return lastSeenAt;
 }
 
 export async function deleteWord(wordId: string) {

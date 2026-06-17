@@ -1,10 +1,12 @@
 import Link from "next/link";
-import type { Word } from "@/types/word";
+import type { Word, WordStatus } from "@/types/word";
 
 type WordCardProps = {
   word: Word;
-  maskedField?: "kanji" | "meaning" | "example";
+  maskedField?: "kanji" | "meaning";
   isRevealed?: boolean;
+  isUpdatingStudyStatus?: boolean;
+  onStudyStatusChange?: (status: WordStatus) => void;
   onToggleReveal?: () => void;
 };
 
@@ -16,17 +18,13 @@ function formatLastSeen(word: Word) {
   return `마지막 확인 ${word.lastSeenAt.toDate().toLocaleDateString("ko-KR")}`;
 }
 
-function hasMaskedContent(word: Word, maskedField?: "kanji" | "meaning" | "example") {
+function hasMaskedContent(word: Word, maskedField?: "kanji" | "meaning") {
   if (maskedField === "kanji") {
     return true;
   }
 
   if (maskedField === "meaning") {
     return Boolean(word.meaning);
-  }
-
-  if (maskedField === "example") {
-    return Boolean(word.exampleSentence || word.exampleTranslation);
   }
 
   return false;
@@ -36,6 +34,8 @@ export function WordCard({
   word,
   maskedField,
   isRevealed = false,
+  isUpdatingStudyStatus = false,
+  onStudyStatusChange,
   onToggleReveal,
 }: WordCardProps) {
   const lastSeenLabel = formatLastSeen(word);
@@ -48,6 +48,7 @@ export function WordCard({
       ? "다시 가리기"
       : "눌러서 보기"
     : null;
+  const isKnown = word.status === "known";
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -105,23 +106,14 @@ export function WordCard({
           type="button"
           className="mt-4 w-full text-left"
           aria-label={`${word.kanji} 예문 공개`}
-          onClick={maskedField === "example" ? onToggleReveal : undefined}
         >
           {word.exampleSentence ? (
-            <p
-              className={`text-sm font-semibold leading-6 text-word-example ${
-                activeMaskedField === "example" ? "blur-sm opacity-45" : ""
-              }`}
-            >
+            <p className="text-sm font-semibold leading-6 text-word-example">
               {word.exampleSentence}
             </p>
           ) : null}
           {word.exampleTranslation ? (
-            <p
-              className={`mt-1 text-sm leading-6 text-slate-500 ${
-                activeMaskedField === "example" ? "blur-sm opacity-45" : ""
-              }`}
-            >
+            <p className="mt-1 text-sm leading-6 text-slate-500">
               {word.exampleTranslation}
             </p>
           ) : null}
@@ -141,10 +133,26 @@ export function WordCard({
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
         <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
         <div className="grid grid-cols-2 gap-2">
-          <button className="min-h-11 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700">
+          <button
+            className={`min-h-11 rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+              isKnown
+                ? "border-green-200 bg-green-50 text-green-700"
+                : "border-slate-200 text-slate-700"
+            }`}
+            disabled={isUpdatingStudyStatus}
+            onClick={() => onStudyStatusChange?.("known")}
+            type="button"
+          >
             알았어요
           </button>
-          <button className="min-h-11 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white">
+          <button
+            className={`min-h-11 rounded-md px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+              isKnown ? "bg-slate-950 text-white" : "bg-red-600 text-white"
+            }`}
+            disabled={isUpdatingStudyStatus}
+            onClick={() => onStudyStatusChange?.("unknown")}
+            type="button"
+          >
             모르겠어요
           </button>
         </div>

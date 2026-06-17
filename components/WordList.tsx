@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { listWords } from "@/lib/words";
+import { listWords, updateWordStudyStatus } from "@/lib/words";
 import { useSession } from "@/lib/use-session";
-import type { Word } from "@/types/word";
+import type { Word, WordStatus } from "@/types/word";
 import { WordCard } from "@/components/WordCard";
 
-type ViewMode = "all" | "kanji" | "meaning" | "example";
+type ViewMode = "all" | "kanji" | "meaning";
 
 const viewTabs: Array<{
   label: string;
@@ -16,7 +16,6 @@ const viewTabs: Array<{
   { label: "전체 보기", value: "all" },
   { label: "한자 가리기", value: "kanji" },
   { label: "뜻 가리기", value: "meaning" },
-  { label: "예문 가리기", value: "example" },
 ];
 
 const filters = ["전체", "모르는 것만", "오래 안 본 것"];
@@ -26,6 +25,7 @@ export function WordList() {
   const [words, setWords] = useState<Word[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
+  const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -75,6 +75,35 @@ export function WordList() {
 
       return nextWordIds;
     });
+  }
+
+  async function handleStudyStatusChange(wordId: string, status: WordStatus) {
+    setUpdatingWordIds((currentWordIds) => new Set(currentWordIds).add(wordId));
+    setErrorMessage("");
+
+    try {
+      const lastSeenAt = await updateWordStudyStatus(wordId, status);
+
+      setWords((currentWords) =>
+        currentWords.map((word) =>
+          word.id === wordId
+            ? {
+                ...word,
+                status,
+                lastSeenAt,
+              }
+            : word,
+        ),
+      );
+    } catch {
+      setErrorMessage("학습 상태를 저장하지 못했습니다.");
+    } finally {
+      setUpdatingWordIds((currentWordIds) => {
+        const nextWordIds = new Set(currentWordIds);
+        nextWordIds.delete(wordId);
+        return nextWordIds;
+      });
+    }
   }
 
   const toolbar = (
@@ -183,8 +212,10 @@ export function WordList() {
         {words.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}
+            isUpdatingStudyStatus={updatingWordIds.has(word.id)}
             key={word.id}
             maskedField={viewMode === "all" ? undefined : viewMode}
+            onStudyStatusChange={(status) => handleStudyStatusChange(word.id, status)}
             onToggleReveal={() => toggleWordReveal(word.id)}
             word={word}
           />
