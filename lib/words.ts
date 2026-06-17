@@ -6,17 +6,25 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
   query,
   serverTimestamp,
+  startAfter,
   Timestamp,
   updateDoc,
   where,
   type CollectionReference,
   type DocumentReference,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { WORDS_COLLECTION, wordPath } from "@/lib/firestore-paths";
 import type { NewWordInput, UpdateWordInput, Word, WordStatus } from "@/types/word";
+
+const WORDS_PAGE_SIZE = 10;
+
+export type WordsPageCursor = QueryDocumentSnapshot<Omit<Word, "id">>;
 
 function buildCreateWordData(uid: string, input: NewWordInput) {
   return {
@@ -74,18 +82,29 @@ export function wordDocument(wordId: string) {
   return doc(getDb(), wordPath(wordId)) as DocumentReference<Omit<Word, "id">>;
 }
 
-export async function listWords(uid: string) {
-  const snapshot = await getDocs(query(wordsCollection(), where("uid", "==", uid)));
-  const words = snapshot.docs.map((wordSnapshot) => ({
+export async function listWordsPage(uid: string, cursor?: WordsPageCursor | null) {
+  const constraints = [
+    where("uid", "==", uid),
+    orderBy("createdAt", "desc"),
+    limit(WORDS_PAGE_SIZE + 1),
+  ];
+  const snapshot = await getDocs(
+    query(
+      wordsCollection(),
+      ...(cursor ? [...constraints, startAfter(cursor)] : constraints),
+    ),
+  );
+  const pageSnapshots = snapshot.docs.slice(0, WORDS_PAGE_SIZE);
+  const words = pageSnapshots.map((wordSnapshot) => ({
     id: wordSnapshot.id,
     ...wordSnapshot.data(),
   }));
 
-  return words.sort((a, b) => {
-    const aCreatedAt = a.createdAt?.toMillis?.() ?? 0;
-    const bCreatedAt = b.createdAt?.toMillis?.() ?? 0;
-    return bCreatedAt - aCreatedAt;
-  });
+  return {
+    words,
+    cursor: pageSnapshots.at(-1) ?? null,
+    hasMore: snapshot.docs.length > WORDS_PAGE_SIZE,
+  };
 }
 
 export async function getWord(wordId: string) {

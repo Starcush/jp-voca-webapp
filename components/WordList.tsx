@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { listWords, updateWordStudyStatus } from "@/lib/words";
+import {
+  listWordsPage,
+  updateWordStudyStatus,
+  type WordsPageCursor,
+} from "@/lib/words";
 import { useSession } from "@/lib/use-session";
 import type { Word, WordStatus } from "@/types/word";
 import { WordCard } from "@/components/WordCard";
@@ -72,10 +76,13 @@ export function WordList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
+  const [cursor, setCursor] = useState<WordsPageCursor | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const loadWords = useCallback(async () => {
+  const loadFirstPage = useCallback(async () => {
     if (!session) {
       return;
     }
@@ -84,7 +91,10 @@ export function WordList() {
     setIsLoading(true);
 
     try {
-      setWords(await listWords(session.uid));
+      const page = await listWordsPage(session.uid);
+      setWords(page.words);
+      setCursor(page.cursor);
+      setHasMore(page.hasMore);
     } catch {
       setErrorMessage("단어 목록을 불러오지 못했습니다.");
     } finally {
@@ -94,11 +104,36 @@ export function WordList() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadWords();
+      void loadFirstPage();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [loadWords]);
+  }, [loadFirstPage]);
+
+  async function loadNextPage() {
+    if (!session || !cursor || isLoadingMore) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsLoadingMore(true);
+
+    try {
+      const page = await listWordsPage(session.uid, cursor);
+      setWords((currentWords) => {
+        const currentWordIds = new Set(currentWords.map((word) => word.id));
+        const nextWords = page.words.filter((word) => !currentWordIds.has(word.id));
+
+        return [...currentWords, ...nextWords];
+      });
+      setCursor(page.cursor);
+      setHasMore(page.hasMore);
+    } catch {
+      setErrorMessage("단어를 더 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
 
   function handleViewModeChange(nextViewMode: ViewMode) {
     setViewMode(nextViewMode);
@@ -225,7 +260,7 @@ export function WordList() {
           </p>
           <button
             className="min-h-12 rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700"
-            onClick={loadWords}
+            onClick={loadFirstPage}
             type="button"
           >
             다시 불러오기
@@ -267,6 +302,18 @@ export function WordList() {
             검색어를 지우거나 다른 필터를 선택해보세요.
           </p>
         </section>
+        {hasMore ? (
+          <div className="pb-24">
+            <button
+              className="min-h-12 w-full rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isLoadingMore}
+              onClick={loadNextPage}
+              type="button"
+            >
+              {isLoadingMore ? "불러오는 중" : "더 보기"}
+            </button>
+          </div>
+        ) : null}
         <Link
           aria-label="단어 추가"
           className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
@@ -294,6 +341,20 @@ export function WordList() {
           />
         ))}
       </section>
+      {hasMore ? (
+        <div className="pb-24">
+          <button
+            className="min-h-12 w-full rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isLoadingMore}
+            onClick={loadNextPage}
+            type="button"
+          >
+            {isLoadingMore ? "불러오는 중" : "더 보기"}
+          </button>
+        </div>
+      ) : (
+        <div className="pb-24" />
+      )}
       <Link
         aria-label="단어 추가"
         className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
