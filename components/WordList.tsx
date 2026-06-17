@@ -8,6 +8,7 @@ import type { Word, WordStatus } from "@/types/word";
 import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
+type WordFilter = "all" | "unknown" | "stale";
 
 const viewTabs: Array<{
   label: string;
@@ -18,12 +19,57 @@ const viewTabs: Array<{
   { label: "뜻 가리기", value: "meaning" },
 ];
 
-const filters = ["전체", "모르는 것만", "오래 안 본 것"];
+const filters: Array<{
+  label: string;
+  value: WordFilter;
+}> = [
+  { label: "전체", value: "all" },
+  { label: "모르는 것만", value: "unknown" },
+  { label: "오래 안 본 것", value: "stale" },
+];
+
+function getLastSeenTime(word: Word) {
+  return word.lastSeenAt?.toMillis?.() ?? 0;
+}
+
+function matchesSearch(word: Word, searchQuery: string) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [
+    word.kanji,
+    word.yomikataFurigana,
+    word.meaning,
+    word.exampleSentence,
+    word.exampleTranslation,
+  ]
+    .filter(Boolean)
+    .some((value) => value?.toLowerCase().includes(normalizedQuery));
+}
+
+function applyFilter(words: Word[], filter: WordFilter, searchQuery: string) {
+  const searchedWords = words.filter((word) => matchesSearch(word, searchQuery));
+
+  if (filter === "unknown") {
+    return searchedWords.filter((word) => word.status === "unknown");
+  }
+
+  if (filter === "stale") {
+    return [...searchedWords].sort((a, b) => getLastSeenTime(a) - getLastSeenTime(b));
+  }
+
+  return searchedWords;
+}
 
 export function WordList() {
   const session = useSession();
   const [words, setWords] = useState<Word[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
+  const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState("");
@@ -106,6 +152,8 @@ export function WordList() {
     }
   }
 
+  const filteredWords = applyFilter(words, activeFilter, searchQuery);
+
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -127,17 +175,19 @@ export function WordList() {
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-2">
-        {filters.map((filter, index) => (
+        {filters.map((filter) => (
           <button
+            aria-pressed={activeFilter === filter.value}
             className={`min-h-10 rounded-md text-sm font-semibold ${
-              index === 0
+              activeFilter === filter.value
                 ? "bg-blue-50 text-blue-700"
                 : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200"
             }`}
-            key={filter}
+            key={filter.value}
+            onClick={() => setActiveFilter(filter.value)}
             type="button"
           >
-            {filter}
+            {filter.label}
           </button>
         ))}
       </div>
@@ -146,7 +196,9 @@ export function WordList() {
         <span className="sr-only">단어 검색</span>
         <input
           className="min-h-11 w-full rounded-lg border-slate-200 bg-white text-base"
+          onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="한자, 뜻, 예문 검색"
+          value={searchQuery}
         />
       </label>
     </section>
@@ -205,11 +257,32 @@ export function WordList() {
     );
   }
 
+  if (filteredWords.length === 0) {
+    return (
+      <>
+        {toolbar}
+        <section className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
+          <p className="text-lg font-bold text-slate-950">조건에 맞는 단어가 없습니다</p>
+          <p className="text-sm leading-6 text-slate-500">
+            검색어를 지우거나 다른 필터를 선택해보세요.
+          </p>
+        </section>
+        <Link
+          aria-label="단어 추가"
+          className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
+          href="/words/new"
+        >
+          +
+        </Link>
+      </>
+    );
+  }
+
   return (
     <>
       {toolbar}
       <section className="grid gap-3 py-4">
-        {words.map((word) => (
+        {filteredWords.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}
             isUpdatingStudyStatus={updatingWordIds.has(word.id)}
