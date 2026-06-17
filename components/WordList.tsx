@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   listWordsPage,
@@ -13,6 +14,7 @@ import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
 type WordFilter = "all" | "unknown" | "stale";
+type SaveStatus = "created" | "updated";
 
 const viewTabs: Array<{
   label: string;
@@ -92,7 +94,24 @@ function getWordListErrorMessage(error: unknown) {
   return "단어 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
-export function WordList() {
+type WordListProps = {
+  saveStatus?: SaveStatus;
+};
+
+function getSaveStatusMessage(saveStatus?: SaveStatus) {
+  if (saveStatus === "created") {
+    return "단어를 추가했습니다.";
+  }
+
+  if (saveStatus === "updated") {
+    return "단어를 수정했습니다.";
+  }
+
+  return "";
+}
+
+export function WordList({ saveStatus }: WordListProps) {
+  const router = useRouter();
   const session = useSession();
   const [words, setWords] = useState<Word[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
@@ -103,6 +122,9 @@ export function WordList() {
   const [cursor, setCursor] = useState<WordsPageCursor | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(() =>
+    getSaveStatusMessage(saveStatus),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -134,6 +156,26 @@ export function WordList() {
 
     return () => window.clearTimeout(timeoutId);
   }, [loadFirstPage]);
+
+  useEffect(() => {
+    const message = getSaveStatusMessage(saveStatus);
+
+    if (!message) {
+      return;
+    }
+
+    const clearMessageTimeoutId = window.setTimeout(() => {
+      setSuccessMessage("");
+    }, 2500);
+    const clearUrlTimeoutId = window.setTimeout(() => {
+      router.replace("/words", { scroll: false });
+    }, 2600);
+
+    return () => {
+      window.clearTimeout(clearMessageTimeoutId);
+      window.clearTimeout(clearUrlTimeoutId);
+    };
+  }, [router, saveStatus]);
 
   async function loadNextPage() {
     if (!session || !cursor || isLoadingMore) {
@@ -219,6 +261,11 @@ export function WordList() {
   }
 
   const filteredWords = applyFilter(words, activeFilter, searchQuery);
+  const successBanner = successMessage ? (
+    <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
+      {successMessage}
+    </p>
+  ) : null;
 
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
@@ -274,6 +321,7 @@ export function WordList() {
     return (
       <>
         {toolbar}
+        {successBanner ? <section className="pt-3">{successBanner}</section> : null}
         <section className="flex flex-1 items-center justify-center py-16">
           <p className="text-sm font-semibold text-slate-500">단어를 불러오는 중</p>
         </section>
@@ -286,6 +334,7 @@ export function WordList() {
       <>
         {toolbar}
         <section className="grid gap-3 py-4">
+          {successBanner}
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {errorMessage}
           </p>
@@ -304,6 +353,7 @@ export function WordList() {
   if (words.length === 0) {
     return (
       <section className="flex flex-1 flex-col items-center gap-4 pt-12 text-center">
+        {successBanner}
         <div>
           <p className="text-lg font-bold text-slate-950">첫 단어를 추가해볼까요?</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -325,6 +375,7 @@ export function WordList() {
       <>
         {toolbar}
         <section className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
+          {successBanner}
           <p className="text-lg font-bold text-slate-950">조건에 맞는 단어가 없습니다</p>
           <p className="text-sm leading-6 text-slate-500">
             검색어를 지우거나 다른 필터를 선택해보세요.
@@ -363,6 +414,7 @@ export function WordList() {
   return (
     <>
       {toolbar}
+      {successBanner ? <section className="pt-3">{successBanner}</section> : null}
       <section className="grid gap-2 py-3">
         {filteredWords.map((word) => (
           <WordCard

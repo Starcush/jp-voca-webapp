@@ -158,7 +158,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
         await createWord(session.uid, input);
       }
 
-      router.replace("/words");
+      router.replace(`/words?saved=${isEdit ? "updated" : "created"}`);
       router.refresh();
     } catch (error) {
       console.error("Failed to save word.", error);
