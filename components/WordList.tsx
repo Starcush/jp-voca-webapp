@@ -354,7 +354,7 @@ export function WordList() {
   return (
     <>
       {toolbar}
-      <section className="grid gap-3 py-4">
+      <section className="grid gap-2 py-3">
         {filteredWords.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}

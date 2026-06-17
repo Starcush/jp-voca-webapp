@@ -51,8 +51,8 @@ export function WordCard({
   const isKnown = word.status === "known";
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
@@ -60,7 +60,7 @@ export function WordCard({
           onClick={maskedField === "kanji" ? onToggleReveal : undefined}
         >
           <p
-            className={`text-xl font-bold tracking-normal text-word-kanji ${
+            className={`text-lg font-bold leading-7 tracking-normal text-word-kanji ${
               activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
             }`}
           >
@@ -68,7 +68,7 @@ export function WordCard({
           </p>
           {word.yomikataFurigana ? (
             <p
-              className={`mt-1 text-sm font-medium text-blue-500 ${
+              className={`text-xs font-medium leading-5 text-blue-500 ${
                 activeMaskedField === "kanji" ? "blur-sm opacity-45" : ""
               }`}
             >
@@ -76,23 +76,34 @@ export function WordCard({
             </p>
           ) : null}
         </button>
-        <Link
-          href={`/words/${word.id}/edit`}
-          className="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600"
-        >
-          수정
-        </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          {revealHint ? (
+            <button
+              className="min-h-9 rounded-md bg-slate-100 px-2 text-xs font-bold text-slate-600"
+              onClick={onToggleReveal}
+              type="button"
+            >
+              {revealHint}
+            </button>
+          ) : null}
+          <Link
+            href={`/words/${word.id}/edit`}
+            className="grid min-h-9 place-items-center rounded-md border border-slate-200 px-2 text-xs font-semibold text-slate-600"
+          >
+            수정
+          </Link>
+        </div>
       </div>
 
       {word.meaning ? (
         <button
           type="button"
-          className="mt-4 w-full text-left"
+          className="mt-2 w-full text-left"
           aria-label={`${word.kanji} 뜻 공개`}
           onClick={maskedField === "meaning" ? onToggleReveal : undefined}
         >
           <p
-            className={`text-base font-semibold text-word-meaning ${
+            className={`text-sm font-semibold leading-6 text-word-meaning ${
               activeMaskedField === "meaning" ? "blur-sm opacity-45" : ""
             }`}
           >
@@ -104,37 +115,27 @@ export function WordCard({
       {word.exampleSentence || word.exampleTranslation ? (
         <button
           type="button"
-          className="mt-4 w-full text-left"
+          className="mt-2 w-full text-left"
           aria-label={`${word.kanji} 예문 공개`}
         >
           {word.exampleSentence ? (
-            <p className="text-sm font-semibold leading-6 text-word-example">
+            <p className="overflow-hidden text-xs font-semibold leading-5 text-word-example [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {word.exampleSentence}
             </p>
           ) : null}
           {word.exampleTranslation ? (
-            <p className="mt-1 text-sm leading-6 text-slate-500">
+            <p className="mt-0.5 overflow-hidden text-xs leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {word.exampleTranslation}
             </p>
           ) : null}
         </button>
       ) : null}
 
-      {revealHint ? (
-        <button
-          className="mt-4 min-h-10 w-full rounded-md bg-slate-100 text-sm font-bold text-slate-600"
-          onClick={onToggleReveal}
-          type="button"
-        >
-          {revealHint}
-        </button>
-      ) : null}
-
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
-            className={`min-h-11 rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`min-h-10 rounded-md border px-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-slate-200 text-slate-700"
@@ -146,7 +147,7 @@ export function WordCard({
             알았어요
           </button>
           <button
-            className={`min-h-11 rounded-md px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`min-h-10 rounded-md px-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown ? "bg-slate-950 text-white" : "bg-red-600 text-white"
             }`}
             disabled={isUpdatingStudyStatus}
