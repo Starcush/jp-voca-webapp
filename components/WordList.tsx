@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
+  getWord,
   listWordsPage,
   updateWordStudyStatus,
   type WordsPageCursor,
@@ -95,6 +96,7 @@ function getWordListErrorMessage(error: unknown) {
 }
 
 type WordListProps = {
+  highlightedWordId?: string;
   saveStatus?: SaveStatus;
 };
 
@@ -110,10 +112,13 @@ function getSaveStatusMessage(saveStatus?: SaveStatus) {
   return "";
 }
 
-export function WordList({ saveStatus }: WordListProps) {
+export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
   const router = useRouter();
   const session = useSession();
   const [words, setWords] = useState<Word[]>([]);
+  const [activeHighlightedWordId, setActiveHighlightedWordId] = useState(
+    highlightedWordId ?? "",
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,7 +143,24 @@ export function WordList({ saveStatus }: WordListProps) {
 
     try {
       const page = await listWordsPage(session.uid);
-      setWords(page.words);
+      let nextWords = page.words;
+
+      if (
+        highlightedWordId &&
+        !nextWords.some((word) => word.id === highlightedWordId)
+      ) {
+        try {
+          const highlightedWord = await getWord(highlightedWordId);
+
+          if (highlightedWord?.uid === session.uid) {
+            nextWords = [highlightedWord, ...nextWords];
+          }
+        } catch (error) {
+          console.error("Failed to load highlighted word.", error);
+        }
+      }
+
+      setWords(nextWords);
       setCursor(page.cursor);
       setHasMore(page.hasMore);
     } catch (error) {
@@ -147,7 +169,7 @@ export function WordList({ saveStatus }: WordListProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [highlightedWordId, session]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -167,12 +189,16 @@ export function WordList({ saveStatus }: WordListProps) {
     const clearMessageTimeoutId = window.setTimeout(() => {
       setSuccessMessage("");
     }, 2500);
+    const clearHighlightTimeoutId = window.setTimeout(() => {
+      setActiveHighlightedWordId("");
+    }, 3500);
     const clearUrlTimeoutId = window.setTimeout(() => {
       router.replace("/words", { scroll: false });
     }, 2600);
 
     return () => {
       window.clearTimeout(clearMessageTimeoutId);
+      window.clearTimeout(clearHighlightTimeoutId);
       window.clearTimeout(clearUrlTimeoutId);
     };
   }, [router, saveStatus]);
@@ -419,6 +445,7 @@ export function WordList({ saveStatus }: WordListProps) {
         {filteredWords.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}
+            isHighlighted={word.id === activeHighlightedWordId}
             isUpdatingStudyStatus={updatingWordIds.has(word.id)}
             key={word.id}
             maskedField={viewMode === "all" ? undefined : viewMode}

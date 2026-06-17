@@ -6,11 +6,12 @@ import { WordList } from "@/components/WordList";
 type WordsPageProps = {
   searchParams: Promise<{
     saved?: string;
+    wordId?: string;
   }>;
 };
 
 export default async function WordsPage({ searchParams }: WordsPageProps) {
-  const { saved } = await searchParams;
+  const { saved, wordId } = await searchParams;
   const saveStatus = saved === "created" || saved === "updated" ? saved : undefined;
 
   return (
@@ -19,7 +20,7 @@ export default async function WordsPage({ searchParams }: WordsPageProps) {
       action={<AuthStatus />}
     >
       <RequireSession>
-        <WordList saveStatus={saveStatus} />
+        <WordList highlightedWordId={wordId} saveStatus={saveStatus} />
       </RequireSession>
     </AppFrame>
   );

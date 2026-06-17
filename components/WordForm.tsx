@@ -152,13 +152,23 @@ export function WordForm({ mode, wordId }: WordFormProps) {
     setIsSubmitting(true);
 
     try {
+      let savedWordId = wordId;
+
       if (isEdit && wordId) {
         await updateWord(wordId, input);
       } else {
-        await createWord(session.uid, input);
+        savedWordId = await createWord(session.uid, input);
       }
 
-      router.replace(`/words?saved=${isEdit ? "updated" : "created"}`);
+      const params = new URLSearchParams({
+        saved: isEdit ? "updated" : "created",
+      });
+
+      if (savedWordId) {
+        params.set("wordId", savedWordId);
+      }
+
+      router.replace(`/words?${params.toString()}`);
       router.refresh();
     } catch (error) {
       console.error("Failed to save word.", error);
