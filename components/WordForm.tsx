@@ -11,7 +11,13 @@ type WordFormProps = {
   wordId?: string;
 };
 
-type WordFormState = NewWordInput;
+type WordFormState = {
+  kanji: string;
+  yomikataFurigana: string;
+  meaning: string;
+  exampleSentence: string;
+  exampleTranslation: string;
+};
 
 const emptyForm: WordFormState = {
   kanji: "",
@@ -24,9 +30,9 @@ const emptyForm: WordFormState = {
 function toFormState(word: Word): WordFormState {
   return {
     kanji: word.kanji,
-    yomikataFurigana: word.yomikataFurigana,
-    meaning: word.meaning,
-    exampleSentence: word.exampleSentence,
+    yomikataFurigana: word.yomikataFurigana ?? "",
+    meaning: word.meaning ?? "",
+    exampleSentence: word.exampleSentence ?? "",
     exampleTranslation: word.exampleTranslation ?? "",
   };
 }
@@ -34,9 +40,9 @@ function toFormState(word: Word): WordFormState {
 function normalizeInput(form: WordFormState): NewWordInput {
   return {
     kanji: form.kanji.trim(),
-    yomikataFurigana: form.yomikataFurigana.trim(),
-    meaning: form.meaning.trim(),
-    exampleSentence: form.exampleSentence.trim(),
+    yomikataFurigana: form.yomikataFurigana.trim() || undefined,
+    meaning: form.meaning.trim() || undefined,
+    exampleSentence: form.exampleSentence.trim() || undefined,
     exampleTranslation: form.exampleTranslation?.trim() || undefined,
   };
 }
@@ -92,8 +98,8 @@ export function WordForm({ mode, wordId }: WordFormProps) {
 
     const input = normalizeInput(form);
 
-    if (!input.kanji || !input.yomikataFurigana || !input.meaning || !input.exampleSentence) {
-      setErrorMessage("한자, 후리가나, 뜻, 예문을 모두 입력해주세요.");
+    if (!input.kanji) {
+      setErrorMessage("한자 / 단어를 입력해주세요.");
       return;
     }
 
@@ -145,17 +151,26 @@ export function WordForm({ mode, wordId }: WordFormProps) {
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">한자 / 단어</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          한자 / 단어
+          <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-bold text-red-600">
+            필수
+          </span>
+        </span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
           onChange={(event) => setForm({ ...form, kanji: event.target.value })}
           placeholder="食べる"
+          required
           value={form.kanji}
         />
       </label>
 
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">후리가나</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          후리가나
+          <span className="text-xs font-semibold text-slate-400">선택</span>
+        </span>
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <input
             className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
@@ -176,7 +191,10 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       </label>
 
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">뜻</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          뜻
+          <span className="text-xs font-semibold text-slate-400">선택</span>
+        </span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
           onChange={(event) => setForm({ ...form, meaning: event.target.value })}
@@ -186,7 +204,10 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       </label>
 
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">예문</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          예문
+          <span className="text-xs font-semibold text-slate-400">선택</span>
+        </span>
         <textarea
           className="min-h-28 rounded-lg border-slate-200 bg-white text-base leading-6"
           onChange={(event) => setForm({ ...form, exampleSentence: event.target.value })}
@@ -196,7 +217,10 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       </label>
 
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">예문 번역</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          예문 번역
+          <span className="text-xs font-semibold text-slate-400">선택</span>
+        </span>
         <textarea
           className="min-h-24 rounded-lg border-slate-200 bg-white text-base leading-6"
           onChange={(event) =>

@@ -20,9 +20,9 @@ import type { NewWordInput, UpdateWordInput, Word } from "@/types/word";
 function buildCreateWordData(uid: string, input: NewWordInput) {
   return {
     kanji: input.kanji,
-    yomikataFurigana: input.yomikataFurigana,
-    meaning: input.meaning,
-    exampleSentence: input.exampleSentence,
+    ...(input.yomikataFurigana ? { yomikataFurigana: input.yomikataFurigana } : {}),
+    ...(input.meaning ? { meaning: input.meaning } : {}),
+    ...(input.exampleSentence ? { exampleSentence: input.exampleSentence } : {}),
     ...(input.exampleTranslation ? { exampleTranslation: input.exampleTranslation } : {}),
     uid,
     status: "unknown" as const,
@@ -33,6 +33,15 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
 }
 
 function buildUpdateWordData(input: UpdateWordInput) {
+  const hasYomikataFurigana = Object.prototype.hasOwnProperty.call(
+    input,
+    "yomikataFurigana",
+  );
+  const hasMeaning = Object.prototype.hasOwnProperty.call(input, "meaning");
+  const hasExampleSentence = Object.prototype.hasOwnProperty.call(
+    input,
+    "exampleSentence",
+  );
   const hasExampleTranslation = Object.prototype.hasOwnProperty.call(
     input,
     "exampleTranslation",
@@ -40,12 +49,12 @@ function buildUpdateWordData(input: UpdateWordInput) {
 
   return {
     ...(input.kanji !== undefined ? { kanji: input.kanji } : {}),
-    ...(input.yomikataFurigana !== undefined
-      ? { yomikataFurigana: input.yomikataFurigana }
+    ...(hasYomikataFurigana
+      ? { yomikataFurigana: input.yomikataFurigana ?? deleteField() }
       : {}),
-    ...(input.meaning !== undefined ? { meaning: input.meaning } : {}),
-    ...(input.exampleSentence !== undefined
-      ? { exampleSentence: input.exampleSentence }
+    ...(hasMeaning ? { meaning: input.meaning ?? deleteField() } : {}),
+    ...(hasExampleSentence
+      ? { exampleSentence: input.exampleSentence ?? deleteField() }
       : {}),
     ...(hasExampleTranslation
       ? { exampleTranslation: input.exampleTranslation ?? deleteField() }

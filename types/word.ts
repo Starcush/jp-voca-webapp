@@ -6,9 +6,9 @@ export type Word = {
   id: string;
   uid: string;
   kanji: string;
-  yomikataFurigana: string;
-  meaning: string;
-  exampleSentence: string;
+  yomikataFurigana?: string;
+  meaning?: string;
+  exampleSentence?: string;
   exampleTranslation?: string;
   status: WordStatus;
   lastSeenAt: Timestamp | null;
@@ -18,9 +18,9 @@ export type Word = {
 
 export type NewWordInput = {
   kanji: string;
-  yomikataFurigana: string;
-  meaning: string;
-  exampleSentence: string;
+  yomikataFurigana?: string;
+  meaning?: string;
+  exampleSentence?: string;
   exampleTranslation?: string;
 };
 
@@ -28,4 +28,3 @@ export type UpdateWordInput = Partial<NewWordInput> & {
   status?: WordStatus;
   lastSeenAt?: Timestamp | null;
 };
-

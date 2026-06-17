@@ -32,13 +32,15 @@ export function WordCard({ word, maskedField }: WordCardProps) {
           >
             {word.kanji}
           </p>
-          <p
-            className={`mt-1 text-sm font-medium text-blue-500 ${
-              maskedField === "kanji" ? "blur-sm opacity-45" : ""
-            }`}
-          >
-            {word.yomikataFurigana}
-          </p>
+          {word.yomikataFurigana ? (
+            <p
+              className={`mt-1 text-sm font-medium text-blue-500 ${
+                maskedField === "kanji" ? "blur-sm opacity-45" : ""
+              }`}
+            >
+              {word.yomikataFurigana}
+            </p>
+          ) : null}
         </button>
         <Link
           href={`/words/${word.id}/edit`}
@@ -48,42 +50,48 @@ export function WordCard({ word, maskedField }: WordCardProps) {
         </Link>
       </div>
 
-      <button
-        type="button"
-        className="mt-4 w-full text-left"
-        aria-label={`${word.kanji} 뜻 공개`}
-      >
-        <p
-          className={`text-base font-semibold text-word-meaning ${
-            maskedField === "meaning" ? "blur-sm opacity-45" : ""
-          }`}
+      {word.meaning ? (
+        <button
+          type="button"
+          className="mt-4 w-full text-left"
+          aria-label={`${word.kanji} 뜻 공개`}
         >
-          {word.meaning}
-        </p>
-      </button>
-
-      <button
-        type="button"
-        className="mt-4 w-full text-left"
-        aria-label={`${word.kanji} 예문 공개`}
-      >
-        <p
-          className={`text-sm font-semibold leading-6 text-word-example ${
-            maskedField === "example" ? "blur-sm opacity-45" : ""
-          }`}
-        >
-          {word.exampleSentence}
-        </p>
-        {word.exampleTranslation ? (
           <p
-            className={`mt-1 text-sm leading-6 text-slate-500 ${
-              maskedField === "example" ? "blur-sm opacity-45" : ""
+            className={`text-base font-semibold text-word-meaning ${
+              maskedField === "meaning" ? "blur-sm opacity-45" : ""
             }`}
           >
-            {word.exampleTranslation}
+            {word.meaning}
           </p>
-        ) : null}
-      </button>
+        </button>
+      ) : null}
+
+      {word.exampleSentence || word.exampleTranslation ? (
+        <button
+          type="button"
+          className="mt-4 w-full text-left"
+          aria-label={`${word.kanji} 예문 공개`}
+        >
+          {word.exampleSentence ? (
+            <p
+              className={`text-sm font-semibold leading-6 text-word-example ${
+                maskedField === "example" ? "blur-sm opacity-45" : ""
+              }`}
+            >
+              {word.exampleSentence}
+            </p>
+          ) : null}
+          {word.exampleTranslation ? (
+            <p
+              className={`mt-1 text-sm leading-6 text-slate-500 ${
+                maskedField === "example" ? "blur-sm opacity-45" : ""
+              }`}
+            >
+              {word.exampleTranslation}
+            </p>
+          ) : null}
+        </button>
+      ) : null}
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
         <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
