@@ -68,6 +68,30 @@ function applyFilter(words: Word[], filter: WordFilter, searchQuery: string) {
   return searchedWords;
 }
 
+function getFirebaseErrorCode(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+
+    return typeof code === "string" ? code : "";
+  }
+
+  return "";
+}
+
+function getWordListErrorMessage(error: unknown) {
+  const code = getFirebaseErrorCode(error);
+
+  if (code === "failed-precondition") {
+    return "단어 목록 인덱스가 필요합니다. Firebase 콘솔에 뜨는 인덱스 생성 링크를 열어 uid 오름차순, createdAt 내림차순 인덱스를 만들어주세요.";
+  }
+
+  if (code === "permission-denied") {
+    return "Firestore 권한이 부족합니다. Firebase Rules가 배포 환경의 프로젝트에 반영됐는지 확인해주세요.";
+  }
+
+  return "단어 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 export function WordList() {
   const session = useSession();
   const [words, setWords] = useState<Word[]>([]);
@@ -95,8 +119,9 @@ export function WordList() {
       setWords(page.words);
       setCursor(page.cursor);
       setHasMore(page.hasMore);
-    } catch {
-      setErrorMessage("단어 목록을 불러오지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to load words.", error);
+      setErrorMessage(getWordListErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -128,8 +153,9 @@ export function WordList() {
       });
       setCursor(page.cursor);
       setHasMore(page.hasMore);
-    } catch {
-      setErrorMessage("단어를 더 불러오지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to load more words.", error);
+      setErrorMessage(getWordListErrorMessage(error));
     } finally {
       setIsLoadingMore(false);
     }
