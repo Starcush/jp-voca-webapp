@@ -95,6 +95,24 @@ function getWordListErrorMessage(error: unknown) {
   return "단어 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+function getStudyStatusErrorMessage(error: unknown) {
+  const code = getFirebaseErrorCode(error);
+
+  if (code === "permission-denied") {
+    return "학습 상태를 저장할 권한이 없습니다. Firebase Rules가 배포 환경의 프로젝트에 반영됐는지 확인해주세요.";
+  }
+
+  if (code === "not-found") {
+    return "단어를 찾을 수 없습니다. 이미 삭제됐거나 접근할 수 없는 단어일 수 있습니다.";
+  }
+
+  if (code === "unavailable") {
+    return "Firestore에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.";
+  }
+
+  return "학습 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 type WordListProps = {
   highlightedWordId?: string;
   saveStatus?: SaveStatus;
@@ -275,8 +293,9 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
             : word,
         ),
       );
-    } catch {
-      setErrorMessage("학습 상태를 저장하지 못했습니다.");
+    } catch (error) {
+      console.error("Failed to update study status.", error);
+      setErrorMessage(getStudyStatusErrorMessage(error));
     } finally {
       setUpdatingWordIds((currentWordIds) => {
         const nextWordIds = new Set(currentWordIds);
