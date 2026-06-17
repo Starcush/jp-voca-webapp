@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
+import { RequireSession } from "@/components/RequireSession";
 import { WordForm } from "@/components/WordForm";
 
 type EditWordPageProps = {
@@ -24,8 +25,9 @@ export default async function EditWordPage({ params }: EditWordPageProps) {
         </Link>
       }
     >
-      <WordForm mode="edit" />
+      <RequireSession>
+        <WordForm mode="edit" />
+      </RequireSession>
     </AppFrame>
   );
 }
-

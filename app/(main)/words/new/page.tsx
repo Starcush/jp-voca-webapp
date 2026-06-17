@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
+import { RequireSession } from "@/components/RequireSession";
 import { WordForm } from "@/components/WordForm";
 
 export default function NewWordPage() {
@@ -15,8 +16,9 @@ export default function NewWordPage() {
         </Link>
       }
     >
-      <WordForm mode="create" />
+      <RequireSession>
+        <WordForm mode="create" />
+      </RequireSession>
     </AppFrame>
   );
 }
-
