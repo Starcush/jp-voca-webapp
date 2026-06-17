@@ -1,22 +1,22 @@
 import Link from "next/link";
-
-export type WordCardData = {
-  id: string;
-  kanji: string;
-  yomikataFurigana: string;
-  meaning: string;
-  exampleSentence: string;
-  exampleTranslation?: string;
-  status: "known" | "unknown";
-  lastSeenLabel: string;
-};
+import type { Word } from "@/types/word";
 
 type WordCardProps = {
-  word: WordCardData;
+  word: Word;
   maskedField?: "kanji" | "meaning" | "example";
 };
 
+function formatLastSeen(word: Word) {
+  if (!word.lastSeenAt) {
+    return "아직 확인 전";
+  }
+
+  return `마지막 확인 ${word.lastSeenAt.toDate().toLocaleDateString("ko-KR")}`;
+}
+
 export function WordCard({ word, maskedField }: WordCardProps) {
+  const lastSeenLabel = formatLastSeen(word);
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -86,7 +86,7 @@ export function WordCard({ word, maskedField }: WordCardProps) {
       </button>
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        <p className="text-xs font-medium text-slate-500">{word.lastSeenLabel}</p>
+        <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
         <div className="grid grid-cols-2 gap-2">
           <button className="min-h-11 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700">
             알았어요
@@ -99,4 +99,3 @@ export function WordCard({ word, maskedField }: WordCardProps) {
     </article>
   );
 }
-

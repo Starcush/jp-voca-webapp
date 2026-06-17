@@ -2,33 +2,10 @@ import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { AuthStatus } from "@/components/AuthStatus";
 import { RequireSession } from "@/components/RequireSession";
-import { WordCard, type WordCardData } from "@/components/WordCard";
+import { WordList } from "@/components/WordList";
 
 const viewTabs = ["전체 보기", "한자 가리기", "뜻 가리기", "예문 가리기"];
 const filters = ["전체", "모르는 것만", "오래 안 본 것"];
-
-const previewWords: WordCardData[] = [
-  {
-    id: "taberu",
-    kanji: "食べる",
-    yomikataFurigana: "たべる",
-    meaning: "먹다",
-    exampleSentence: "朝ごはんを食べる。",
-    exampleTranslation: "아침밥을 먹다.",
-    status: "unknown",
-    lastSeenLabel: "아직 확인 전",
-  },
-  {
-    id: "hashiru",
-    kanji: "走る",
-    yomikataFurigana: "はしる",
-    meaning: "달리다",
-    exampleSentence: "公園で走る。",
-    exampleTranslation: "공원에서 달리다.",
-    status: "known",
-    lastSeenLabel: "마지막 확인 2일 전",
-  },
-];
 
 export default function WordsPage() {
   return (
@@ -77,17 +54,7 @@ export default function WordsPage() {
           </label>
         </section>
 
-        <section className="grid gap-3 py-4">
-          {previewWords.map((word) => (
-            <WordCard key={word.id} word={word} />
-          ))}
-        </section>
-
-        <div className="pb-24">
-          <button className="min-h-12 w-full rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700">
-            더 보기
-          </button>
-        </div>
+        <WordList />
 
         <Link
           href="/words/new"

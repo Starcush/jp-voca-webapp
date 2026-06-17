@@ -1,18 +1,156 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { createWord, deleteWord, getWord, updateWord } from "@/lib/words";
+import { useSession } from "@/lib/use-session";
+import type { NewWordInput, Word } from "@/types/word";
+
 type WordFormProps = {
   mode: "create" | "edit";
+  wordId?: string;
 };
 
-export function WordForm({ mode }: WordFormProps) {
+type WordFormState = NewWordInput;
+
+const emptyForm: WordFormState = {
+  kanji: "",
+  yomikataFurigana: "",
+  meaning: "",
+  exampleSentence: "",
+  exampleTranslation: "",
+};
+
+function toFormState(word: Word): WordFormState {
+  return {
+    kanji: word.kanji,
+    yomikataFurigana: word.yomikataFurigana,
+    meaning: word.meaning,
+    exampleSentence: word.exampleSentence,
+    exampleTranslation: word.exampleTranslation ?? "",
+  };
+}
+
+function normalizeInput(form: WordFormState): NewWordInput {
+  return {
+    kanji: form.kanji.trim(),
+    yomikataFurigana: form.yomikataFurigana.trim(),
+    meaning: form.meaning.trim(),
+    exampleSentence: form.exampleSentence.trim(),
+    exampleTranslation: form.exampleTranslation?.trim() || undefined,
+  };
+}
+
+export function WordForm({ mode, wordId }: WordFormProps) {
+  const router = useRouter();
+  const session = useSession();
   const isEdit = mode === "edit";
+  const [form, setForm] = useState<WordFormState>(emptyForm);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadWord = useCallback(async () => {
+    if (!isEdit || !wordId || !session) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsLoading(true);
+
+    try {
+      const word = await getWord(wordId);
+
+      if (!word || word.uid !== session.uid) {
+        setErrorMessage("단어를 찾을 수 없습니다.");
+        return;
+      }
+
+      setForm(toFormState(word));
+    } catch {
+      setErrorMessage("단어를 불러오지 못했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isEdit, session, wordId]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadWord();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadWord]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!session) {
+      setErrorMessage("로그인이 필요합니다.");
+      return;
+    }
+
+    const input = normalizeInput(form);
+
+    if (!input.kanji || !input.yomikataFurigana || !input.meaning || !input.exampleSentence) {
+      setErrorMessage("한자, 후리가나, 뜻, 예문을 모두 입력해주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      if (isEdit && wordId) {
+        await updateWord(wordId, input);
+      } else {
+        await createWord(session.uid, input);
+      }
+
+      router.replace("/words");
+      router.refresh();
+    } catch {
+      setErrorMessage("단어를 저장하지 못했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!wordId || !confirm("이 단어를 삭제할까요?")) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      await deleteWord(wordId);
+      router.replace("/words");
+      router.refresh();
+    } catch {
+      setErrorMessage("단어를 삭제하지 못했습니다.");
+      setIsSubmitting(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <section className="flex flex-1 items-center justify-center">
+        <p className="text-sm font-semibold text-slate-500">단어를 불러오는 중</p>
+      </section>
+    );
+  }
 
   return (
-    <form className="flex flex-1 flex-col gap-4">
+    <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
         <span className="text-sm font-semibold text-slate-700">한자 / 단어</span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          defaultValue={isEdit ? "食べる" : ""}
+          onChange={(event) => setForm({ ...form, kanji: event.target.value })}
           placeholder="食べる"
+          value={form.kanji}
         />
       </label>
 
@@ -21,12 +159,16 @@ export function WordForm({ mode }: WordFormProps) {
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <input
             className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-            defaultValue={isEdit ? "たべる" : ""}
+            onChange={(event) =>
+              setForm({ ...form, yomikataFurigana: event.target.value })
+            }
             placeholder="たべる"
+            value={form.yomikataFurigana}
           />
           <button
+            className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled
             type="button"
-            className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white"
           >
             자동 생성
           </button>
@@ -37,8 +179,9 @@ export function WordForm({ mode }: WordFormProps) {
         <span className="text-sm font-semibold text-slate-700">뜻</span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          defaultValue={isEdit ? "먹다" : ""}
+          onChange={(event) => setForm({ ...form, meaning: event.target.value })}
           placeholder="먹다"
+          value={form.meaning}
         />
       </label>
 
@@ -46,8 +189,9 @@ export function WordForm({ mode }: WordFormProps) {
         <span className="text-sm font-semibold text-slate-700">예문</span>
         <textarea
           className="min-h-28 rounded-lg border-slate-200 bg-white text-base leading-6"
-          defaultValue={isEdit ? "朝ごはんを食べる。" : ""}
+          onChange={(event) => setForm({ ...form, exampleSentence: event.target.value })}
           placeholder="朝ごはんを食べる。"
+          value={form.exampleSentence}
         />
       </label>
 
@@ -55,22 +199,34 @@ export function WordForm({ mode }: WordFormProps) {
         <span className="text-sm font-semibold text-slate-700">예문 번역</span>
         <textarea
           className="min-h-24 rounded-lg border-slate-200 bg-white text-base leading-6"
-          defaultValue={isEdit ? "아침밥을 먹다." : ""}
+          onChange={(event) =>
+            setForm({ ...form, exampleTranslation: event.target.value })
+          }
           placeholder="아침밥을 먹다."
+          value={form.exampleTranslation}
         />
       </label>
 
+      {errorMessage ? (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
         <button
+          className="min-h-12 rounded-lg bg-slate-950 px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isSubmitting}
           type="submit"
-          className="min-h-12 rounded-lg bg-slate-950 px-4 text-base font-bold text-white"
         >
-          저장
+          {isSubmitting ? "저장 중" : "저장"}
         </button>
         {isEdit ? (
           <button
+            className="min-h-12 rounded-lg border border-red-200 px-4 text-base font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isSubmitting}
+            onClick={handleDelete}
             type="button"
-            className="min-h-12 rounded-lg border border-red-200 px-4 text-base font-bold text-red-600"
           >
             삭제
           </button>
@@ -79,4 +235,3 @@ export function WordForm({ mode }: WordFormProps) {
     </form>
   );
 }
-

@@ -26,7 +26,7 @@ export default async function EditWordPage({ params }: EditWordPageProps) {
       }
     >
       <RequireSession>
-        <WordForm mode="edit" />
+        <WordForm mode="edit" wordId={id} />
       </RequireSession>
     </AppFrame>
   );
