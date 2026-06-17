@@ -96,7 +96,7 @@ export function WordCard({
       {word.meaning ? (
         <button
           type="button"
-          className="mt-2 w-full text-left"
+          className="mt-1 w-full text-left"
           aria-label={`${word.kanji} 뜻 공개`}
           onClick={maskedField === "meaning" ? onToggleReveal : undefined}
         >
@@ -117,7 +117,7 @@ export function WordCard({
           aria-label={`${word.kanji} 예문 공개`}
         >
           {word.exampleSentence ? (
-            <p className="overflow-hidden text-xs font-semibold leading-5 text-word-example [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            <p className="overflow-hidden text-xs font-semibold leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {word.exampleSentence}
             </p>
           ) : null}
