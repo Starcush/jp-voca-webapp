@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteField,
   deleteDoc,
   doc,
   getDoc,
@@ -15,6 +16,45 @@ import {
 import { getDb } from "@/lib/firebase";
 import { WORDS_COLLECTION, wordPath } from "@/lib/firestore-paths";
 import type { NewWordInput, UpdateWordInput, Word } from "@/types/word";
+
+function buildCreateWordData(uid: string, input: NewWordInput) {
+  return {
+    kanji: input.kanji,
+    yomikataFurigana: input.yomikataFurigana,
+    meaning: input.meaning,
+    exampleSentence: input.exampleSentence,
+    ...(input.exampleTranslation ? { exampleTranslation: input.exampleTranslation } : {}),
+    uid,
+    status: "unknown" as const,
+    lastSeenAt: null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+}
+
+function buildUpdateWordData(input: UpdateWordInput) {
+  const hasExampleTranslation = Object.prototype.hasOwnProperty.call(
+    input,
+    "exampleTranslation",
+  );
+
+  return {
+    ...(input.kanji !== undefined ? { kanji: input.kanji } : {}),
+    ...(input.yomikataFurigana !== undefined
+      ? { yomikataFurigana: input.yomikataFurigana }
+      : {}),
+    ...(input.meaning !== undefined ? { meaning: input.meaning } : {}),
+    ...(input.exampleSentence !== undefined
+      ? { exampleSentence: input.exampleSentence }
+      : {}),
+    ...(hasExampleTranslation
+      ? { exampleTranslation: input.exampleTranslation ?? deleteField() }
+      : {}),
+    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.lastSeenAt !== undefined ? { lastSeenAt: input.lastSeenAt } : {}),
+    updatedAt: serverTimestamp(),
+  };
+}
 
 export function wordsCollection() {
   return collection(getDb(), WORDS_COLLECTION) as CollectionReference<Omit<Word, "id">>;
@@ -52,23 +92,13 @@ export async function getWord(wordId: string) {
 }
 
 export async function createWord(uid: string, input: NewWordInput) {
-  const wordRef = await addDoc(wordsCollection(), {
-    ...input,
-    uid,
-    status: "unknown",
-    lastSeenAt: null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const wordRef = await addDoc(wordsCollection(), buildCreateWordData(uid, input));
 
   return wordRef.id;
 }
 
 export async function updateWord(wordId: string, input: UpdateWordInput) {
-  await updateDoc(wordDocument(wordId), {
-    ...input,
-    updatedAt: serverTimestamp(),
-  });
+  await updateDoc(wordDocument(wordId), buildUpdateWordData(input));
 }
 
 export async function deleteWord(wordId: string) {
