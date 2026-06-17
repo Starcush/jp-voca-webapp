@@ -4,7 +4,7 @@
 
 ## 현재 MVP 기능
 
-- 사용자 이름 기반 간단 로그인
+- Firebase Anonymous Auth 기반 간단 로그인
 - 단어 추가, 수정, 삭제
 - 한자, 후리가나, 뜻, 예문, 예문 번역 저장
 - 한자/뜻 가리기 모드와 카드별 공개
@@ -40,26 +40,43 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 
 ## Firestore 설정
 
-현재 MVP는 Firebase Authentication을 붙이기 전 단계라서, 테스트용 Firestore Rules가 필요합니다. 아래 규칙은 개발/테스트용으로만 사용하세요.
+Firebase Console의 Authentication에서 **Anonymous** 로그인 제공자를 활성화해야 합니다.
+
+Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 
 ```js
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
     match /users/{uid} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid;
+      allow delete: if false;
     }
 
     match /words/{wordId} {
-      allow read, write: if true;
+      allow read, update, delete: if isSignedIn()
+        && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid;
     }
   }
 }
 ```
 
 배포된 앱에서 `Missing or insufficient permissions`가 나오면 Firestore Rules가 아직 반영되지 않았거나, 다른 Firebase 프로젝트의 환경변수를 보고 있을 가능성이 큽니다.
+
+`Firebase Authentication에서 Anonymous 로그인을 켜주세요.`가 나오면 Firebase Console의 Authentication > Sign-in method에서 Anonymous 제공자를 켜면 됩니다.
 
 ## Firestore 인덱스
 
@@ -78,8 +95,7 @@ npm run build
 
 ## MVP 이후 후보
 
-- Firebase Authentication 기반 실제 사용자 인증
-- 사용자별 Firestore 보안 규칙 강화
+- 이메일/소셜 로그인 기반 계정 전환
 - CSV 가져오기/내보내기
 - 학습 세션과 복습 통계
 - 모바일 입력 경험 개선

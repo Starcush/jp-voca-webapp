@@ -38,7 +38,7 @@ export function LoginForm() {
       <div>
         <p className="text-lg font-bold text-slate-950">username으로 입장</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          같은 username을 쓰면 같은 단어장으로 들어갑니다.
+          username은 이 기기의 단어장 이름으로 사용됩니다.
         </p>
       </div>
       <label className="grid gap-2">
@@ -64,4 +64,3 @@ export function LoginForm() {
     </form>
   );
 }
-

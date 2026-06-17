@@ -1,7 +1,10 @@
 "use client";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { clearStoredSession } from "@/lib/session";
 import { useSession } from "@/lib/use-session";
 
 type RequireSessionProps = {
@@ -11,6 +14,7 @@ type RequireSessionProps = {
 export function RequireSession({ children }: RequireSessionProps) {
   const router = useRouter();
   const session = useSession();
+  const [authReadyUid, setAuthReadyUid] = useState("");
 
   useEffect(() => {
     if (session === null) {
@@ -18,7 +22,23 @@ export function RequireSession({ children }: RequireSessionProps) {
     }
   }, [router, session]);
 
-  if (session === undefined) {
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    return onAuthStateChanged(getFirebaseAuth(), (user) => {
+      if (!user || user.uid !== session.uid) {
+        clearStoredSession();
+        router.replace("/login");
+        return;
+      }
+
+      setAuthReadyUid(user.uid);
+    });
+  }, [router, session]);
+
+  if (session === undefined || (session && authReadyUid !== session.uid)) {
     return (
       <section className="flex flex-1 items-center justify-center">
         <p className="text-sm font-semibold text-slate-500">확인 중</p>

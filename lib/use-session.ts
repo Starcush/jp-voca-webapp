@@ -10,6 +10,14 @@ import {
 let cachedRawSession: string | null = null;
 let cachedSession: AppSession | null = null;
 
+function isAppSession(session: Partial<AppSession>): session is AppSession {
+  return (
+    session.authProvider === "firebase-anonymous" &&
+    Boolean(session.uid) &&
+    Boolean(session.username)
+  );
+}
+
 function subscribeToSession(callback: () => void) {
   window.addEventListener("storage", callback);
   window.addEventListener(APP_SESSION_CHANGE_EVENT, callback);
@@ -40,7 +48,7 @@ function getSessionSnapshot(): AppSession | null {
   try {
     const session = JSON.parse(rawSession) as AppSession;
     cachedRawSession = rawSession;
-    cachedSession = session.uid && session.username ? session : null;
+    cachedSession = isAppSession(session) ? session : null;
     return cachedSession;
   } catch {
     cachedRawSession = rawSession;

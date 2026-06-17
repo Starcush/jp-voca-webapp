@@ -2,9 +2,18 @@ export const APP_SESSION_STORAGE_KEY = "jp-voca-webapp.session";
 export const APP_SESSION_CHANGE_EVENT = "jp-voca-webapp.session-change";
 
 export type AppSession = {
+  authProvider: "firebase-anonymous";
   uid: string;
   username: string;
 };
+
+function isAppSession(session: Partial<AppSession>): session is AppSession {
+  return (
+    session.authProvider === "firebase-anonymous" &&
+    Boolean(session.uid) &&
+    Boolean(session.username)
+  );
+}
 
 export function readStoredSession(): AppSession | null {
   if (typeof window === "undefined") {
@@ -19,7 +28,7 @@ export function readStoredSession(): AppSession | null {
 
   try {
     const session = JSON.parse(rawSession) as AppSession;
-    return session.uid && session.username ? session : null;
+    return isAppSession(session) ? session : null;
   } catch {
     clearStoredSession();
     return null;
@@ -39,4 +48,3 @@ export function clearStoredSession() {
   window.localStorage.removeItem(APP_SESSION_STORAGE_KEY);
   window.dispatchEvent(new Event(APP_SESSION_CHANGE_EVENT));
 }
-

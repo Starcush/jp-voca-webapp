@@ -1,8 +1,10 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getFirebaseEnv } from "@/lib/env";
 
 let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
 let firestore: Firestore | undefined;
 
 export function getFirebaseApp() {
@@ -23,3 +25,11 @@ export function getDb() {
   return firestore;
 }
 
+export function getFirebaseAuth() {
+  if (auth) {
+    return auth;
+  }
+
+  auth = getAuth(getFirebaseApp());
+  return auth;
+}

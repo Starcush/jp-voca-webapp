@@ -1,6 +1,8 @@
 "use client";
 
+import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { clearStoredSession } from "@/lib/session";
 import { useSession } from "@/lib/use-session";
 
@@ -16,8 +18,10 @@ export function AuthStatus() {
     <button
       className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
       onClick={() => {
-        clearStoredSession();
-        router.replace("/login");
+        void signOut(getFirebaseAuth()).finally(() => {
+          clearStoredSession();
+          router.replace("/login");
+        });
       }}
       type="button"
     >

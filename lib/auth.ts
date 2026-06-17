@@ -1,17 +1,21 @@
-import { getDocs, limit, query, serverTimestamp, setDoc, where } from "firebase/firestore";
-import { userDocument, usersCollection } from "@/lib/users";
+import { signInAnonymously } from "firebase/auth";
+import { getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { userDocument } from "@/lib/users";
 import type { AppSession } from "@/lib/session";
 
 export function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
-function createUid() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+function getErrorCode(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+
+    return typeof code === "string" ? code : "";
   }
 
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return "";
 }
 
 export async function signInWithUsername(usernameInput: string): Promise<AppSession> {
@@ -21,33 +25,39 @@ export async function signInWithUsername(usernameInput: string): Promise<AppSess
     throw new Error("username을 입력해주세요.");
   }
 
-  const usernameQuery = query(
-    usersCollection(),
-    where("username", "==", username),
-    limit(1),
-  );
-  const snapshot = await getDocs(usernameQuery);
-  const existingUser = snapshot.docs.at(0);
+  try {
+    const credential = await signInAnonymously(getFirebaseAuth());
+    const uid = credential.user.uid;
+    const userRef = userDocument(uid);
+    const userSnapshot = await getDoc(userRef);
 
-  if (existingUser) {
-    const user = existingUser.data();
+    await setDoc(
+      userRef,
+      {
+        uid,
+        username,
+        ...(userSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+
     return {
-      uid: user.uid,
-      username: user.username,
+      authProvider: "firebase-anonymous",
+      uid,
+      username,
     };
+  } catch (error) {
+    const code = getErrorCode(error);
+
+    if (code === "auth/operation-not-allowed") {
+      throw new Error("Firebase Authentication에서 Anonymous 로그인을 켜주세요.");
+    }
+
+    if (code === "permission-denied") {
+      throw new Error("Firestore Rules가 Auth uid 기준으로 반영됐는지 확인해주세요.");
+    }
+
+    throw error;
   }
-
-  const uid = createUid();
-
-  await setDoc(userDocument(uid), {
-    uid,
-    username,
-    createdAt: serverTimestamp(),
-  });
-
-  return {
-    uid,
-    username,
-  };
 }
-
