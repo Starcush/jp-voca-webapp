@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   getWord,
+  listAllWords,
   listWordsPage,
   updateWordStudyStatus,
   type WordsPageCursor,
@@ -154,6 +155,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
 
   const loadFirstPage = useCallback(async () => {
     if (!session) {
@@ -194,12 +196,36 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
   }, [highlightedWordId, session]);
 
   useEffect(() => {
+    if (!session) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
-      void loadFirstPage();
-    }, 0);
+      if (!isFullLookupMode) {
+        void loadFirstPage();
+        return;
+      }
+
+      setErrorMessage("");
+      setIsLoading(true);
+
+      void listAllWords(session.uid)
+        .then((nextWords) => {
+          setWords(nextWords);
+          setCursor(null);
+          setHasMore(false);
+        })
+        .catch((error) => {
+          console.error("Failed to load words for search.", error);
+          setErrorMessage(getWordListErrorMessage(error));
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }, isFullLookupMode ? 200 : 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [loadFirstPage]);
+  }, [isFullLookupMode, loadFirstPage, searchQuery, activeFilter, session]);
 
   useEffect(() => {
     const message = getSaveStatusMessage(saveStatus);

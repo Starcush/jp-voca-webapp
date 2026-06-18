@@ -107,6 +107,21 @@ export async function listWordsPage(uid: string, cursor?: WordsPageCursor | null
   };
 }
 
+export async function listAllWords(uid: string) {
+  const snapshot = await getDocs(
+    query(
+      wordsCollection(),
+      where("uid", "==", uid),
+      orderBy("createdAt", "desc"),
+    ),
+  );
+
+  return snapshot.docs.map((wordSnapshot) => ({
+    id: wordSnapshot.id,
+    ...wordSnapshot.data(),
+  }));
+}
+
 export async function getWord(wordId: string) {
   const snapshot = await getDoc(wordDocument(wordId));
 
