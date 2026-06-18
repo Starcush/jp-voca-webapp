@@ -534,7 +534,8 @@ export function WordList({
 
   if (isContentLoading) {
     return (
-      <section className="flex flex-1 flex-col">
+      <section className="flex flex-1 flex-col gap-6 pt-3">
+        {languageTabs}
         {successBanner ? <section className="pt-3">{successBanner}</section> : null}
         <div className="flex flex-1 items-center justify-center py-16">
           <p className="text-sm font-semibold text-slate-500">
