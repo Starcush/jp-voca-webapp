@@ -12,7 +12,7 @@ let cachedSession: AppSession | null = null;
 
 function isAppSession(session: Partial<AppSession>): session is AppSession {
   return (
-    session.authProvider === "firebase-anonymous" &&
+    session.authProvider === "firebase-password" &&
     Boolean(session.uid) &&
     Boolean(session.username)
   );

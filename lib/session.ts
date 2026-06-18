@@ -2,14 +2,14 @@ export const APP_SESSION_STORAGE_KEY = "jp-voca-webapp.session";
 export const APP_SESSION_CHANGE_EVENT = "jp-voca-webapp.session-change";
 
 export type AppSession = {
-  authProvider: "firebase-anonymous";
+  authProvider: "firebase-password";
   uid: string;
   username: string;
 };
 
 function isAppSession(session: Partial<AppSession>): session is AppSession {
   return (
-    session.authProvider === "firebase-anonymous" &&
+    session.authProvider === "firebase-password" &&
     Boolean(session.uid) &&
     Boolean(session.username)
   );

@@ -1,23 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { signInWithUsername } from "@/lib/auth";
+import { useState } from "react";
+import { authenticateWithAccount, type AccountAuthMode } from "@/lib/auth";
 import { storeSession } from "@/lib/session";
 
 export function LoginForm() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingMode, setSubmittingMode] = useState<AccountAuthMode | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleAuth(mode: AccountAuthMode) {
     setErrorMessage("");
-    setIsSubmitting(true);
+    setSubmittingMode(mode);
 
     try {
-      const session = await signInWithUsername(username);
+      const session = await authenticateWithAccount(accountName, password, mode);
       storeSession(session);
       router.replace("/words");
       router.refresh();
@@ -26,28 +26,45 @@ export function LoginForm() {
         error instanceof Error ? error.message : "로그인 중 문제가 발생했습니다.",
       );
     } finally {
-      setIsSubmitting(false);
+      setSubmittingMode(null);
     }
   }
 
   return (
     <form
       className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
-      onSubmit={handleSubmit}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleAuth("sign-in");
+      }}
     >
       <div>
-        <p className="text-lg font-bold text-slate-950">닉네임으로 입장</p>
+        <p className="text-lg font-bold text-slate-950">계정으로 입장</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          닉네임은 이 기기의 단어장 이름으로 사용됩니다.
+          계정명과 비밀번호로 내 단어장을 불러옵니다.
         </p>
       </div>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">닉네임</span>
+        <span className="text-sm font-semibold text-slate-700">계정명</span>
         <input
+          autoCapitalize="none"
+          autoComplete="username"
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => setUsername(event.target.value)}
-          placeholder="내 단어장"
-          value={username}
+          onChange={(event) => setAccountName(event.target.value)}
+          placeholder="starcush"
+          value={accountName}
+        />
+      </label>
+      <label className="grid gap-2">
+        <span className="text-sm font-semibold text-slate-700">비밀번호</span>
+        <input
+          autoComplete="current-password"
+          className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
+          minLength={6}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="6자 이상"
+          type="password"
+          value={password}
         />
       </label>
       {errorMessage ? (
@@ -55,12 +72,22 @@ export function LoginForm() {
           {errorMessage}
         </p>
       ) : null}
-      <button
-        className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "입장 중" : "입장하기"}
-      </button>
+      <div className="grid gap-2">
+        <button
+          className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={Boolean(submittingMode)}
+        >
+          {submittingMode === "sign-in" ? "로그인 중" : "로그인"}
+        </button>
+        <button
+          className="min-h-12 rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={Boolean(submittingMode)}
+          onClick={() => void handleAuth("sign-up")}
+          type="button"
+        >
+          {submittingMode === "sign-up" ? "계정 만드는 중" : "새 계정 만들기"}
+        </button>
+      </div>
     </form>
   );
 }
