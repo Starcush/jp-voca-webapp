@@ -7,7 +7,7 @@ import { storeSession } from "@/lib/session";
 
 export function LoginForm() {
   const router = useRouter();
-  const [accountName, setAccountName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [submittingMode, setSubmittingMode] = useState<AccountAuthMode | null>(null);
@@ -17,7 +17,7 @@ export function LoginForm() {
     setSubmittingMode(mode);
 
     try {
-      const session = await authenticateWithAccount(accountName, password, mode);
+      const session = await authenticateWithAccount(email, password, mode);
       storeSession(session);
       router.replace("/words");
       router.refresh();
@@ -41,18 +41,20 @@ export function LoginForm() {
       <div>
         <p className="text-lg font-bold text-slate-950">계정으로 입장</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          계정명과 비밀번호로 내 단어장을 불러옵니다.
+          이메일은 중복 가입 방지와 계정 복구를 위해 사용합니다.
         </p>
       </div>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">계정명</span>
+        <span className="text-sm font-semibold text-slate-700">이메일</span>
         <input
           autoCapitalize="none"
-          autoComplete="username"
+          autoComplete="email"
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => setAccountName(event.target.value)}
-          placeholder="starcush"
-          value={accountName}
+          inputMode="email"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="me@example.com"
+          type="email"
+          value={email}
         />
       </label>
       <label className="grid gap-2">

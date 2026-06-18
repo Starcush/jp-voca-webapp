@@ -10,10 +10,8 @@ import type { AppSession } from "@/lib/session";
 
 export type AccountAuthMode = "sign-in" | "sign-up";
 
-const ACCOUNT_EMAIL_DOMAIN = "jp-voca.local";
-
-export function normalizeAccountName(accountName: string) {
-  return accountName.trim().toLowerCase();
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 function getErrorCode(error: unknown) {
@@ -30,7 +28,7 @@ function getAuthErrorMessage(error: unknown, mode: AccountAuthMode) {
   const code = getErrorCode(error);
 
   if (code === "auth/email-already-in-use") {
-    return "이미 있는 계정명입니다. 로그인으로 들어가주세요.";
+    return "이미 가입된 이메일입니다. 로그인으로 들어가주세요.";
   }
 
   if (
@@ -38,7 +36,7 @@ function getAuthErrorMessage(error: unknown, mode: AccountAuthMode) {
     code === "auth/user-not-found" ||
     code === "auth/wrong-password"
   ) {
-    return "계정명 또는 비밀번호가 맞지 않습니다.";
+    return "이메일 또는 비밀번호가 맞지 않습니다.";
   }
 
   if (code === "auth/weak-password") {
@@ -58,17 +56,13 @@ function getAuthErrorMessage(error: unknown, mode: AccountAuthMode) {
     : "로그인 중 문제가 발생했습니다.";
 }
 
-function getAccountEmail(accountName: string) {
-  return `${accountName}@${ACCOUNT_EMAIL_DOMAIN}`;
-}
-
-function validateAccountInput(accountName: string, password: string) {
-  if (!accountName) {
-    throw new Error("계정명을 입력해주세요.");
+function validateAccountInput(email: string, password: string) {
+  if (!email) {
+    throw new Error("이메일을 입력해주세요.");
   }
 
-  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(accountName)) {
-    throw new Error("계정명은 영문, 숫자, ., _, - 조합으로 3~32자 입력해주세요.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("올바른 이메일을 입력해주세요.");
   }
 
   if (password.length < 6) {
@@ -76,15 +70,21 @@ function validateAccountInput(accountName: string, password: string) {
   }
 }
 
-async function upsertUserDocument(uid: string, accountName: string) {
+function getDefaultUsername(email: string) {
+  return email.split("@").at(0) || "my-voca";
+}
+
+async function upsertUserDocument(uid: string, email: string) {
   const userRef = userDocument(uid);
   const userSnapshot = await getDoc(userRef);
+  const username = userSnapshot.data()?.username ?? getDefaultUsername(email);
 
   await setDoc(
     userRef,
     {
       uid,
-      username: accountName,
+      email,
+      username,
       ...(userSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
       updatedAt: serverTimestamp(),
     },
@@ -93,17 +93,16 @@ async function upsertUserDocument(uid: string, accountName: string) {
 }
 
 export async function authenticateWithAccount(
-  accountNameInput: string,
+  emailInput: string,
   password: string,
   mode: AccountAuthMode,
 ): Promise<AppSession> {
-  const accountName = normalizeAccountName(accountNameInput);
+  const email = normalizeEmail(emailInput);
 
-  validateAccountInput(accountName, password);
+  validateAccountInput(email, password);
 
   try {
     const auth = getFirebaseAuth();
-    const email = getAccountEmail(accountName);
     const credential =
       mode === "sign-up"
         ? await createUserWithEmailAndPassword(auth, email, password)
@@ -112,16 +111,16 @@ export async function authenticateWithAccount(
 
     if (mode === "sign-up") {
       await updateProfile(user, {
-        displayName: accountName,
+        displayName: getDefaultUsername(email),
       });
     }
 
-    await upsertUserDocument(user.uid, accountName);
+    await upsertUserDocument(user.uid, email);
 
     return {
       authProvider: "firebase-password",
       uid: user.uid,
-      username: accountName,
+      username: user.displayName ?? getDefaultUsername(email),
     };
   } catch (error) {
     throw new Error(getAuthErrorMessage(error, mode));

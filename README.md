@@ -4,7 +4,7 @@
 
 ## 현재 MVP 기능
 
-- 계정명과 비밀번호 기반 로그인
+- 이메일과 비밀번호 기반 로그인
 - 단어 추가, 수정, 삭제
 - 한자, 후리가나, 뜻, 예문, 예문 번역 저장
 - 한자/뜻 가리기 모드와 카드별 공개
@@ -40,9 +40,9 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 
 ## Firestore 설정
 
-현재 MVP 로그인은 화면에서는 계정명과 비밀번호만 받지만, 내부적으로 Firebase Email/Password Auth를 사용합니다. Firebase Console의 Authentication에서 **Email/Password** 로그인 제공자를 활성화해야 합니다.
+현재 MVP 로그인은 Firebase Email/Password Auth를 사용합니다. Firebase Console의 Authentication에서 **Email/Password** 로그인 제공자를 활성화해야 합니다.
 
-계정명은 영문, 숫자, `.`, `_`, `-` 조합으로 3~32자까지 사용할 수 있고, 비밀번호는 Firebase Auth 기본 정책에 맞춰 6자 이상이어야 합니다.
+이메일은 중복 가입 방지와 계정 복구를 위해 사용합니다. 비밀번호는 Firebase Auth 기본 정책에 맞춰 6자 이상이어야 합니다.
 
 Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 
@@ -97,7 +97,7 @@ npm run build
 
 ## MVP 이후 후보
 
-- 비밀번호 재설정과 계정 관리
+- 이메일 인증, 비밀번호 재설정, 계정 관리
 - CSV 가져오기/내보내기
 - 학습 세션과 복습 통계
 - 모바일 입력 경험 개선
