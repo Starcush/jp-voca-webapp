@@ -1,6 +1,9 @@
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
@@ -108,6 +111,7 @@ export async function authenticateWithAccount(
   emailInput: string,
   password: string,
   mode: AccountAuthMode,
+  rememberLogin = true,
 ): Promise<AppSession> {
   const email = normalizeEmail(emailInput);
 
@@ -115,6 +119,10 @@ export async function authenticateWithAccount(
 
   try {
     const auth = getFirebaseAuth();
+    await setPersistence(
+      auth,
+      rememberLogin ? browserLocalPersistence : browserSessionPersistence,
+    );
     const credential =
       mode === "sign-up"
         ? await createUserWithEmailAndPassword(auth, email, password)
@@ -133,6 +141,7 @@ export async function authenticateWithAccount(
       authProvider: "firebase-password",
       defaultLanguage: appUser.defaultLanguage,
       enabledLanguages: appUser.enabledLanguages,
+      rememberLogin,
       uid: user.uid,
       username: appUser.username,
     };

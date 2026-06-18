@@ -16,6 +16,7 @@ export function LoginForm() {
   const [authMode, setAuthMode] = useState<AccountAuthMode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberLogin, setRememberLogin] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [submittingMode, setSubmittingMode] = useState<SubmitMode | null>(null);
@@ -27,8 +28,13 @@ export function LoginForm() {
     setSubmittingMode(mode);
 
     try {
-      const session = await authenticateWithAccount(email, password, mode);
-      storeSession(session);
+      const session = await authenticateWithAccount(
+        email,
+        password,
+        mode,
+        rememberLogin,
+      );
+      storeSession(session, rememberLogin);
       router.replace(
         session.defaultLanguage
           ? `/words?lang=${session.defaultLanguage}`
@@ -117,6 +123,15 @@ export function LoginForm() {
               : "비밀번호를 잊으셨나요?"}
           </button>
         ) : null}
+      </label>
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+        <input
+          checked={rememberLogin}
+          className="rounded border-slate-300 text-slate-950 focus:ring-slate-950"
+          onChange={(event) => setRememberLogin(event.target.checked)}
+          type="checkbox"
+        />
+        로그인 유지
       </label>
       {errorMessage ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">

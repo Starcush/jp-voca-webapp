@@ -33,7 +33,9 @@ function getServerSessionSnapshot(): AppSession | null | undefined {
 }
 
 function getSessionSnapshot(): AppSession | null {
-  const rawSession = window.localStorage.getItem(APP_SESSION_STORAGE_KEY);
+  const rawSession =
+    window.localStorage.getItem(APP_SESSION_STORAGE_KEY) ??
+    window.sessionStorage.getItem(APP_SESSION_STORAGE_KEY);
 
   if (!rawSession) {
     cachedRawSession = null;

@@ -7,6 +7,7 @@ export type AppSession = {
   authProvider: "firebase-password";
   defaultLanguage?: Language;
   enabledLanguages?: Language[];
+  rememberLogin?: boolean;
   uid: string;
   username: string;
 };
@@ -24,7 +25,9 @@ export function readStoredSession(): AppSession | null {
     return null;
   }
 
-  const rawSession = window.localStorage.getItem(APP_SESSION_STORAGE_KEY);
+  const rawSession =
+    window.localStorage.getItem(APP_SESSION_STORAGE_KEY) ??
+    window.sessionStorage.getItem(APP_SESSION_STORAGE_KEY);
 
   if (!rawSession) {
     return null;
@@ -39,8 +42,19 @@ export function readStoredSession(): AppSession | null {
   }
 }
 
-export function storeSession(session: AppSession) {
-  window.localStorage.setItem(APP_SESSION_STORAGE_KEY, JSON.stringify(session));
+export function storeSession(
+  session: AppSession,
+  rememberLogin = session.rememberLogin ?? true,
+) {
+  const nextSession = {
+    ...session,
+    rememberLogin,
+  };
+  const storage = rememberLogin ? window.localStorage : window.sessionStorage;
+
+  window.localStorage.removeItem(APP_SESSION_STORAGE_KEY);
+  window.sessionStorage.removeItem(APP_SESSION_STORAGE_KEY);
+  storage.setItem(APP_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
   window.dispatchEvent(new Event(APP_SESSION_CHANGE_EVENT));
 }
 
@@ -50,5 +64,6 @@ export function clearStoredSession() {
   }
 
   window.localStorage.removeItem(APP_SESSION_STORAGE_KEY);
+  window.sessionStorage.removeItem(APP_SESSION_STORAGE_KEY);
   window.dispatchEvent(new Event(APP_SESSION_CHANGE_EVENT));
 }
