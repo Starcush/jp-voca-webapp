@@ -5,7 +5,6 @@ import type { Word, WordStatus } from "@/types/word";
 type WordCardProps = {
   word: Word;
   maskedField?: "kanji" | "meaning";
-  isHighlighted?: boolean;
   isRevealed?: boolean;
   isUpdatingStudyStatus?: boolean;
   onStudyStatusChange?: (status: WordStatus) => void;
@@ -35,7 +34,6 @@ function hasMaskedContent(word: Word, maskedField?: "kanji" | "meaning") {
 export function WordCard({
   word,
   maskedField,
-  isHighlighted = false,
   isRevealed = false,
   isUpdatingStudyStatus = false,
   onStudyStatusChange,
@@ -57,13 +55,7 @@ export function WordCard({
   const isKnown = word.status === "known";
 
   return (
-    <article
-      className={`rounded-lg border bg-white p-3 shadow-sm transition-shadow ${
-        isHighlighted
-          ? "border-green-200 ring-2 ring-green-100"
-          : "border-slate-200"
-      }`}
-    >
+    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"

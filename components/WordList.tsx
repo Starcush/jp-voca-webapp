@@ -184,9 +184,6 @@ export function WordList({
     selectedEnabledLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
   const activeLanguageOption = getLanguageOption(activeLanguage);
   const [words, setWords] = useState<Word[]>([]);
-  const [activeHighlightedWordId, setActiveHighlightedWordId] = useState(
-    highlightedWordId ?? "",
-  );
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -329,15 +326,11 @@ export function WordList({
       return;
     }
 
-    const clearHighlightTimeoutId = window.setTimeout(() => {
-      setActiveHighlightedWordId("");
-    }, 3500);
     const clearUrlTimeoutId = window.setTimeout(() => {
       router.replace(`/words?lang=${activeLanguage}`, { scroll: false });
     }, 2600);
 
     return () => {
-      window.clearTimeout(clearHighlightTimeoutId);
       window.clearTimeout(clearUrlTimeoutId);
     };
   }, [activeLanguage, router, saveStatus]);
@@ -449,13 +442,13 @@ export function WordList({
         : "grid-cols-1";
   const successMessage = getSaveStatusMessage(saveStatus);
   const successMessageLanguage = selectedEnabledLanguage ?? activeLanguage;
-  const successBanner = successMessage ? (
-    <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
-      {successMessage}
-    </p>
+  const scopedSuccessMessage =
+    successMessageLanguage === activeLanguage ? successMessage : "";
+  const successToast = scopedSuccessMessage ? (
+    <div className="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-md rounded-lg bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-lg">
+      {scopedSuccessMessage}
+    </div>
   ) : null;
-  const scopedSuccessBanner =
-    successMessageLanguage === activeLanguage ? successBanner : null;
   const languageTabs = (
     <div className={`grid gap-2 ${languageGridClass}`}>
       {languageOptions
@@ -533,9 +526,7 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {languageTabs}
-        {scopedSuccessBanner ? (
-          <section className="pt-3">{scopedSuccessBanner}</section>
-        ) : null}
+        {successToast}
         <div className="flex flex-1 items-center justify-center py-16">
           <p className="text-sm font-semibold text-slate-500">
             {activeLanguageOption.label} 단어를 불러오는 중
@@ -549,8 +540,8 @@ export function WordList({
     return (
       <>
         {toolbar}
+        {successToast}
         <section className="grid gap-3 py-4">
-          {scopedSuccessBanner}
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {errorMessage}
           </p>
@@ -570,7 +561,7 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {languageTabs}
-        {scopedSuccessBanner}
+        {successToast}
         <div className="flex flex-col items-center gap-4 pt-8 text-center">
           <div>
             <p className="text-lg font-bold text-slate-950">
@@ -595,8 +586,8 @@ export function WordList({
     return (
       <>
         {toolbar}
+        {successToast}
         <section className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
-          {scopedSuccessBanner}
           <p className="text-lg font-bold text-slate-950">조건에 맞는 단어가 없습니다</p>
           <p className="text-sm leading-6 text-slate-500">
             검색어를 지우거나 다른 필터를 선택해보세요.
@@ -635,14 +626,11 @@ export function WordList({
   return (
     <>
       {toolbar}
-      {scopedSuccessBanner ? (
-        <section className="pt-3">{scopedSuccessBanner}</section>
-      ) : null}
+      {successToast}
       <section className="grid gap-2 py-3">
         {filteredWords.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}
-            isHighlighted={word.id === activeHighlightedWordId}
             isUpdatingStudyStatus={updatingWordIds.has(word.id)}
             key={word.id}
             maskedField={viewMode === "all" ? undefined : viewMode}
