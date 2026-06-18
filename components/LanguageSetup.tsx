@@ -12,26 +12,45 @@ export function LanguageSetup() {
   const router = useRouter();
   const session = useSession();
   const [errorMessage, setErrorMessage] = useState("");
-  const [savingLanguage, setSavingLanguage] = useState<Language | null>(null);
+  const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  async function handleLanguageSelect(language: Language) {
+  function handleLanguageToggle(language: Language) {
+    setSelectedLanguages((currentLanguages) => {
+      if (currentLanguages.includes(language)) {
+        return currentLanguages.filter((currentLanguage) => currentLanguage !== language);
+      }
+
+      return [...currentLanguages, language];
+    });
+  }
+
+  async function handleSubmit() {
     if (!session) {
       return;
     }
 
+    const defaultLanguage = selectedLanguages[0];
+
+    if (!defaultLanguage) {
+      setErrorMessage("사용할 언어를 하나 이상 선택해주세요.");
+      return;
+    }
+
     setErrorMessage("");
-    setSavingLanguage(language);
+    setIsSaving(true);
 
     try {
-      await updateUserLanguageSettings(session.uid, language);
+      await updateUserLanguageSettings(session.uid, selectedLanguages);
       storeSession({
         ...session,
-        defaultLanguage: language,
+        defaultLanguage,
+        enabledLanguages: selectedLanguages,
       });
-      router.replace(`/words?lang=${language}`);
+      router.replace(`/words?lang=${defaultLanguage}`);
     } catch {
-      setErrorMessage("기본 언어를 저장하지 못했습니다.");
-      setSavingLanguage(null);
+      setErrorMessage("사용 언어를 저장하지 못했습니다.");
+      setIsSaving(false);
     }
   }
 
@@ -42,7 +61,7 @@ export function LanguageSetup() {
           어떤 단어장을 먼저 만들까요?
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          첫 선택은 기본 언어로 저장됩니다. 나중에 다른 언어도 추가할 수 있습니다.
+          지금 사용할 언어를 모두 선택해주세요. 첫 번째로 선택한 언어가 처음 열리는 단어장이 됩니다.
         </p>
       </div>
 
@@ -55,10 +74,15 @@ export function LanguageSetup() {
       <div className="grid gap-3">
         {languageOptions.map((language) => (
           <button
-            className="grid min-h-24 grid-cols-[auto_1fr] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={Boolean(savingLanguage)}
+            aria-pressed={selectedLanguages.includes(language.code)}
+            className={`grid min-h-24 grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border p-4 text-left shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
+              selectedLanguages.includes(language.code)
+                ? "border-slate-950 bg-slate-50"
+                : "border-slate-200 bg-white"
+            }`}
+            disabled={isSaving}
             key={language.code}
-            onClick={() => void handleLanguageSelect(language.code)}
+            onClick={() => handleLanguageToggle(language.code)}
             type="button"
           >
             <span className="text-4xl" aria-hidden="true">
@@ -69,12 +93,31 @@ export function LanguageSetup() {
                 {language.label}
               </span>
               <span className="mt-1 block text-sm leading-6 text-slate-500">
-                {savingLanguage === language.code ? "저장 중" : language.summary}
+                {language.summary}
               </span>
+            </span>
+            <span
+              className={`grid h-7 w-7 place-items-center rounded-full text-sm font-bold ${
+                selectedLanguages.includes(language.code)
+                  ? "bg-slate-950 text-white"
+                  : "border border-slate-200 text-slate-300"
+              }`}
+              aria-hidden="true"
+            >
+              {selectedLanguages.includes(language.code) ? "✓" : ""}
             </span>
           </button>
         ))}
       </div>
+
+      <button
+        className="mt-auto min-h-12 rounded-lg bg-slate-950 px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={isSaving || selectedLanguages.length === 0}
+        onClick={() => void handleSubmit()}
+        type="button"
+      >
+        {isSaving ? "저장 중" : "단어장 시작"}
+      </button>
     </section>
   );
 }

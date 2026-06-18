@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getWord,
   getWordLanguage,
@@ -145,6 +145,23 @@ function getSaveStatusMessage(saveStatus?: SaveStatus) {
   return "";
 }
 
+function getSessionLanguages(session: ReturnType<typeof useSession>) {
+  const validEnabledLanguages =
+    session?.enabledLanguages?.filter((language) =>
+      languageOptions.some((option) => option.code === language),
+    ) ?? [];
+
+  if (validEnabledLanguages.length > 0) {
+    return validEnabledLanguages;
+  }
+
+  if (session?.defaultLanguage) {
+    return [session.defaultLanguage];
+  }
+
+  return [];
+}
+
 export function WordList({
   highlightedWordId,
   saveStatus,
@@ -152,8 +169,19 @@ export function WordList({
 }: WordListProps) {
   const router = useRouter();
   const session = useSession();
+  const enabledLanguages = useMemo(() => getSessionLanguages(session), [session]);
+  const fallbackLanguage = enabledLanguages[0] ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
+  const selectedEnabledLanguage =
+    selectedLanguage && enabledLanguages.includes(selectedLanguage)
+      ? selectedLanguage
+      : undefined;
+  const [optimisticLanguage, setOptimisticLanguage] = useState<Language | null>(null);
+  const optimisticEnabledLanguage =
+    optimisticLanguage && enabledLanguages.includes(optimisticLanguage)
+      ? optimisticLanguage
+      : undefined;
   const activeLanguage =
-    selectedLanguage ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
+    selectedEnabledLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
   const activeLanguageOption = getLanguageOption(activeLanguage);
   const [words, setWords] = useState<Word[]>([]);
   const [activeHighlightedWordId, setActiveHighlightedWordId] = useState(
@@ -344,8 +372,13 @@ export function WordList({
   }
 
   function handleLanguageChange(nextLanguage: Language) {
+    setOptimisticLanguage(nextLanguage);
     setActiveFilter("all");
     setSearchQuery("");
+    setWords([]);
+    setCursor(null);
+    setHasMore(false);
+    setIsLoading(true);
     setRevealedWordIds(new Set());
     router.push(`/words?lang=${nextLanguage}`);
   }
@@ -381,28 +414,36 @@ export function WordList({
   }
 
   const filteredWords = applyFilter(words, activeFilter, searchQuery);
+  const languageGridClass =
+    enabledLanguages.length >= 3
+      ? "grid-cols-3"
+      : enabledLanguages.length === 2
+        ? "grid-cols-2"
+        : "grid-cols-1";
   const successBanner = successMessage ? (
     <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
       {successMessage}
     </p>
   ) : null;
   const languageTabs = (
-    <div className="grid grid-cols-3 gap-2">
-      {languageOptions.map((language) => (
-        <button
-          aria-pressed={activeLanguage === language.code}
-          className={`min-h-10 rounded-md text-sm font-bold ${
-            activeLanguage === language.code
-              ? "bg-slate-950 text-white"
-              : "border border-slate-200 bg-white text-slate-600"
-          }`}
-          key={language.code}
-          onClick={() => handleLanguageChange(language.code)}
-          type="button"
-        >
-          <span aria-hidden="true">{language.flag}</span> {language.label}
-        </button>
-      ))}
+    <div className={`grid gap-2 ${languageGridClass}`}>
+      {languageOptions
+        .filter((language) => enabledLanguages.includes(language.code))
+        .map((language) => (
+          <button
+            aria-pressed={activeLanguage === language.code}
+            className={`min-h-10 rounded-md text-sm font-bold ${
+              activeLanguage === language.code
+                ? "bg-slate-950 text-white"
+                : "border border-slate-200 bg-white text-slate-600"
+            }`}
+            key={language.code}
+            onClick={() => handleLanguageChange(language.code)}
+            type="button"
+          >
+            <span aria-hidden="true">{language.flag}</span> {language.label}
+          </button>
+        ))}
     </div>
   );
 

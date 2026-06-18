@@ -99,6 +99,7 @@ async function upsertUserDocument(uid: string, email: string) {
 
   return {
     defaultLanguage: userData?.defaultLanguage,
+    enabledLanguages: userData?.enabledLanguages,
     username,
   };
 }
@@ -131,6 +132,7 @@ export async function authenticateWithAccount(
     return {
       authProvider: "firebase-password",
       defaultLanguage: appUser.defaultLanguage,
+      enabledLanguages: appUser.enabledLanguages,
       uid: user.uid,
       username: appUser.username,
     };

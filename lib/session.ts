@@ -6,6 +6,7 @@ export const APP_SESSION_CHANGE_EVENT = "jp-voca-webapp.session-change";
 export type AppSession = {
   authProvider: "firebase-password";
   defaultLanguage?: Language;
+  enabledLanguages?: Language[];
   uid: string;
   username: string;
 };

@@ -30,10 +30,19 @@ export async function getUser(uid: string) {
   return snapshot.data();
 }
 
-export async function updateUserLanguageSettings(uid: string, language: Language) {
+export async function updateUserLanguageSettings(
+  uid: string,
+  languages: Language[],
+) {
+  const defaultLanguage = languages[0];
+
+  if (!defaultLanguage) {
+    throw new Error("At least one language is required.");
+  }
+
   await updateDoc(userDocument(uid), {
-    defaultLanguage: language,
-    enabledLanguages: [language],
+    defaultLanguage,
+    enabledLanguages: languages,
     updatedAt: serverTimestamp(),
   });
 }
