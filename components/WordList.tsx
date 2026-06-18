@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getWord,
   getWordLanguage,
@@ -200,7 +200,11 @@ export function WordList({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadedLanguage, setLoadedLanguage] = useState<Language | null>(null);
+  const loadRequestIdRef = useRef(0);
   const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
+  const isContentLoading =
+    isLoading || (!errorMessage && loadedLanguage !== activeLanguage);
 
   const loadFirstPage = useCallback(async () => {
     if (!session) {
@@ -212,6 +216,8 @@ export function WordList({
       return;
     }
 
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
     setErrorMessage("");
     setIsLoading(true);
 
@@ -237,14 +243,26 @@ export function WordList({
         }
       }
 
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
       setWords(nextWords);
       setCursor(page.cursor);
       setHasMore(page.hasMore);
+      setLoadedLanguage(activeLanguage);
     } catch (error) {
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
       console.error("Failed to load words.", error);
       setErrorMessage(getWordListErrorMessage(error));
+      setLoadedLanguage(null);
     } finally {
-      setIsLoading(false);
+      if (loadRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [activeLanguage, highlightedWordId, router, session]);
 
@@ -264,21 +282,35 @@ export function WordList({
         return;
       }
 
+      const requestId = loadRequestIdRef.current + 1;
+      loadRequestIdRef.current = requestId;
       setErrorMessage("");
       setIsLoading(true);
 
       void listAllWords(session.uid, activeLanguage)
         .then((nextWords) => {
+          if (loadRequestIdRef.current !== requestId) {
+            return;
+          }
+
           setWords(nextWords);
           setCursor(null);
           setHasMore(false);
+          setLoadedLanguage(activeLanguage);
         })
         .catch((error) => {
+          if (loadRequestIdRef.current !== requestId) {
+            return;
+          }
+
           console.error("Failed to load words for search.", error);
           setErrorMessage(getWordListErrorMessage(error));
+          setLoadedLanguage(null);
         })
         .finally(() => {
-          setIsLoading(false);
+          if (loadRequestIdRef.current === requestId) {
+            setIsLoading(false);
+          }
         });
     }, isFullLookupMode ? 200 : 0);
 
@@ -378,6 +410,8 @@ export function WordList({
     setWords([]);
     setCursor(null);
     setHasMore(false);
+    setErrorMessage("");
+    setLoadedLanguage(null);
     setIsLoading(true);
     setRevealedWordIds(new Set());
     router.push(`/words?lang=${nextLanguage}`);
@@ -498,13 +532,15 @@ export function WordList({
     </section>
   );
 
-  if (isLoading) {
+  if (isContentLoading) {
     return (
       <>
         {toolbar}
         {successBanner ? <section className="pt-3">{successBanner}</section> : null}
         <section className="flex flex-1 items-center justify-center py-16">
-          <p className="text-sm font-semibold text-slate-500">단어를 불러오는 중</p>
+          <p className="text-sm font-semibold text-slate-500">
+            {activeLanguageOption.label} 단어를 불러오는 중
+          </p>
         </section>
       </>
     );
