@@ -6,6 +6,7 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
   updateProfile,
+  type User,
 } from "firebase/auth";
 import { getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -150,20 +151,84 @@ export async function authenticateWithAccount(
   }
 }
 
+export async function createSessionFromFirebaseUser(
+  user: User,
+  rememberLogin = true,
+): Promise<AppSession> {
+  const email = user.email ?? "";
+
+  if (!email) {
+    throw new Error("이메일 계정 정보를 찾지 못했습니다.");
+  }
+
+  const appUser = await upsertUserDocument(user.uid, email);
+
+  return {
+    authProvider: "firebase-password",
+    defaultLanguage: appUser.defaultLanguage,
+    enabledLanguages: appUser.enabledLanguages,
+    rememberLogin,
+    uid: user.uid,
+    username: appUser.username,
+  };
+}
+
+function getPasswordResetActionUrl() {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return `${window.location.origin}/login`;
+}
+
+function getPasswordResetErrorMessage(error: unknown) {
+  const code = getErrorCode(error);
+
+  if (code === "auth/invalid-email") {
+    return "올바른 이메일을 입력해주세요.";
+  }
+
+  if (code === "auth/user-not-found") {
+    return "가입된 이메일인지 확인해주세요.";
+  }
+
+  if (code === "auth/too-many-requests") {
+    return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  if (code === "auth/operation-not-allowed") {
+    return "Firebase Authentication에서 Email/Password 로그인을 켜주세요.";
+  }
+
+  if (
+    code === "auth/unauthorized-continue-uri" ||
+    code === "auth/invalid-continue-uri"
+  ) {
+    return "Firebase Authentication의 승인된 도메인에 현재 Vercel 도메인을 추가해주세요.";
+  }
+
+  return "비밀번호 재설정 메일을 보내지 못했습니다.";
+}
+
 export async function sendAccountPasswordReset(emailInput: string) {
   const email = normalizeEmail(emailInput);
 
   validateEmailInput(email);
 
   try {
-    await sendPasswordResetEmail(getFirebaseAuth(), email);
+    const actionUrl = getPasswordResetActionUrl();
+
+    await sendPasswordResetEmail(
+      getFirebaseAuth(),
+      email,
+      actionUrl
+        ? {
+            handleCodeInApp: false,
+            url: actionUrl,
+          }
+        : undefined,
+    );
   } catch (error) {
-    const code = getErrorCode(error);
-
-    if (code === "auth/operation-not-allowed") {
-      throw new Error("Firebase Authentication에서 Email/Password 로그인을 켜주세요.");
-    }
-
-    throw new Error("비밀번호 재설정 메일을 보내지 못했습니다.");
+    throw new Error(getPasswordResetErrorMessage(error));
   }
 }

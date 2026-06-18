@@ -1,18 +1,23 @@
 "use client";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   authenticateWithAccount,
+  createSessionFromFirebaseUser,
   sendAccountPasswordReset,
   type AccountAuthMode,
 } from "@/lib/auth";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { storeSession } from "@/lib/session";
+import { useSession } from "@/lib/use-session";
 
 type SubmitMode = AccountAuthMode | "reset-password";
 
 export function LoginForm() {
   const router = useRouter();
+  const session = useSession();
   const [authMode, setAuthMode] = useState<AccountAuthMode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +26,39 @@ export function LoginForm() {
   const [successMessage, setSuccessMessage] = useState("");
   const [submittingMode, setSubmittingMode] = useState<SubmitMode | null>(null);
   const isSignUp = authMode === "sign-up";
+
+  const routeAfterLogin = useCallback((nextSession: {
+    defaultLanguage?: string;
+  }) => {
+    router.replace(
+      nextSession.defaultLanguage
+        ? `/words?lang=${nextSession.defaultLanguage}`
+        : "/onboarding/language",
+    );
+    router.refresh();
+  }, [router]);
+
+  useEffect(() => {
+    if (session) {
+      routeAfterLogin(session);
+      return;
+    }
+
+    if (session !== null) {
+      return;
+    }
+
+    return onAuthStateChanged(getFirebaseAuth(), (user) => {
+      if (!user) {
+        return;
+      }
+
+      void createSessionFromFirebaseUser(user, true).then((restoredSession) => {
+        storeSession(restoredSession, true);
+        routeAfterLogin(restoredSession);
+      });
+    });
+  }, [routeAfterLogin, session]);
 
   async function handleAuth(mode: AccountAuthMode) {
     setErrorMessage("");
@@ -35,12 +73,7 @@ export function LoginForm() {
         rememberLogin,
       );
       storeSession(session, rememberLogin);
-      router.replace(
-        session.defaultLanguage
-          ? `/words?lang=${session.defaultLanguage}`
-          : "/onboarding/language",
-      );
-      router.refresh();
+      routeAfterLogin(session);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "로그인 중 문제가 발생했습니다.",
@@ -57,7 +90,7 @@ export function LoginForm() {
 
     try {
       await sendAccountPasswordReset(email);
-      setSuccessMessage("비밀번호 재설정 메일을 보냈습니다.");
+      setSuccessMessage("비밀번호 재설정 메일을 보냈습니다. 메일함과 스팸함을 확인해주세요.");
     } catch (error) {
       setErrorMessage(
         error instanceof Error
