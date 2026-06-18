@@ -534,15 +534,14 @@ export function WordList({
 
   if (isContentLoading) {
     return (
-      <>
-        {toolbar}
+      <section className="flex flex-1 flex-col">
         {successBanner ? <section className="pt-3">{successBanner}</section> : null}
-        <section className="flex flex-1 items-center justify-center py-16">
+        <div className="flex flex-1 items-center justify-center py-16">
           <p className="text-sm font-semibold text-slate-500">
             {activeLanguageOption.label} 단어를 불러오는 중
           </p>
-        </section>
-      </>
+        </div>
+      </section>
     );
   }
 
