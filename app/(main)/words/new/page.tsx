@@ -28,7 +28,7 @@ export default async function NewWordPage({ searchParams }: NewWordPageProps) {
       }
     >
       <RequireSession>
-        <WordForm mode="create" />
+        <WordForm language={selectedLanguage} mode="create" />
       </RequireSession>
     </AppFrame>
   );

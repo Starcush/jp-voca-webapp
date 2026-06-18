@@ -20,6 +20,8 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { WORDS_COLLECTION, wordPath } from "@/lib/firestore-paths";
+import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
+import type { Language } from "@/types/language";
 import type { NewWordInput, UpdateWordInput, Word, WordStatus } from "@/types/word";
 
 const WORDS_PAGE_SIZE = 10;
@@ -28,8 +30,11 @@ export type WordsPageCursor = QueryDocumentSnapshot<Omit<Word, "id">>;
 
 function buildCreateWordData(uid: string, input: NewWordInput) {
   return {
-    kanji: input.kanji,
-    ...(input.yomikataFurigana ? { yomikataFurigana: input.yomikataFurigana } : {}),
+    language: input.language,
+    term: input.term,
+    ...(input.reading ? { reading: input.reading } : {}),
+    kanji: input.term,
+    ...(input.reading ? { yomikataFurigana: input.reading } : {}),
     ...(input.meaning ? { meaning: input.meaning } : {}),
     ...(input.exampleSentence ? { exampleSentence: input.exampleSentence } : {}),
     ...(input.exampleTranslation ? { exampleTranslation: input.exampleTranslation } : {}),
@@ -42,10 +47,8 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
 }
 
 function buildUpdateWordData(input: UpdateWordInput) {
-  const hasYomikataFurigana = Object.prototype.hasOwnProperty.call(
-    input,
-    "yomikataFurigana",
-  );
+  const hasLanguage = Object.prototype.hasOwnProperty.call(input, "language");
+  const hasReading = Object.prototype.hasOwnProperty.call(input, "reading");
   const hasMeaning = Object.prototype.hasOwnProperty.call(input, "meaning");
   const hasExampleSentence = Object.prototype.hasOwnProperty.call(
     input,
@@ -57,9 +60,13 @@ function buildUpdateWordData(input: UpdateWordInput) {
   );
 
   return {
-    ...(input.kanji !== undefined ? { kanji: input.kanji } : {}),
-    ...(hasYomikataFurigana
-      ? { yomikataFurigana: input.yomikataFurigana ?? deleteField() }
+    ...(hasLanguage ? { language: input.language } : {}),
+    ...(input.term !== undefined ? { term: input.term, kanji: input.term } : {}),
+    ...(hasReading
+      ? {
+          reading: input.reading ?? deleteField(),
+          yomikataFurigana: input.reading ?? deleteField(),
+        }
       : {}),
     ...(hasMeaning ? { meaning: input.meaning ?? deleteField() } : {}),
     ...(hasExampleSentence
@@ -74,6 +81,18 @@ function buildUpdateWordData(input: UpdateWordInput) {
   };
 }
 
+export function getWordLanguage(word: Word): Language {
+  return isLanguage(word.language) ? word.language : DEFAULT_LANGUAGE;
+}
+
+export function getWordTerm(word: Word) {
+  return word.term ?? word.kanji ?? "";
+}
+
+export function getWordReading(word: Word) {
+  return word.reading ?? word.yomikataFurigana ?? "";
+}
+
 export function wordsCollection() {
   return collection(getDb(), WORDS_COLLECTION) as CollectionReference<Omit<Word, "id">>;
 }
@@ -82,32 +101,48 @@ export function wordDocument(wordId: string) {
   return doc(getDb(), wordPath(wordId)) as DocumentReference<Omit<Word, "id">>;
 }
 
-export async function listWordsPage(uid: string, cursor?: WordsPageCursor | null) {
-  const constraints = [
-    where("uid", "==", uid),
-    orderBy("createdAt", "desc"),
-    limit(WORDS_PAGE_SIZE + 1),
-  ];
-  const snapshot = await getDocs(
-    query(
-      wordsCollection(),
-      ...(cursor ? [...constraints, startAfter(cursor)] : constraints),
-    ),
-  );
-  const pageSnapshots = snapshot.docs.slice(0, WORDS_PAGE_SIZE);
-  const words = pageSnapshots.map((wordSnapshot) => ({
-    id: wordSnapshot.id,
-    ...wordSnapshot.data(),
-  }));
+export async function listWordsPage(
+  uid: string,
+  language: Language,
+  cursor?: WordsPageCursor | null,
+) {
+  let currentCursor = cursor ?? null;
+  let hasMore = false;
+  const words: Word[] = [];
+
+  do {
+    const constraints = [
+      where("uid", "==", uid),
+      orderBy("createdAt", "desc"),
+      limit(WORDS_PAGE_SIZE + 1),
+    ];
+    const snapshot = await getDocs(
+      query(
+        wordsCollection(),
+        ...(currentCursor ? [...constraints, startAfter(currentCursor)] : constraints),
+      ),
+    );
+    const pageSnapshots = snapshot.docs.slice(0, WORDS_PAGE_SIZE);
+    const pageWords = pageSnapshots.map((wordSnapshot) => ({
+      id: wordSnapshot.id,
+      ...wordSnapshot.data(),
+    }));
+
+    words.push(
+      ...pageWords.filter((word) => getWordLanguage(word) === language),
+    );
+    currentCursor = pageSnapshots.at(-1) ?? currentCursor;
+    hasMore = snapshot.docs.length > WORDS_PAGE_SIZE;
+  } while (words.length < WORDS_PAGE_SIZE && hasMore && currentCursor);
 
   return {
-    words,
-    cursor: pageSnapshots.at(-1) ?? null,
-    hasMore: snapshot.docs.length > WORDS_PAGE_SIZE,
+    words: words.slice(0, WORDS_PAGE_SIZE),
+    cursor: currentCursor,
+    hasMore,
   };
 }
 
-export async function listAllWords(uid: string) {
+export async function listAllWords(uid: string, language: Language) {
   const snapshot = await getDocs(
     query(
       wordsCollection(),
@@ -119,7 +154,7 @@ export async function listAllWords(uid: string) {
   return snapshot.docs.map((wordSnapshot) => ({
     id: wordSnapshot.id,
     ...wordSnapshot.data(),
-  }));
+  })).filter((word) => getWordLanguage(word) === language);
 }
 
 export async function getWord(wordId: string) {

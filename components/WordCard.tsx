@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getWordLanguage, getWordReading, getWordTerm } from "@/lib/words";
 import type { Word, WordStatus } from "@/types/word";
 
 type WordCardProps = {
@@ -40,6 +41,9 @@ export function WordCard({
   onStudyStatusChange,
   onToggleReveal,
 }: WordCardProps) {
+  const language = getWordLanguage(word);
+  const term = getWordTerm(word);
+  const reading = getWordReading(word);
   const lastSeenLabel = formatLastSeen(word);
   const activeMaskedField = isRevealed ? undefined : maskedField;
   const canToggleReveal = Boolean(
@@ -64,7 +68,7 @@ export function WordCard({
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
-          aria-label={`${word.kanji} 카드 공개`}
+          aria-label={`${term} 카드 공개`}
           onClick={maskedField === "kanji" ? onToggleReveal : undefined}
         >
           <div
@@ -73,11 +77,11 @@ export function WordCard({
             }`}
           >
             <p className="text-lg font-bold leading-7 tracking-normal text-word-kanji">
-              {word.kanji}
+              {term}
             </p>
-            {word.yomikataFurigana ? (
+            {reading ? (
               <p className="text-xs font-medium leading-5 text-blue-500">
-                {word.yomikataFurigana}
+                {reading}
               </p>
             ) : null}
           </div>
@@ -93,7 +97,7 @@ export function WordCard({
             </button>
           ) : null}
           <Link
-            href={`/words/${word.id}/edit`}
+            href={`/words/${word.id}/edit?lang=${language}`}
             className="grid min-h-9 place-items-center rounded-md border border-slate-200 px-2 text-xs font-semibold text-slate-600"
           >
             수정
@@ -105,7 +109,7 @@ export function WordCard({
         <button
           type="button"
           className="mt-1 w-full text-left"
-          aria-label={`${word.kanji} 뜻 공개`}
+          aria-label={`${term} 뜻 공개`}
           onClick={maskedField === "meaning" ? onToggleReveal : undefined}
         >
           <p
@@ -122,7 +126,7 @@ export function WordCard({
         <button
           type="button"
           className="mt-2 w-full text-left"
-          aria-label={`${word.kanji} 예문 공개`}
+          aria-label={`${term} 예문 공개`}
           onClick={canToggleReveal ? onToggleReveal : undefined}
         >
           {word.exampleSentence ? (
@@ -150,7 +154,7 @@ export function WordCard({
         <p className="text-xs font-medium text-slate-500">{lastSeenLabel}</p>
         <div className="grid grid-cols-2 gap-1.5">
           <button
-            aria-label={`${word.kanji} 알았어요`}
+            aria-label={`${term} 알았어요`}
             className={`grid h-9 w-9 place-items-center rounded-md border text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown
                 ? "border-green-200 bg-green-50 text-green-700"
@@ -164,7 +168,7 @@ export function WordCard({
             ✓
           </button>
           <button
-            aria-label={`${word.kanji} 모르겠어요`}
+            aria-label={`${term} 모르겠어요`}
             className={`grid h-9 w-9 place-items-center rounded-md text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown ? "bg-slate-950 text-white" : "bg-red-600 text-white"
             }`}

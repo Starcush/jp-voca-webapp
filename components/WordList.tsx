@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   getWord,
+  getWordLanguage,
+  getWordReading,
+  getWordTerm,
   listAllWords,
   listWordsPage,
   updateWordStudyStatus,
@@ -54,8 +57,8 @@ function matchesSearch(word: Word, searchQuery: string) {
   }
 
   return [
-    word.kanji,
-    word.yomikataFurigana,
+    getWordTerm(word),
+    getWordReading(word),
     word.meaning,
     word.exampleSentence,
     word.exampleTranslation,
@@ -185,7 +188,7 @@ export function WordList({
     setIsLoading(true);
 
     try {
-      const page = await listWordsPage(session.uid);
+      const page = await listWordsPage(session.uid, activeLanguage);
       let nextWords = page.words;
 
       if (
@@ -195,7 +198,10 @@ export function WordList({
         try {
           const highlightedWord = await getWord(highlightedWordId);
 
-          if (highlightedWord?.uid === session.uid) {
+          if (
+            highlightedWord?.uid === session.uid &&
+            getWordLanguage(highlightedWord) === activeLanguage
+          ) {
             nextWords = [highlightedWord, ...nextWords];
           }
         } catch (error) {
@@ -212,7 +218,7 @@ export function WordList({
     } finally {
       setIsLoading(false);
     }
-  }, [highlightedWordId, router, session]);
+  }, [activeLanguage, highlightedWordId, router, session]);
 
   useEffect(() => {
     if (!session) {
@@ -233,7 +239,7 @@ export function WordList({
       setErrorMessage("");
       setIsLoading(true);
 
-      void listAllWords(session.uid)
+      void listAllWords(session.uid, activeLanguage)
         .then((nextWords) => {
           setWords(nextWords);
           setCursor(null);
@@ -249,7 +255,15 @@ export function WordList({
     }, isFullLookupMode ? 200 : 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isFullLookupMode, loadFirstPage, searchQuery, activeFilter, router, session]);
+  }, [
+    activeLanguage,
+    isFullLookupMode,
+    loadFirstPage,
+    searchQuery,
+    activeFilter,
+    router,
+    session,
+  ]);
 
   useEffect(() => {
     const message = getSaveStatusMessage(saveStatus);
@@ -284,7 +298,7 @@ export function WordList({
     setIsLoadingMore(true);
 
     try {
-      const page = await listWordsPage(session.uid, cursor);
+      const page = await listWordsPage(session.uid, activeLanguage, cursor);
       setWords((currentWords) => {
         const currentWordIds = new Set(currentWords.map((word) => word.id));
         const nextWords = page.words.filter((word) => !currentWordIds.has(word.id));

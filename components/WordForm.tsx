@@ -2,26 +2,36 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { createWord, deleteWord, getWord, updateWord } from "@/lib/words";
+import { getLanguageOption } from "@/lib/languages";
+import {
+  createWord,
+  deleteWord,
+  getWord,
+  getWordReading,
+  getWordTerm,
+  updateWord,
+} from "@/lib/words";
 import { useSession } from "@/lib/use-session";
+import type { Language } from "@/types/language";
 import type { NewWordInput, Word } from "@/types/word";
 
 type WordFormProps = {
+  language: Language;
   mode: "create" | "edit";
   wordId?: string;
 };
 
 type WordFormState = {
-  kanji: string;
-  yomikataFurigana: string;
+  term: string;
+  reading: string;
   meaning: string;
   exampleSentence: string;
   exampleTranslation: string;
 };
 
 const emptyForm: WordFormState = {
-  kanji: "",
-  yomikataFurigana: "",
+  term: "",
+  reading: "",
   meaning: "",
   exampleSentence: "",
   exampleTranslation: "",
@@ -29,22 +39,67 @@ const emptyForm: WordFormState = {
 
 function toFormState(word: Word): WordFormState {
   return {
-    kanji: word.kanji,
-    yomikataFurigana: word.yomikataFurigana ?? "",
+    term: getWordTerm(word),
+    reading: getWordReading(word),
     meaning: word.meaning ?? "",
     exampleSentence: word.exampleSentence ?? "",
     exampleTranslation: word.exampleTranslation ?? "",
   };
 }
 
-function normalizeInput(form: WordFormState): NewWordInput {
+function normalizeInput(form: WordFormState, language: Language): NewWordInput {
   return {
-    kanji: form.kanji.trim(),
-    yomikataFurigana: form.yomikataFurigana.trim() || undefined,
+    language,
+    term: form.term.trim(),
+    reading: form.reading.trim() || undefined,
     meaning: form.meaning.trim() || undefined,
     exampleSentence: form.exampleSentence.trim() || undefined,
     exampleTranslation: form.exampleTranslation?.trim() || undefined,
   };
+}
+
+function getTermPlaceholder(language: Language) {
+  if (language === "en") {
+    return "apple";
+  }
+
+  if (language === "zh") {
+    return "你好";
+  }
+
+  return "食べる";
+}
+
+function getReadingPlaceholder(language: Language) {
+  if (language === "zh") {
+    return "ni hao";
+  }
+
+  return "たべる";
+}
+
+function getMeaningPlaceholder(language: Language) {
+  if (language === "en") {
+    return "사과";
+  }
+
+  if (language === "zh") {
+    return "안녕하세요";
+  }
+
+  return "먹다";
+}
+
+function getExamplePlaceholder(language: Language) {
+  if (language === "en") {
+    return "I eat an apple.";
+  }
+
+  if (language === "zh") {
+    return "你好，今天见到你很高兴。";
+  }
+
+  return "朝ごはんを食べる。";
 }
 
 function getFirebaseErrorCode(error: unknown) {
@@ -90,10 +145,12 @@ function getWordFormErrorMessage(
   return "단어를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
-export function WordForm({ mode, wordId }: WordFormProps) {
+export function WordForm({ language, mode, wordId }: WordFormProps) {
   const router = useRouter();
   const session = useSession();
   const isEdit = mode === "edit";
+  const languageOption = getLanguageOption(language);
+  const canAutoGenerateReading = language === "ja";
   const [form, setForm] = useState<WordFormState>(emptyForm);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(isEdit);
@@ -141,10 +198,10 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       return;
     }
 
-    const input = normalizeInput(form);
+    const input = normalizeInput(form, language);
 
-    if (!input.kanji) {
-      setErrorMessage("한자 / 단어를 입력해주세요.");
+    if (!input.term) {
+      setErrorMessage(`${languageOption.termLabel}를 입력해주세요.`);
       return;
     }
 
@@ -161,6 +218,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
       }
 
       const params = new URLSearchParams({
+        lang: language,
         saved: isEdit ? "updated" : "created",
       });
 
@@ -188,7 +246,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
 
     try {
       await deleteWord(wordId);
-      router.replace("/words?saved=deleted");
+      router.replace(`/words?lang=${language}&saved=deleted`);
       router.refresh();
     } catch (error) {
       console.error("Failed to delete word.", error);
@@ -198,10 +256,10 @@ export function WordForm({ mode, wordId }: WordFormProps) {
   }
 
   async function handleGenerateFurigana() {
-    const text = form.kanji.trim();
+    const text = form.term.trim();
 
     if (!text) {
-      setErrorMessage("한자 / 단어를 먼저 입력해주세요.");
+      setErrorMessage(`${languageOption.termLabel}를 먼저 입력해주세요.`);
       return;
     }
 
@@ -227,7 +285,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
 
       setForm((currentForm) => ({
         ...currentForm,
-        yomikataFurigana: data.furigana ?? "",
+        reading: data.furigana ?? "",
       }));
     } catch {
       setErrorMessage("후리가나를 자동 생성하지 못했습니다.");
@@ -248,44 +306,50 @@ export function WordForm({ mode, wordId }: WordFormProps) {
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          한자 / 단어
+          {languageOption.termLabel}
           <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-bold text-red-600">
             필수
           </span>
         </span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => setForm({ ...form, kanji: event.target.value })}
-          placeholder="食べる"
+          onChange={(event) => setForm({ ...form, term: event.target.value })}
+          placeholder={getTermPlaceholder(language)}
           required
-          value={form.kanji}
+          value={form.term}
         />
       </label>
 
-      <label className="grid gap-2">
-        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          후리가나
-          <span className="text-xs font-semibold text-slate-400">선택</span>
-        </span>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <input
-            className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-            onChange={(event) =>
-              setForm({ ...form, yomikataFurigana: event.target.value })
+      {languageOption.readingLabel ? (
+        <label className="grid gap-2">
+          <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            {languageOption.readingLabel}
+            <span className="text-xs font-semibold text-slate-400">선택</span>
+          </span>
+          <div
+            className={
+              canAutoGenerateReading ? "grid grid-cols-[1fr_auto] gap-2" : "grid"
             }
-            placeholder="たべる"
-            value={form.yomikataFurigana}
-          />
-          <button
-            className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isGeneratingFurigana || isSubmitting || !form.kanji.trim()}
-            onClick={handleGenerateFurigana}
-            type="button"
           >
-            {isGeneratingFurigana ? "생성 중" : "자동 생성"}
-          </button>
-        </div>
-      </label>
+            <input
+              className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
+              onChange={(event) => setForm({ ...form, reading: event.target.value })}
+              placeholder={getReadingPlaceholder(language)}
+              value={form.reading}
+            />
+            {canAutoGenerateReading ? (
+              <button
+                className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isGeneratingFurigana || isSubmitting || !form.term.trim()}
+                onClick={handleGenerateFurigana}
+                type="button"
+              >
+                {isGeneratingFurigana ? "생성 중" : "자동 생성"}
+              </button>
+            ) : null}
+          </div>
+        </label>
+      ) : null}
 
       <label className="grid gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -295,7 +359,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
           onChange={(event) => setForm({ ...form, meaning: event.target.value })}
-          placeholder="먹다"
+          placeholder={getMeaningPlaceholder(language)}
           value={form.meaning}
         />
       </label>
@@ -308,7 +372,7 @@ export function WordForm({ mode, wordId }: WordFormProps) {
         <textarea
           className="min-h-28 rounded-lg border-slate-200 bg-white text-base leading-6"
           onChange={(event) => setForm({ ...form, exampleSentence: event.target.value })}
-          placeholder="朝ごはんを食べる。"
+          placeholder={getExamplePlaceholder(language)}
           value={form.exampleSentence}
         />
       </label>

@@ -1,11 +1,15 @@
 import type { Timestamp } from "firebase/firestore";
+import type { Language } from "@/types/language";
 
 export type WordStatus = "unknown" | "known";
 
 export type Word = {
   id: string;
   uid: string;
-  kanji: string;
+  language?: Language;
+  term?: string;
+  reading?: string;
+  kanji?: string;
   yomikataFurigana?: string;
   meaning?: string;
   exampleSentence?: string;
@@ -17,8 +21,9 @@ export type Word = {
 };
 
 export type NewWordInput = {
-  kanji: string;
-  yomikataFurigana?: string;
+  language: Language;
+  term: string;
+  reading?: string;
   meaning?: string;
   exampleSentence?: string;
   exampleTranslation?: string;
