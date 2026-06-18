@@ -475,15 +475,20 @@ export function WordList({
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
       <div className="mb-3">{languageTabs}</div>
-      <div className="mb-3 grid grid-cols-[1fr_auto] items-center gap-2">
-        <p className="min-w-0 truncate text-sm font-semibold text-slate-500">
-          {activeLanguageOption.label} 단어 복습
-        </p>
+      <div className="mb-3">
         <Link
-          className="min-h-10 rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white"
+          className="flex min-h-12 items-center justify-between rounded-lg bg-slate-950 px-4 py-3 text-left text-white shadow-sm"
           href={`/review?lang=${activeLanguage}`}
         >
-          복습
+          <span>
+            <span className="block text-base font-bold">복습 시작</span>
+            <span className="mt-0.5 block text-xs font-semibold text-slate-300">
+              {activeLanguageOption.label} 단어를 한 장씩 확인
+            </span>
+          </span>
+          <span className="text-lg font-bold" aria-hidden="true">
+            &gt;
+          </span>
         </Link>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -571,12 +576,6 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {languageTabs}
-        <Link
-          className="min-h-11 rounded-lg border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700"
-          href={`/review?lang=${activeLanguage}`}
-        >
-          복습으로 이동
-        </Link>
         <div className="flex flex-col items-center gap-4 pt-8 text-center">
           <div>
             <p className="text-lg font-bold text-slate-950">
