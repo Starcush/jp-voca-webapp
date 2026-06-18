@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   getWord,
   getWordLanguage,
@@ -195,6 +196,7 @@ export function WordList({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadedLanguage, setLoadedLanguage] = useState<Language | null>(null);
+  const shownSaveToastKeyRef = useRef("");
   const loadRequestIdRef = useRef(0);
   const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
   const isContentLoading =
@@ -323,7 +325,15 @@ export function WordList({
     const message = getSaveStatusMessage(saveStatus);
 
     if (!message) {
+      shownSaveToastKeyRef.current = "";
       return;
+    }
+
+    const saveToastKey = `${activeLanguage}:${saveStatus}:${highlightedWordId ?? ""}`;
+
+    if (shownSaveToastKeyRef.current !== saveToastKey) {
+      shownSaveToastKeyRef.current = saveToastKey;
+      toast.success(message);
     }
 
     const clearUrlTimeoutId = window.setTimeout(() => {
@@ -333,7 +343,7 @@ export function WordList({
     return () => {
       window.clearTimeout(clearUrlTimeoutId);
     };
-  }, [activeLanguage, router, saveStatus]);
+  }, [activeLanguage, highlightedWordId, router, saveStatus]);
 
   async function loadNextPage() {
     if (!session || !cursor || isLoadingMore) {
@@ -440,15 +450,6 @@ export function WordList({
       : enabledLanguages.length === 2
         ? "grid-cols-2"
         : "grid-cols-1";
-  const successMessage = getSaveStatusMessage(saveStatus);
-  const successMessageLanguage = selectedEnabledLanguage ?? activeLanguage;
-  const scopedSuccessMessage =
-    successMessageLanguage === activeLanguage ? successMessage : "";
-  const successToast = scopedSuccessMessage ? (
-    <div className="fixed inset-x-4 top-20 z-30 mx-auto max-w-md rounded-lg bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-lg">
-      {scopedSuccessMessage}
-    </div>
-  ) : null;
   const languageTabs = (
     <div className={`grid gap-2 ${languageGridClass}`}>
       {languageOptions
@@ -526,7 +527,6 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {languageTabs}
-        {successToast}
         <div className="flex flex-1 items-center justify-center py-16">
           <p className="text-sm font-semibold text-slate-500">
             {activeLanguageOption.label} 단어를 불러오는 중
@@ -540,7 +540,6 @@ export function WordList({
     return (
       <>
         {toolbar}
-        {successToast}
         <section className="grid gap-3 py-4">
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {errorMessage}
@@ -561,7 +560,6 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {languageTabs}
-        {successToast}
         <div className="flex flex-col items-center gap-4 pt-8 text-center">
           <div>
             <p className="text-lg font-bold text-slate-950">
@@ -586,7 +584,6 @@ export function WordList({
     return (
       <>
         {toolbar}
-        {successToast}
         <section className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
           <p className="text-lg font-bold text-slate-950">조건에 맞는 단어가 없습니다</p>
           <p className="text-sm leading-6 text-slate-500">
@@ -626,7 +623,6 @@ export function WordList({
   return (
     <>
       {toolbar}
-      {successToast}
       <section className="grid gap-2 py-3">
         {filteredWords.map((word) => (
           <WordCard
