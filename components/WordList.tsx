@@ -162,6 +162,11 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
       return;
     }
 
+    if (!session.defaultLanguage) {
+      router.replace("/onboarding/language");
+      return;
+    }
+
     setErrorMessage("");
     setIsLoading(true);
 
@@ -193,10 +198,15 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [highlightedWordId, session]);
+  }, [highlightedWordId, router, session]);
 
   useEffect(() => {
     if (!session) {
+      return;
+    }
+
+    if (!session.defaultLanguage) {
+      router.replace("/onboarding/language");
       return;
     }
 
@@ -225,7 +235,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
     }, isFullLookupMode ? 200 : 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isFullLookupMode, loadFirstPage, searchQuery, activeFilter, session]);
+  }, [isFullLookupMode, loadFirstPage, searchQuery, activeFilter, router, session]);
 
   useEffect(() => {
     const message = getSaveStatusMessage(saveStatus);

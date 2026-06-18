@@ -82,7 +82,8 @@ function getDefaultUsername(email: string) {
 async function upsertUserDocument(uid: string, email: string) {
   const userRef = userDocument(uid);
   const userSnapshot = await getDoc(userRef);
-  const username = userSnapshot.data()?.username ?? getDefaultUsername(email);
+  const userData = userSnapshot.data();
+  const username = userData?.username ?? getDefaultUsername(email);
 
   await setDoc(
     userRef,
@@ -95,6 +96,11 @@ async function upsertUserDocument(uid: string, email: string) {
     },
     { merge: true },
   );
+
+  return {
+    defaultLanguage: userData?.defaultLanguage,
+    username,
+  };
 }
 
 export async function authenticateWithAccount(
@@ -120,12 +126,13 @@ export async function authenticateWithAccount(
       });
     }
 
-    await upsertUserDocument(user.uid, email);
+    const appUser = await upsertUserDocument(user.uid, email);
 
     return {
       authProvider: "firebase-password",
+      defaultLanguage: appUser.defaultLanguage,
       uid: user.uid,
-      username: user.displayName ?? getDefaultUsername(email),
+      username: appUser.username,
     };
   } catch (error) {
     throw new Error(getAuthErrorMessage(error, mode));

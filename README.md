@@ -5,6 +5,7 @@
 ## 현재 MVP 기능
 
 - 이메일과 비밀번호 기반 로그인
+- 가입 후 기본 학습 언어 선택
 - 단어 추가, 수정, 삭제
 - 한자, 후리가나, 뜻, 예문, 예문 번역 저장
 - 한자/뜻 가리기 모드와 카드별 공개
@@ -44,6 +45,8 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 현재 MVP 로그인은 Firebase Email/Password Auth를 사용합니다. Firebase Console의 Authentication에서 **Email/Password** 로그인 제공자를 활성화해야 합니다.
 
 이메일은 중복 가입 방지와 계정 복구를 위해 사용합니다. 비밀번호는 Firebase Auth 기본 정책에 맞춰 6자 이상이어야 합니다.
+
+가입 후 일본어, 영어, 중국어 중 하나를 기본 학습 언어로 선택합니다. 선택한 언어는 `users/{uid}.defaultLanguage`에 저장됩니다.
 
 Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 

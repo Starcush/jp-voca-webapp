@@ -1,8 +1,11 @@
+import type { Language } from "@/types/language";
+
 export const APP_SESSION_STORAGE_KEY = "jp-voca-webapp.session";
 export const APP_SESSION_CHANGE_EVENT = "jp-voca-webapp.session-change";
 
 export type AppSession = {
   authProvider: "firebase-password";
+  defaultLanguage?: Language;
   uid: string;
   username: string;
 };

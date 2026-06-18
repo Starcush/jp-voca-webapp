@@ -29,7 +29,11 @@ export function LoginForm() {
     try {
       const session = await authenticateWithAccount(email, password, mode);
       storeSession(session);
-      router.replace("/words");
+      router.replace(
+        session.defaultLanguage
+          ? `/words?lang=${session.defaultLanguage}`
+          : "/onboarding/language",
+      );
       router.refresh();
     } catch (error) {
       setErrorMessage(
