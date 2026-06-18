@@ -2,16 +2,19 @@ import { AppFrame } from "@/components/AppFrame";
 import { AuthStatus } from "@/components/AuthStatus";
 import { RequireSession } from "@/components/RequireSession";
 import { WordList } from "@/components/WordList";
+import { isLanguage } from "@/lib/languages";
 
 type WordsPageProps = {
   searchParams: Promise<{
+    lang?: string;
     saved?: string;
     wordId?: string;
   }>;
 };
 
 export default async function WordsPage({ searchParams }: WordsPageProps) {
-  const { saved, wordId } = await searchParams;
+  const { lang, saved, wordId } = await searchParams;
+  const selectedLanguage = isLanguage(lang) ? lang : undefined;
   const saveStatus =
     saved === "created" || saved === "updated" || saved === "deleted"
       ? saved
@@ -23,7 +26,11 @@ export default async function WordsPage({ searchParams }: WordsPageProps) {
       action={<AuthStatus />}
     >
       <RequireSession>
-        <WordList highlightedWordId={wordId} saveStatus={saveStatus} />
+        <WordList
+          highlightedWordId={wordId}
+          saveStatus={saveStatus}
+          selectedLanguage={selectedLanguage}
+        />
       </RequireSession>
     </AppFrame>
   );

@@ -10,7 +10,13 @@ import {
   updateWordStudyStatus,
   type WordsPageCursor,
 } from "@/lib/words";
+import {
+  DEFAULT_LANGUAGE,
+  getLanguageOption,
+  languageOptions,
+} from "@/lib/languages";
 import { useSession } from "@/lib/use-session";
+import type { Language } from "@/types/language";
 import type { Word, WordStatus } from "@/types/word";
 import { WordCard } from "@/components/WordCard";
 
@@ -117,6 +123,7 @@ function getStudyStatusErrorMessage(error: unknown) {
 type WordListProps = {
   highlightedWordId?: string;
   saveStatus?: SaveStatus;
+  selectedLanguage?: Language;
 };
 
 function getSaveStatusMessage(saveStatus?: SaveStatus) {
@@ -135,9 +142,16 @@ function getSaveStatusMessage(saveStatus?: SaveStatus) {
   return "";
 }
 
-export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
+export function WordList({
+  highlightedWordId,
+  saveStatus,
+  selectedLanguage,
+}: WordListProps) {
   const router = useRouter();
   const session = useSession();
+  const activeLanguage =
+    selectedLanguage ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
+  const activeLanguageOption = getLanguageOption(activeLanguage);
   const [words, setWords] = useState<Word[]>([]);
   const [activeHighlightedWordId, setActiveHighlightedWordId] = useState(
     highlightedWordId ?? "",
@@ -251,7 +265,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
       setActiveHighlightedWordId("");
     }, 3500);
     const clearUrlTimeoutId = window.setTimeout(() => {
-      router.replace("/words", { scroll: false });
+      router.replace(`/words?lang=${activeLanguage}`, { scroll: false });
     }, 2600);
 
     return () => {
@@ -259,7 +273,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
       window.clearTimeout(clearHighlightTimeoutId);
       window.clearTimeout(clearUrlTimeoutId);
     };
-  }, [router, saveStatus]);
+  }, [activeLanguage, router, saveStatus]);
 
   async function loadNextPage() {
     if (!session || !cursor || isLoadingMore) {
@@ -315,6 +329,13 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
     setSearchQuery("");
   }
 
+  function handleLanguageChange(nextLanguage: Language) {
+    setActiveFilter("all");
+    setSearchQuery("");
+    setRevealedWordIds(new Set());
+    router.push(`/words?lang=${nextLanguage}`);
+  }
+
   async function handleStudyStatusChange(wordId: string, status: WordStatus) {
     setUpdatingWordIds((currentWordIds) => new Set(currentWordIds).add(wordId));
     setErrorMessage("");
@@ -351,9 +372,29 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
       {successMessage}
     </p>
   ) : null;
+  const languageTabs = (
+    <div className="grid grid-cols-3 gap-2">
+      {languageOptions.map((language) => (
+        <button
+          aria-pressed={activeLanguage === language.code}
+          className={`min-h-10 rounded-md text-sm font-bold ${
+            activeLanguage === language.code
+              ? "bg-slate-950 text-white"
+              : "border border-slate-200 bg-white text-slate-600"
+          }`}
+          key={language.code}
+          onClick={() => handleLanguageChange(language.code)}
+          type="button"
+        >
+          <span aria-hidden="true">{language.flag}</span> {language.label}
+        </button>
+      ))}
+    </div>
+  );
 
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
+      <div className="mb-3">{languageTabs}</div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {viewTabs.map((tab) => (
           <button
@@ -367,7 +408,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
             onClick={() => handleViewModeChange(tab.value)}
             type="button"
           >
-            {tab.label}
+            {tab.value === "kanji" ? activeLanguageOption.hideTermLabel : tab.label}
           </button>
         ))}
       </div>
@@ -437,20 +478,25 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
 
   if (words.length === 0) {
     return (
-      <section className="flex flex-1 flex-col items-center gap-4 pt-12 text-center">
+      <section className="flex flex-1 flex-col gap-6 pt-3">
+        {languageTabs}
         {successBanner}
-        <div>
-          <p className="text-lg font-bold text-slate-950">첫 단어를 추가해볼까요?</p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            한자 / 단어만 입력해도 저장할 수 있습니다.
-          </p>
+        <div className="flex flex-col items-center gap-4 pt-8 text-center">
+          <div>
+            <p className="text-lg font-bold text-slate-950">
+              {activeLanguageOption.label} 첫 단어를 추가해볼까요?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {activeLanguageOption.termLabel}만 입력해도 저장할 수 있습니다.
+            </p>
+          </div>
+          <Link
+            className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
+            href={`/words/new?lang=${activeLanguage}`}
+          >
+            첫 단어 추가
+          </Link>
         </div>
-        <Link
-          className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
-          href="/words/new"
-        >
-          첫 단어 추가
-        </Link>
       </section>
     );
   }
@@ -488,7 +534,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
         <Link
           aria-label="단어 추가"
           className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
-          href="/words/new"
+          href={`/words/new?lang=${activeLanguage}`}
         >
           +
         </Link>
@@ -531,7 +577,7 @@ export function WordList({ highlightedWordId, saveStatus }: WordListProps) {
       <Link
         aria-label="단어 추가"
         className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
-        href="/words/new"
+        href={`/words/new?lang=${activeLanguage}`}
       >
         +
       </Link>
