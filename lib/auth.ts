@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
@@ -57,16 +58,20 @@ function getAuthErrorMessage(error: unknown, mode: AccountAuthMode) {
 }
 
 function validateAccountInput(email: string, password: string) {
+  validateEmailInput(email);
+
+  if (password.length < 6) {
+    throw new Error("비밀번호는 6자 이상으로 입력해주세요.");
+  }
+}
+
+function validateEmailInput(email: string) {
   if (!email) {
     throw new Error("이메일을 입력해주세요.");
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("올바른 이메일을 입력해주세요.");
-  }
-
-  if (password.length < 6) {
-    throw new Error("비밀번호는 6자 이상으로 입력해주세요.");
   }
 }
 
@@ -124,5 +129,23 @@ export async function authenticateWithAccount(
     };
   } catch (error) {
     throw new Error(getAuthErrorMessage(error, mode));
+  }
+}
+
+export async function sendAccountPasswordReset(emailInput: string) {
+  const email = normalizeEmail(emailInput);
+
+  validateEmailInput(email);
+
+  try {
+    await sendPasswordResetEmail(getFirebaseAuth(), email);
+  } catch (error) {
+    const code = getErrorCode(error);
+
+    if (code === "auth/operation-not-allowed") {
+      throw new Error("Firebase Authentication에서 Email/Password 로그인을 켜주세요.");
+    }
+
+    throw new Error("비밀번호 재설정 메일을 보내지 못했습니다.");
   }
 }

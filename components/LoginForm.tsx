@@ -2,8 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { authenticateWithAccount, type AccountAuthMode } from "@/lib/auth";
+import {
+  authenticateWithAccount,
+  sendAccountPasswordReset,
+  type AccountAuthMode,
+} from "@/lib/auth";
 import { storeSession } from "@/lib/session";
+
+type SubmitMode = AccountAuthMode | "reset-password";
 
 export function LoginForm() {
   const router = useRouter();
@@ -11,11 +17,13 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [submittingMode, setSubmittingMode] = useState<AccountAuthMode | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [submittingMode, setSubmittingMode] = useState<SubmitMode | null>(null);
   const isSignUp = authMode === "sign-up";
 
   async function handleAuth(mode: AccountAuthMode) {
     setErrorMessage("");
+    setSuccessMessage("");
     setSubmittingMode(mode);
 
     try {
@@ -26,6 +34,25 @@ export function LoginForm() {
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "로그인 중 문제가 발생했습니다.",
+      );
+    } finally {
+      setSubmittingMode(null);
+    }
+  }
+
+  async function handlePasswordReset() {
+    setErrorMessage("");
+    setSuccessMessage("");
+    setSubmittingMode("reset-password");
+
+    try {
+      await sendAccountPasswordReset(email);
+      setSuccessMessage("비밀번호 재설정 메일을 보냈습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "비밀번호 재설정 메일을 보내지 못했습니다.",
       );
     } finally {
       setSubmittingMode(null);
@@ -74,10 +101,27 @@ export function LoginForm() {
           type="password"
           value={password}
         />
+        {!isSignUp ? (
+          <button
+            className="justify-self-end text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={Boolean(submittingMode)}
+            onClick={() => void handlePasswordReset()}
+            type="button"
+          >
+            {submittingMode === "reset-password"
+              ? "메일 보내는 중"
+              : "비밀번호를 잊으셨나요?"}
+          </button>
+        ) : null}
       </label>
       {errorMessage ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
           {errorMessage}
+        </p>
+      ) : null}
+      {successMessage ? (
+        <p className="rounded-md bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+          {successMessage}
         </p>
       ) : null}
       <div className="grid gap-2">
@@ -100,6 +144,7 @@ export function LoginForm() {
             disabled={Boolean(submittingMode)}
             onClick={() => {
               setErrorMessage("");
+              setSuccessMessage("");
               setAuthMode(isSignUp ? "sign-in" : "sign-up");
             }}
             type="button"
