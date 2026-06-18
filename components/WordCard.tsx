@@ -25,7 +25,7 @@ function hasMaskedContent(word: Word, maskedField?: "kanji" | "meaning") {
   }
 
   if (maskedField === "meaning") {
-    return Boolean(word.meaning);
+    return Boolean(word.meaning || word.exampleSentence || word.exampleTranslation);
   }
 
   return false;
@@ -123,14 +123,23 @@ export function WordCard({
           type="button"
           className="mt-2 w-full text-left"
           aria-label={`${word.kanji} 예문 공개`}
+          onClick={canToggleReveal ? onToggleReveal : undefined}
         >
           {word.exampleSentence ? (
-            <p className="overflow-hidden text-xs font-semibold leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            <p
+              className={`overflow-hidden text-xs font-semibold leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${
+                activeMaskedField ? "blur-sm opacity-45" : ""
+              }`}
+            >
               {word.exampleSentence}
             </p>
           ) : null}
           {word.exampleTranslation ? (
-            <p className="mt-0.5 overflow-hidden text-xs leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            <p
+              className={`mt-0.5 overflow-hidden text-xs leading-5 text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${
+                activeMaskedField ? "blur-sm opacity-45" : ""
+              }`}
+            >
               {word.exampleTranslation}
             </p>
           ) : null}
