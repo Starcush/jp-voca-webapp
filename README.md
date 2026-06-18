@@ -46,7 +46,7 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 
 이메일은 중복 가입 방지와 계정 복구를 위해 사용합니다. 비밀번호는 Firebase Auth 기본 정책에 맞춰 6자 이상이어야 합니다.
 
-가입 후 일본어, 영어, 중국어 중 하나를 기본 학습 언어로 선택합니다. 선택한 언어는 `users/{uid}.defaultLanguage`에 저장됩니다.
+가입 후 사용할 학습 언어를 하나 이상 선택합니다. 선택한 언어들은 `users/{uid}.enabledLanguages`에 저장되고, 처음 열 언어는 `users/{uid}.defaultLanguage`에 저장됩니다.
 
 Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 

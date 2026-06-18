@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,23 +18,28 @@ export function AuthStatus() {
   }
 
   return (
-    <button
-      aria-label={`${session.username} 계정 로그아웃`}
-      className="grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
-      disabled={isSigningOut}
-      onClick={() => {
-        setIsSigningOut(true);
-        void signOut(getFirebaseAuth()).finally(() => {
-          clearStoredSession();
-          router.replace("/login");
-        });
-      }}
-      type="button"
-    >
-      <span className="max-w-24 truncate">{session.username}</span>
-      <span className="text-xs font-bold text-slate-400">
+    <div className="flex items-center gap-2">
+      <Link
+        className="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600"
+        href="/settings"
+      >
+        설정
+      </Link>
+      <button
+        aria-label={`${session.username} 계정 로그아웃`}
+        className="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isSigningOut}
+        onClick={() => {
+          setIsSigningOut(true);
+          void signOut(getFirebaseAuth()).finally(() => {
+            clearStoredSession();
+            router.replace("/login");
+          });
+        }}
+        type="button"
+      >
         {isSigningOut ? "나가는 중" : "로그아웃"}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
