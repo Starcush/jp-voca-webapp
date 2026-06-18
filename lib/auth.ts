@@ -22,7 +22,7 @@ export async function signInWithUsername(usernameInput: string): Promise<AppSess
   const username = normalizeUsername(usernameInput);
 
   if (!username) {
-    throw new Error("username을 입력해주세요.");
+    throw new Error("닉네임을 입력해주세요.");
   }
 
   try {

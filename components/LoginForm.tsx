@@ -36,17 +36,17 @@ export function LoginForm() {
       onSubmit={handleSubmit}
     >
       <div>
-        <p className="text-lg font-bold text-slate-950">username으로 입장</p>
+        <p className="text-lg font-bold text-slate-950">닉네임으로 입장</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          username은 이 기기의 단어장 이름으로 사용됩니다.
+          닉네임은 이 기기의 단어장 이름으로 사용됩니다.
         </p>
       </div>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold text-slate-700">username</span>
+        <span className="text-sm font-semibold text-slate-700">닉네임</span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
           onChange={(event) => setUsername(event.target.value)}
-          placeholder="starcush"
+          placeholder="내 단어장"
           value={username}
         />
       </label>

@@ -4,7 +4,7 @@
 
 ## 현재 MVP 기능
 
-- Firebase Anonymous Auth 기반 간단 로그인
+- Firebase Anonymous Auth 기반 닉네임 로그인
 - 단어 추가, 수정, 삭제
 - 한자, 후리가나, 뜻, 예문, 예문 번역 저장
 - 한자/뜻 가리기 모드와 카드별 공개
@@ -40,7 +40,7 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 
 ## Firestore 설정
 
-Firebase Console의 Authentication에서 **Anonymous** 로그인 제공자를 활성화해야 합니다.
+현재 MVP 로그인은 Firebase Anonymous Auth에 닉네임을 붙이는 방식입니다. Firebase Console의 Authentication에서 **Anonymous** 로그인 제공자를 활성화해야 합니다.
 
 Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 
@@ -95,7 +95,7 @@ npm run build
 
 ## MVP 이후 후보
 
-- 이메일/소셜 로그인 기반 계정 전환
+- 계정명과 4자 이상 비밀번호 기반 로그인 전환
 - CSV 가져오기/내보내기
 - 학습 세션과 복습 통계
 - 모바일 입력 경험 개선
