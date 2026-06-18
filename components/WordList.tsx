@@ -22,6 +22,7 @@ import {
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
 import type { Word, WordStatus } from "@/types/word";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
@@ -400,6 +401,10 @@ export function WordList({
   }
 
   function handleLanguageChange(nextLanguage: Language) {
+    if (nextLanguage === activeLanguage) {
+      return;
+    }
+
     setOptimisticLanguage(nextLanguage);
     setActiveFilter("all");
     setSearchQuery("");
@@ -522,23 +527,17 @@ export function WordList({
       </label>
     </section>
   );
-
-  if (isContentLoading) {
-    return (
-      <section className="flex flex-1 flex-col gap-6 pt-3">
-        {languageTabs}
-        <div className="flex flex-1 items-center justify-center py-16">
-          <p className="text-sm font-semibold text-slate-500">
-            {activeLanguageOption.label} 단어를 불러오는 중
-          </p>
-        </div>
-      </section>
-    );
-  }
+  const loadingOverlay = (
+    <LoadingOverlay
+      message={`${activeLanguageOption.label} 단어를 불러오는 중`}
+      show={isContentLoading}
+    />
+  );
 
   if (errorMessage) {
     return (
       <>
+        {loadingOverlay}
         {toolbar}
         <section className="grid gap-3 py-4">
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -559,6 +558,7 @@ export function WordList({
   if (words.length === 0) {
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
+        {loadingOverlay}
         {languageTabs}
         <div className="flex flex-col items-center gap-4 pt-8 text-center">
           <div>
@@ -583,6 +583,7 @@ export function WordList({
   if (filteredWords.length === 0) {
     return (
       <>
+        {loadingOverlay}
         {toolbar}
         <section className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
           <p className="text-lg font-bold text-slate-950">조건에 맞는 단어가 없습니다</p>
@@ -622,6 +623,7 @@ export function WordList({
 
   return (
     <>
+      {loadingOverlay}
       {toolbar}
       <section className="grid gap-2 py-3">
         {filteredWords.map((word) => (
