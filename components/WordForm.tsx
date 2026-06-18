@@ -150,12 +150,12 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
   const session = useSession();
   const isEdit = mode === "edit";
   const languageOption = getLanguageOption(language);
-  const canAutoGenerateReading = language === "ja";
+  const canAutoGenerateReading = language === "ja" || language === "zh";
   const [form, setForm] = useState<WordFormState>(emptyForm);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGeneratingFurigana, setIsGeneratingFurigana] = useState(false);
+  const [isGeneratingReading, setIsGeneratingReading] = useState(false);
 
   const loadWord = useCallback(async () => {
     if (!isEdit || !wordId || !session) {
@@ -255,7 +255,7 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
     }
   }
 
-  async function handleGenerateFurigana() {
+  async function handleGenerateReading() {
     const text = form.term.trim();
 
     if (!text) {
@@ -264,10 +264,10 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
     }
 
     setErrorMessage("");
-    setIsGeneratingFurigana(true);
+    setIsGeneratingReading(true);
 
     try {
-      const response = await fetch("/api/furigana", {
+      const response = await fetch(language === "zh" ? "/api/pinyin" : "/api/furigana", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -276,21 +276,28 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
       });
       const data = (await response.json()) as {
         furigana?: string;
+        pinyin?: string;
+        reading?: string;
         error?: string;
       };
+      const generatedReading = data.reading ?? data.furigana ?? data.pinyin;
 
-      if (!response.ok || !data.furigana) {
-        throw new Error(data.error ?? "failed to generate furigana");
+      if (!response.ok || !generatedReading) {
+        throw new Error(data.error ?? "failed to generate reading");
       }
 
       setForm((currentForm) => ({
         ...currentForm,
-        reading: data.furigana ?? "",
+        reading: generatedReading,
       }));
     } catch {
-      setErrorMessage("후리가나를 자동 생성하지 못했습니다.");
+      setErrorMessage(
+        language === "zh"
+          ? "병음을 자동 생성하지 못했습니다."
+          : "후리가나를 자동 생성하지 못했습니다.",
+      );
     } finally {
-      setIsGeneratingFurigana(false);
+      setIsGeneratingReading(false);
     }
   }
 
@@ -340,11 +347,11 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
             {canAutoGenerateReading ? (
               <button
                 className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isGeneratingFurigana || isSubmitting || !form.term.trim()}
-                onClick={handleGenerateFurigana}
+                disabled={isGeneratingReading || isSubmitting || !form.term.trim()}
+                onClick={handleGenerateReading}
                 type="button"
               >
-                {isGeneratingFurigana ? "생성 중" : "자동 생성"}
+                {isGeneratingReading ? "생성 중" : "자동 생성"}
               </button>
             ) : null}
           </div>
