@@ -445,7 +445,7 @@ export function WordList({
   const scopedSuccessMessage =
     successMessageLanguage === activeLanguage ? successMessage : "";
   const successToast = scopedSuccessMessage ? (
-    <div className="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-md rounded-lg bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-lg">
+    <div className="fixed inset-x-4 top-20 z-30 mx-auto max-w-md rounded-lg bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-lg">
       {scopedSuccessMessage}
     </div>
   ) : null;
