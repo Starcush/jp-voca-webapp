@@ -475,22 +475,6 @@ export function WordList({
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
       <div className="mb-3">{languageTabs}</div>
-      <div className="mb-3">
-        <Link
-          className="flex min-h-12 items-center justify-between rounded-lg bg-slate-950 px-4 py-3 text-left text-white shadow-sm"
-          href={`/review?lang=${activeLanguage}`}
-        >
-          <span>
-            <span className="block text-base font-bold">복습 시작</span>
-            <span className="mt-0.5 block text-xs font-semibold text-slate-300">
-              {activeLanguageOption.label} 단어를 한 장씩 확인
-            </span>
-          </span>
-          <span className="text-lg font-bold" aria-hidden="true">
-            &gt;
-          </span>
-        </Link>
-      </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {viewTabs.map((tab) => (
           <button
