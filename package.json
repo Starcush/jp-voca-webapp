@@ -16,6 +16,7 @@
     "postcss": "^8.5.10"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.7",
     "@tailwindcss/forms": "^0.5.10",
     "firebase": "^11.0.0",
     "kuromoji": "^0.1.2",

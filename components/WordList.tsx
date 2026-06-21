@@ -525,6 +525,12 @@ export function WordList({
           value={searchQuery}
         />
       </label>
+      <Link
+        className="mt-2 grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
+        href={`/words/import?lang=${activeLanguage}`}
+      >
+        사진에서 가져오기
+      </Link>
     </section>
   );
   const loadingOverlay = (
@@ -574,6 +580,12 @@ export function WordList({
             href={`/words/new?lang=${activeLanguage}`}
           >
             첫 단어 추가
+          </Link>
+          <Link
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
+            href={`/words/import?lang=${activeLanguage}`}
+          >
+            사진에서 가져오기
           </Link>
         </div>
       </section>
