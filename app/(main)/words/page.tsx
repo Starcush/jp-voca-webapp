@@ -7,19 +7,14 @@ import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
 type WordsPageProps = {
   searchParams: Promise<{
     lang?: string;
-    saved?: string;
     wordId?: string;
   }>;
 };
 
 export default async function WordsPage({ searchParams }: WordsPageProps) {
-  const { lang, saved, wordId } = await searchParams;
+  const { lang, wordId } = await searchParams;
   const selectedLanguage = isLanguage(lang) ? lang : undefined;
   const reviewLanguage = selectedLanguage ?? DEFAULT_LANGUAGE;
-  const saveStatus =
-    saved === "created" || saved === "updated" || saved === "deleted"
-      ? saved
-      : undefined;
 
   return (
     <AppFrame
@@ -29,7 +24,6 @@ export default async function WordsPage({ searchParams }: WordsPageProps) {
       <RequireSession>
         <WordList
           highlightedWordId={wordId}
-          saveStatus={saveStatus}
           selectedLanguage={selectedLanguage}
         />
       </RequireSession>

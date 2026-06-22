@@ -11,6 +11,7 @@ import {
   getWordTerm,
   updateWord,
 } from "@/lib/words";
+import { storeWordSaveNotice } from "@/lib/word-save-notice";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
 import type { NewWordInput, Word } from "@/types/word";
@@ -217,15 +218,16 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
         savedWordId = await createWord(session.uid, input);
       }
 
-      const params = new URLSearchParams({
-        lang: language,
-        saved: isEdit ? "updated" : "created",
-      });
+      const params = new URLSearchParams({ lang: language });
 
       if (savedWordId) {
         params.set("wordId", savedWordId);
       }
 
+      storeWordSaveNotice({
+        language,
+        type: isEdit ? "updated" : "created",
+      });
       router.replace(`/words?${params.toString()}`);
       router.refresh();
     } catch (error) {
@@ -246,7 +248,8 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
 
     try {
       await deleteWord(wordId);
-      router.replace(`/words?lang=${language}&saved=deleted`);
+      storeWordSaveNotice({ language, type: "deleted" });
+      router.replace(`/words?lang=${language}`);
       router.refresh();
     } catch (error) {
       console.error("Failed to delete word.", error);

@@ -20,6 +20,10 @@ import {
   languageOptions,
 } from "@/lib/languages";
 import { useSession } from "@/lib/use-session";
+import {
+  getWordSaveNoticeMessage,
+  popWordSaveNotice,
+} from "@/lib/word-save-notice";
 import type { Language } from "@/types/language";
 import type { Word, WordStatus } from "@/types/word";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -27,7 +31,6 @@ import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
 type WordFilter = "all" | "unknown" | "stale";
-type SaveStatus = "created" | "updated" | "deleted";
 
 const viewTabs: Array<{
   label: string;
@@ -127,25 +130,8 @@ function getStudyStatusErrorMessage(error: unknown) {
 
 type WordListProps = {
   highlightedWordId?: string;
-  saveStatus?: SaveStatus;
   selectedLanguage?: Language;
 };
-
-function getSaveStatusMessage(saveStatus?: SaveStatus) {
-  if (saveStatus === "created") {
-    return "단어를 추가했습니다.";
-  }
-
-  if (saveStatus === "updated") {
-    return "단어를 수정했습니다.";
-  }
-
-  if (saveStatus === "deleted") {
-    return "단어를 삭제했습니다.";
-  }
-
-  return "";
-}
 
 function getSessionLanguages(session: ReturnType<typeof useSession>) {
   const validEnabledLanguages =
@@ -166,7 +152,6 @@ function getSessionLanguages(session: ReturnType<typeof useSession>) {
 
 export function WordList({
   highlightedWordId,
-  saveStatus,
   selectedLanguage,
 }: WordListProps) {
   const router = useRouter();
@@ -197,7 +182,6 @@ export function WordList({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadedLanguage, setLoadedLanguage] = useState<Language | null>(null);
-  const shownSaveToastKeyRef = useRef("");
   const loadRequestIdRef = useRef(0);
   const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
   const isContentLoading =
@@ -323,28 +307,14 @@ export function WordList({
   ]);
 
   useEffect(() => {
-    const message = getSaveStatusMessage(saveStatus);
+    const notice = popWordSaveNotice(activeLanguage);
 
-    if (!message) {
-      shownSaveToastKeyRef.current = "";
+    if (!notice) {
       return;
     }
 
-    const saveToastKey = `${activeLanguage}:${saveStatus}:${highlightedWordId ?? ""}`;
-
-    if (shownSaveToastKeyRef.current !== saveToastKey) {
-      shownSaveToastKeyRef.current = saveToastKey;
-      toast.success(message);
-    }
-
-    const clearUrlTimeoutId = window.setTimeout(() => {
-      router.replace(`/words?lang=${activeLanguage}`, { scroll: false });
-    }, 2600);
-
-    return () => {
-      window.clearTimeout(clearUrlTimeoutId);
-    };
-  }, [activeLanguage, highlightedWordId, router, saveStatus]);
+    toast.success(getWordSaveNoticeMessage(notice));
+  }, [activeLanguage]);
 
   async function loadNextPage() {
     if (!session || !cursor || isLoadingMore) {
