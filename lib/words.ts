@@ -157,6 +157,12 @@ export async function listAllWords(uid: string, language: Language) {
   })).filter((word) => getWordLanguage(word) === language);
 }
 
+export async function countWords(uid: string, language: Language) {
+  const words = await listAllWords(uid, language);
+
+  return words.length;
+}
+
 export async function getWord(wordId: string) {
   const snapshot = await getDoc(wordDocument(wordId));
 

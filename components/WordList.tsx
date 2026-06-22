@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  countWords,
   getWord,
   getWordLanguage,
   getWordReading,
@@ -182,6 +183,7 @@ export function WordList({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadedLanguage, setLoadedLanguage] = useState<Language | null>(null);
+  const [wordCount, setWordCount] = useState<number | null>(null);
   const loadRequestIdRef = useRef(0);
   const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
   const isContentLoading =
@@ -203,7 +205,10 @@ export function WordList({
     setIsLoading(true);
 
     try {
-      const page = await listWordsPage(session.uid, activeLanguage);
+      const [page, totalWords] = await Promise.all([
+        listWordsPage(session.uid, activeLanguage),
+        countWords(session.uid, activeLanguage),
+      ]);
       let nextWords = page.words;
 
       if (
@@ -232,6 +237,7 @@ export function WordList({
       setCursor(page.cursor);
       setHasMore(page.hasMore);
       setLoadedLanguage(activeLanguage);
+      setWordCount(totalWords);
     } catch (error) {
       if (loadRequestIdRef.current !== requestId) {
         return;
@@ -240,6 +246,7 @@ export function WordList({
       console.error("Failed to load words.", error);
       setErrorMessage(getWordListErrorMessage(error));
       setLoadedLanguage(null);
+      setWordCount(null);
     } finally {
       if (loadRequestIdRef.current === requestId) {
         setIsLoading(false);
@@ -278,6 +285,7 @@ export function WordList({
           setCursor(null);
           setHasMore(false);
           setLoadedLanguage(activeLanguage);
+          setWordCount(nextWords.length);
         })
         .catch((error) => {
           if (loadRequestIdRef.current !== requestId) {
@@ -287,6 +295,7 @@ export function WordList({
           console.error("Failed to load words for search.", error);
           setErrorMessage(getWordListErrorMessage(error));
           setLoadedLanguage(null);
+          setWordCount(null);
         })
         .finally(() => {
           if (loadRequestIdRef.current === requestId) {
@@ -382,6 +391,7 @@ export function WordList({
     setCursor(null);
     setHasMore(false);
     setErrorMessage("");
+    setWordCount(null);
     setLoadedLanguage(null);
     setIsLoading(true);
     setRevealedWordIds(new Set());
@@ -419,6 +429,8 @@ export function WordList({
   }
 
   const filteredWords = applyFilter(words, activeFilter, searchQuery);
+  const wordCountLabel =
+    wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
   const languageGridClass =
     enabledLanguages.length >= 3
       ? "grid-cols-3"
@@ -449,7 +461,12 @@ export function WordList({
 
   const toolbar = (
     <section className="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
-      <div className="mb-3">{languageTabs}</div>
+      <div className="mb-3">
+        {languageTabs}
+        <p className="mt-2 text-xs font-bold text-slate-500">
+          {wordCountLabel}
+        </p>
+      </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {viewTabs.map((tab) => (
           <button
@@ -535,7 +552,12 @@ export function WordList({
     return (
       <section className="flex flex-1 flex-col gap-6 pt-3">
         {loadingOverlay}
-        {languageTabs}
+        <div>
+          {languageTabs}
+          <p className="mt-2 text-xs font-bold text-slate-500">
+            {wordCountLabel}
+          </p>
+        </div>
         <div className="flex flex-col items-center gap-4 pt-8 text-center">
           <div>
             <p className="text-lg font-bold text-slate-950">
