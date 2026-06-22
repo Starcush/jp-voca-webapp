@@ -62,6 +62,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
   const session = useSession();
   const languageOption = getLanguageOption(language);
   const [reviewWords, setReviewWords] = useState<Word[]>([]);
+  const [reviewTotalCount, setReviewTotalCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [knownCount, setKnownCount] = useState(0);
   const [unknownCount, setUnknownCount] = useState(0);
@@ -86,6 +87,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
     try {
       const words = await listAllWords(session.uid, language);
       setReviewWords(buildReviewQueue(words));
+      setReviewTotalCount(words.length);
       setCurrentIndex(0);
       setKnownCount(0);
       setUnknownCount(0);
@@ -137,6 +139,11 @@ export function ReviewSession({ language }: ReviewSessionProps) {
 
   const currentWord = reviewWords[currentIndex];
   const isComplete = reviewWords.length > 0 && currentIndex >= reviewWords.length;
+  const remainingReviewCount = Math.max(
+    reviewTotalCount - reviewWords.length,
+    0,
+  );
+  const hasNextReviewSet = remainingReviewCount > 0;
 
   if (isLoading) {
     return (
@@ -194,7 +201,12 @@ export function ReviewSession({ language }: ReviewSessionProps) {
             복습 완료
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            {languageOption.label} 단어 {reviewWords.length}개를 확인했습니다.
+            이번 세트에서 {languageOption.label} 단어 {reviewWords.length}개를 확인했습니다.
+          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            {hasNextReviewSet
+              ? `아직 ${remainingReviewCount}개가 더 남아 있어요.`
+              : "현재 불러온 복습 세트를 모두 확인했습니다."}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -213,7 +225,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
             onClick={() => void loadReviewWords()}
             type="button"
           >
-            다시 복습
+            {hasNextReviewSet ? "다음 20개 복습" : "한 번 더 복습"}
           </button>
           <Link
             className="min-h-12 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-bold text-slate-700"
