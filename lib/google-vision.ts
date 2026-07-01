@@ -1,34 +1,14 @@
 import { ImageAnnotatorClient } from "@google-cloud/vision";
-
-type GoogleCredentials = {
-  client_email?: string;
-  private_key?: string;
-  project_id?: string;
-};
+import { getGoogleCloudCredentials } from "@/lib/google-cloud-credentials";
 
 let visionClient: ImageAnnotatorClient | undefined;
-
-function parseCredentials() {
-  const rawCredentials = process.env.GOOGLE_CLOUD_CREDENTIALS;
-
-  if (!rawCredentials) {
-    return undefined;
-  }
-
-  const credentials = JSON.parse(rawCredentials) as GoogleCredentials;
-
-  return {
-    ...credentials,
-    private_key: credentials.private_key?.replace(/\\n/g, "\n"),
-  };
-}
 
 function getVisionClient() {
   if (visionClient) {
     return visionClient;
   }
 
-  const credentials = parseCredentials();
+  const credentials = getGoogleCloudCredentials();
   visionClient = credentials
     ? new ImageAnnotatorClient({ credentials })
     : new ImageAnnotatorClient();

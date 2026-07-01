@@ -143,6 +143,60 @@ async function generateReading(language: Language, text: string) {
   return reading;
 }
 
+async function suggestMeaning({
+  language,
+  reading,
+  sentence,
+  term,
+}: {
+  language: Language;
+  reading: string;
+  sentence: string;
+  term: string;
+}) {
+  const response = await fetch("/api/meaning", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      language,
+      reading,
+      sentence,
+      term,
+    }),
+  });
+  const data = (await response.json().catch(() => null)) as {
+    meaning?: unknown;
+  } | null;
+
+  if (!response.ok || typeof data?.meaning !== "string") {
+    return "";
+  }
+
+  return data.meaning;
+}
+
+async function trackSavedExpressions(
+  language: Language,
+  expressions: NewWordInput[],
+) {
+  await fetch("/api/meaning/track-save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      entries: expressions.map((expression) => ({
+        meaning: expression.meaning ?? "",
+        reading: expression.reading ?? "",
+        term: expression.term,
+      })),
+      language,
+    }),
+  });
+}
+
 function loadImage(file: File) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -274,11 +328,17 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
 
     try {
       const reading = await generateReading(language, normalizedTerm);
+      const meaning = await suggestMeaning({
+        language,
+        reading,
+        sentence: sourceSentence,
+        term: normalizedTerm,
+      });
       setStagedExpressions((currentExpressions) => [
         ...currentExpressions,
         {
           id: crypto.randomUUID(),
-          meaning: "",
+          meaning,
           reading,
           sourceSentence,
           term: normalizedTerm,
@@ -338,6 +398,9 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
 
     try {
       await Promise.all(inputs.map((input) => createWord(session.uid, input)));
+      await trackSavedExpressions(language, inputs).catch((error) => {
+        console.error("Failed to track OCR saved expressions.", error);
+      });
       storeWordSaveNotice({
         language,
         type: "created",
