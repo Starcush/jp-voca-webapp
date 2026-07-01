@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { getWordFormErrorMessage } from "@/components/word-form/word-form-errors";
+import { useWordFormQuery } from "@/components/word-form/useWordFormQuery";
 import { getLanguageOption } from "@/lib/languages";
+import type { AppSession } from "@/lib/session";
 import {
   createWord,
   deleteWord,
-  getWord,
   getWordReading,
   getWordTerm,
   updateWord,
@@ -20,6 +22,12 @@ type WordFormProps = {
   language: Language;
   mode: "create" | "edit";
   wordId?: string;
+};
+
+type WordFormBodyProps = WordFormProps & {
+  initialForm: WordFormState;
+  loadErrorMessage: string;
+  session: AppSession | null;
 };
 
 type WordFormState = {
@@ -103,93 +111,65 @@ function getExamplePlaceholder(language: Language) {
   return "朝ごはんを食べる。";
 }
 
-function getFirebaseErrorCode(error: unknown) {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code?: unknown }).code;
-
-    return typeof code === "string" ? code : "";
-  }
-
-  return "";
-}
-
-function getWordFormErrorMessage(
-  error: unknown,
-  action: "load" | "save" | "delete",
-) {
-  const code = getFirebaseErrorCode(error);
-
-  if (code === "permission-denied") {
-    return "Firestore 권한이 부족합니다. Firebase Rules가 배포 환경의 프로젝트에 반영됐는지 확인해주세요.";
-  }
-
-  if (code === "not-found") {
-    return "단어를 찾을 수 없습니다. 이미 삭제됐거나 접근할 수 없는 단어일 수 있습니다.";
-  }
-
-  if (code === "unavailable") {
-    return "Firestore에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.";
-  }
-
-  if (code === "invalid-argument") {
-    return "저장할 수 없는 값이 포함되어 있습니다. 입력값을 확인한 뒤 다시 시도해주세요.";
-  }
-
-  if (action === "load") {
-    return "단어를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
-  }
-
-  if (action === "delete") {
-    return "단어를 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.";
-  }
-
-  return "단어를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
-
+/**
+ * 단어 생성/수정 입력 폼을 렌더링합니다.
+ *
+ * @param props - 단어 폼에 필요한 모드와 언어 정보입니다.
+ * @param props.language - 저장할 단어의 언어입니다.
+ * @param props.mode - 생성 또는 수정 모드입니다.
+ * @param props.wordId - 수정 모드에서 불러올 단어 ID입니다.
+ * @returns 단어 입력 필드, 자동 읽기 생성, 저장/삭제 액션을 렌더링합니다.
+ */
 export function WordForm({ language, mode, wordId }: WordFormProps) {
+  const session = useSession() ?? null;
+  const isEdit = mode === "edit";
+  const {
+    errorMessage: loadErrorMessage,
+    isLoading,
+    word,
+  } = useWordFormQuery({
+    isEdit,
+    uid: session?.uid,
+    wordId,
+  });
+
+  if (isLoading) {
+    return (
+      <section className="flex flex-1 items-center justify-center">
+        <p className="text-sm font-semibold text-slate-500">단어를 불러오는 중</p>
+      </section>
+    );
+  }
+
+  return (
+    <WordFormBody
+      initialForm={word ? toFormState(word) : emptyForm}
+      key={word?.id ?? `${mode}-${language}-${wordId ?? "new"}`}
+      language={language}
+      loadErrorMessage={loadErrorMessage}
+      mode={mode}
+      session={session}
+      wordId={wordId}
+    />
+  );
+}
+
+function WordFormBody({
+  initialForm,
+  language,
+  loadErrorMessage,
+  mode,
+  session,
+  wordId,
+}: WordFormBodyProps) {
   const router = useRouter();
-  const session = useSession();
   const isEdit = mode === "edit";
   const languageOption = getLanguageOption(language);
   const canAutoGenerateReading = language === "ja" || language === "zh";
-  const [form, setForm] = useState<WordFormState>(emptyForm);
+  const [form, setForm] = useState<WordFormState>(initialForm);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingReading, setIsGeneratingReading] = useState(false);
-
-  const loadWord = useCallback(async () => {
-    if (!isEdit || !wordId || !session) {
-      return;
-    }
-
-    setErrorMessage("");
-    setIsLoading(true);
-
-    try {
-      const word = await getWord(wordId);
-
-      if (!word || word.uid !== session.uid) {
-        setErrorMessage("단어를 찾을 수 없습니다.");
-        return;
-      }
-
-      setForm(toFormState(word));
-    } catch (error) {
-      console.error("Failed to load word.", error);
-      setErrorMessage(getWordFormErrorMessage(error, "load"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isEdit, session, wordId]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadWord();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [loadWord]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -304,14 +284,6 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
     }
   }
 
-  if (isLoading) {
-    return (
-      <section className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-semibold text-slate-500">단어를 불러오는 중</p>
-      </section>
-    );
-  }
-
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
@@ -402,9 +374,9 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
         />
       </label>
 
-      {errorMessage ? (
+      {errorMessage || loadErrorMessage ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-          {errorMessage}
+          {errorMessage || loadErrorMessage}
         </p>
       ) : null}
 
