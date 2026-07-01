@@ -370,6 +370,14 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
     );
   }
 
+  function handleImageFileChange(file?: File) {
+    setImageFile(file ?? null);
+    setExtractedText("");
+    setSelectedText("");
+    setStagedExpressions([]);
+    setErrorMessage("");
+  }
+
   async function saveStagedExpressions() {
     if (!session) {
       setErrorMessage("로그인이 필요합니다.");
@@ -487,22 +495,25 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
           <p className="mt-2 text-sm leading-6 text-slate-500">
             사진에서 텍스트를 추출한 뒤, 문장별로 모르는 단어와 문법 표현을 선택해 단어장에 추가할 수 있습니다.
           </p>
-          <label className="mt-4 grid gap-2">
+          <div className="mt-4 grid gap-2">
             <span className="text-sm font-semibold text-slate-700">사진</span>
-            <input
-              accept="image/*"
-              capture="environment"
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-bold file:text-white"
-              onChange={(event) => {
-                setImageFile(event.target.files?.[0] ?? null);
-                setExtractedText("");
-                setSelectedText("");
-                setStagedExpressions([]);
-                setErrorMessage("");
-              }}
-              type="file"
-            />
-          </label>
+            <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-950 px-3 text-sm font-bold text-white">
+              사진 선택
+              <input
+                accept="image/*"
+                className="sr-only"
+                onChange={(event) =>
+                  handleImageFileChange(event.target.files?.[0])
+                }
+                type="file"
+              />
+            </label>
+            {imageFile ? (
+              <p className="text-xs font-semibold text-slate-500">
+                선택됨: {imageFile.name}
+              </p>
+            ) : null}
+          </div>
           {previewUrl ? (
             <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
               {/* eslint-disable-next-line @next/next/no-img-element -- Local blob previews are not served through Next image optimization. */}
