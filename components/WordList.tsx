@@ -1,8 +1,14 @@
 "use client";
 
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   countWords,
@@ -32,6 +38,7 @@ import { WordCard } from "@/components/WordCard";
 
 type ViewMode = "all" | "kanji" | "meaning";
 type WordFilter = "all" | "unknown" | "stale";
+type WordListPage = Awaited<ReturnType<typeof listWordsPage>>;
 
 const viewTabs: Array<{
   label: string;
@@ -129,6 +136,75 @@ function getStudyStatusErrorMessage(error: unknown) {
   return "학습 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+function getWordPagesQueryKey(
+  uid: string,
+  language: Language,
+  highlightedWordId?: string,
+) {
+  return ["words", "pages", uid, language, highlightedWordId ?? ""] as const;
+}
+
+function getAllWordsQueryKey(uid: string, language: Language) {
+  return ["words", "all", uid, language] as const;
+}
+
+function getWordCountQueryKey(uid: string, language: Language) {
+  return ["words", "count", uid, language] as const;
+}
+
+function updateWordInList(
+  word: Word,
+  wordId: string,
+  status: WordStatus,
+  lastSeenAt: Word["lastSeenAt"],
+) {
+  if (word.id !== wordId) {
+    return word;
+  }
+
+  return {
+    ...word,
+    lastSeenAt,
+    status,
+  };
+}
+
+async function listFirstWordsPage({
+  highlightedWordId,
+  language,
+  uid,
+}: {
+  highlightedWordId?: string;
+  language: Language;
+  uid: string;
+}) {
+  const page = await listWordsPage(uid, language);
+  let words = page.words;
+
+  if (
+    highlightedWordId &&
+    !words.some((word) => word.id === highlightedWordId)
+  ) {
+    try {
+      const highlightedWord = await getWord(highlightedWordId);
+
+      if (
+        highlightedWord?.uid === uid &&
+        getWordLanguage(highlightedWord) === language
+      ) {
+        words = [highlightedWord, ...words];
+      }
+    } catch (error) {
+      console.error("Failed to load highlighted word.", error);
+    }
+  }
+
+  return {
+    ...page,
+    words,
+  };
+}
+
 type WordListProps = {
   highlightedWordId?: string;
   selectedLanguage?: Language;
@@ -156,6 +232,7 @@ export function WordList({
   selectedLanguage,
 }: WordListProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const session = useSession();
   const enabledLanguages = useMemo(() => getSessionLanguages(session), [session]);
   const fallbackLanguage = enabledLanguages[0] ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
@@ -171,149 +248,59 @@ export function WordList({
   const activeLanguage =
     selectedEnabledLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
   const activeLanguageOption = getLanguageOption(activeLanguage);
-  const [words, setWords] = useState<Word[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
-  const [cursor, setCursor] = useState<WordsPageCursor | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [loadedLanguage, setLoadedLanguage] = useState<Language | null>(null);
-  const [wordCount, setWordCount] = useState<number | null>(null);
-  const loadRequestIdRef = useRef(0);
+  const [studyStatusErrorMessage, setStudyStatusErrorMessage] = useState("");
   const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
+  const canLoadWords = Boolean(session?.uid && session.defaultLanguage);
+  const uid = session?.uid ?? "";
+  const wordPagesQuery = useInfiniteQuery({
+    queryKey: getWordPagesQueryKey(uid, activeLanguage, highlightedWordId),
+    enabled: canLoadWords && !isFullLookupMode,
+    initialPageParam: null as WordsPageCursor | null,
+    queryFn: ({ pageParam }) =>
+      pageParam
+        ? listWordsPage(uid, activeLanguage, pageParam)
+        : listFirstWordsPage({
+            highlightedWordId,
+            language: activeLanguage,
+            uid,
+          }),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.cursor : undefined,
+  });
+  const allWordsQuery = useQuery({
+    queryKey: getAllWordsQueryKey(uid, activeLanguage),
+    enabled: canLoadWords && isFullLookupMode,
+    queryFn: () => listAllWords(uid, activeLanguage),
+  });
+  const wordCountQuery = useQuery({
+    queryKey: getWordCountQueryKey(uid, activeLanguage),
+    enabled: canLoadWords,
+    queryFn: () => countWords(uid, activeLanguage),
+  });
+  const activeWordsQuery = isFullLookupMode ? allWordsQuery : wordPagesQuery;
+  const words = isFullLookupMode
+    ? allWordsQuery.data ?? []
+    : wordPagesQuery.data?.pages.flatMap((page) => page.words) ?? [];
+  const hasMore = !isFullLookupMode && Boolean(wordPagesQuery.hasNextPage);
+  const isLoadingMore = wordPagesQuery.isFetchingNextPage;
+  const queryErrorMessage = activeWordsQuery.error
+    ? getWordListErrorMessage(activeWordsQuery.error)
+    : "";
+  const errorMessage = queryErrorMessage || studyStatusErrorMessage;
   const isContentLoading =
-    isLoading || (!errorMessage && loadedLanguage !== activeLanguage);
-
-  const loadFirstPage = useCallback(async () => {
-    if (!session) {
-      return;
-    }
-
-    if (!session.defaultLanguage) {
-      router.replace("/onboarding/language");
-      return;
-    }
-
-    const requestId = loadRequestIdRef.current + 1;
-    loadRequestIdRef.current = requestId;
-    setErrorMessage("");
-    setIsLoading(true);
-
-    try {
-      const [page, totalWords] = await Promise.all([
-        listWordsPage(session.uid, activeLanguage),
-        countWords(session.uid, activeLanguage),
-      ]);
-      let nextWords = page.words;
-
-      if (
-        highlightedWordId &&
-        !nextWords.some((word) => word.id === highlightedWordId)
-      ) {
-        try {
-          const highlightedWord = await getWord(highlightedWordId);
-
-          if (
-            highlightedWord?.uid === session.uid &&
-            getWordLanguage(highlightedWord) === activeLanguage
-          ) {
-            nextWords = [highlightedWord, ...nextWords];
-          }
-        } catch (error) {
-          console.error("Failed to load highlighted word.", error);
-        }
-      }
-
-      if (loadRequestIdRef.current !== requestId) {
-        return;
-      }
-
-      setWords(nextWords);
-      setCursor(page.cursor);
-      setHasMore(page.hasMore);
-      setLoadedLanguage(activeLanguage);
-      setWordCount(totalWords);
-    } catch (error) {
-      if (loadRequestIdRef.current !== requestId) {
-        return;
-      }
-
-      console.error("Failed to load words.", error);
-      setErrorMessage(getWordListErrorMessage(error));
-      setLoadedLanguage(null);
-      setWordCount(null);
-    } finally {
-      if (loadRequestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, [activeLanguage, highlightedWordId, router, session]);
+    activeWordsQuery.isLoading ||
+    (activeWordsQuery.isFetching && words.length === 0);
 
   useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    if (!session.defaultLanguage) {
+    if (session && !session.defaultLanguage) {
       router.replace("/onboarding/language");
-      return;
     }
-
-    const timeoutId = window.setTimeout(() => {
-      if (!isFullLookupMode) {
-        void loadFirstPage();
-        return;
-      }
-
-      const requestId = loadRequestIdRef.current + 1;
-      loadRequestIdRef.current = requestId;
-      setErrorMessage("");
-      setIsLoading(true);
-
-      void listAllWords(session.uid, activeLanguage)
-        .then((nextWords) => {
-          if (loadRequestIdRef.current !== requestId) {
-            return;
-          }
-
-          setWords(nextWords);
-          setCursor(null);
-          setHasMore(false);
-          setLoadedLanguage(activeLanguage);
-          setWordCount(nextWords.length);
-        })
-        .catch((error) => {
-          if (loadRequestIdRef.current !== requestId) {
-            return;
-          }
-
-          console.error("Failed to load words for search.", error);
-          setErrorMessage(getWordListErrorMessage(error));
-          setLoadedLanguage(null);
-          setWordCount(null);
-        })
-        .finally(() => {
-          if (loadRequestIdRef.current === requestId) {
-            setIsLoading(false);
-          }
-        });
-    }, isFullLookupMode ? 200 : 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    activeLanguage,
-    isFullLookupMode,
-    loadFirstPage,
-    searchQuery,
-    activeFilter,
-    router,
-    session,
-  ]);
+  }, [router, session]);
 
   useEffect(() => {
     const notice = popWordSaveNotice(activeLanguage);
@@ -326,28 +313,17 @@ export function WordList({
   }, [activeLanguage]);
 
   async function loadNextPage() {
-    if (!session || !cursor || isLoadingMore) {
+    if (!session || !hasMore || isLoadingMore) {
       return;
     }
 
-    setErrorMessage("");
-    setIsLoadingMore(true);
+    setStudyStatusErrorMessage("");
 
     try {
-      const page = await listWordsPage(session.uid, activeLanguage, cursor);
-      setWords((currentWords) => {
-        const currentWordIds = new Set(currentWords.map((word) => word.id));
-        const nextWords = page.words.filter((word) => !currentWordIds.has(word.id));
-
-        return [...currentWords, ...nextWords];
-      });
-      setCursor(page.cursor);
-      setHasMore(page.hasMore);
+      await wordPagesQuery.fetchNextPage();
     } catch (error) {
       console.error("Failed to load more words.", error);
-      setErrorMessage(getWordListErrorMessage(error));
-    } finally {
-      setIsLoadingMore(false);
+      setStudyStatusErrorMessage(getWordListErrorMessage(error));
     }
   }
 
@@ -387,38 +363,49 @@ export function WordList({
     setOptimisticLanguage(nextLanguage);
     setActiveFilter("all");
     setSearchQuery("");
-    setWords([]);
-    setCursor(null);
-    setHasMore(false);
-    setErrorMessage("");
-    setWordCount(null);
-    setLoadedLanguage(null);
-    setIsLoading(true);
+    setStudyStatusErrorMessage("");
     setRevealedWordIds(new Set());
     router.push(`/words?lang=${nextLanguage}`);
   }
 
   async function handleStudyStatusChange(wordId: string, status: WordStatus) {
+    if (!session) {
+      return;
+    }
+
     setUpdatingWordIds((currentWordIds) => new Set(currentWordIds).add(wordId));
-    setErrorMessage("");
+    setStudyStatusErrorMessage("");
 
     try {
       const lastSeenAt = await updateWordStudyStatus(wordId, status);
 
-      setWords((currentWords) =>
-        currentWords.map((word) =>
-          word.id === wordId
+      queryClient.setQueriesData<InfiniteData<WordListPage>>(
+        {
+          queryKey: ["words", "pages", session.uid, activeLanguage],
+        },
+        (currentData) =>
+          currentData
             ? {
-                ...word,
-                status,
-                lastSeenAt,
+                ...currentData,
+                pages: currentData.pages.map((page) => ({
+                  ...page,
+                  words: page.words.map((word) =>
+                    updateWordInList(word, wordId, status, lastSeenAt),
+                  ),
+                })),
               }
-            : word,
-        ),
+            : currentData,
+      );
+      queryClient.setQueryData<Word[]>(
+        getAllWordsQueryKey(session.uid, activeLanguage),
+        (currentWords) =>
+          currentWords?.map((word) =>
+            updateWordInList(word, wordId, status, lastSeenAt),
+          ),
       );
     } catch (error) {
       console.error("Failed to update study status.", error);
-      setErrorMessage(getStudyStatusErrorMessage(error));
+      setStudyStatusErrorMessage(getStudyStatusErrorMessage(error));
     } finally {
       setUpdatingWordIds((currentWordIds) => {
         const nextWordIds = new Set(currentWordIds);
@@ -429,6 +416,7 @@ export function WordList({
   }
 
   const filteredWords = applyFilter(words, activeFilter, searchQuery);
+  const wordCount = wordCountQuery.data ?? null;
   const wordCountLabel =
     wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
   const languageGridClass =
@@ -538,7 +526,10 @@ export function WordList({
           </p>
           <button
             className="min-h-12 rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700"
-            onClick={loadFirstPage}
+            onClick={() => {
+              setStudyStatusErrorMessage("");
+              void activeWordsQuery.refetch();
+            }}
             type="button"
           >
             다시 불러오기
