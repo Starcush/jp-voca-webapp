@@ -1,22 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { getWordFormErrorMessage } from "@/components/word-form/word-form-errors";
+import {
+  getExamplePlaceholder,
+  getMeaningPlaceholder,
+  getReadingPlaceholder,
+  getTermPlaceholder,
+} from "@/components/word-form/word-form-placeholders";
+import type { WordFormState } from "@/components/word-form/types";
 import { useWordFormQuery } from "@/components/word-form/useWordFormQuery";
+import { useWordFormState } from "@/components/word-form/useWordFormState";
 import { getLanguageOption } from "@/lib/languages";
 import type { AppSession } from "@/lib/session";
-import {
-  createWord,
-  deleteWord,
-  getWordReading,
-  getWordTerm,
-  updateWord,
-} from "@/lib/words";
-import { storeWordSaveNotice } from "@/lib/word-save-notice";
+import { getWordReading, getWordTerm } from "@/lib/words";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
-import type { NewWordInput, Word } from "@/types/word";
+import type { Word } from "@/types/word";
 
 type WordFormProps = {
   language: Language;
@@ -28,14 +26,6 @@ type WordFormBodyProps = WordFormProps & {
   initialForm: WordFormState;
   loadErrorMessage: string;
   session: AppSession | null;
-};
-
-type WordFormState = {
-  term: string;
-  reading: string;
-  meaning: string;
-  exampleSentence: string;
-  exampleTranslation: string;
 };
 
 const emptyForm: WordFormState = {
@@ -54,61 +44,6 @@ function toFormState(word: Word): WordFormState {
     exampleSentence: word.exampleSentence ?? "",
     exampleTranslation: word.exampleTranslation ?? "",
   };
-}
-
-function normalizeInput(form: WordFormState, language: Language): NewWordInput {
-  return {
-    language,
-    term: form.term.trim(),
-    reading: form.reading.trim() || undefined,
-    meaning: form.meaning.trim() || undefined,
-    exampleSentence: form.exampleSentence.trim() || undefined,
-    exampleTranslation: form.exampleTranslation?.trim() || undefined,
-  };
-}
-
-function getTermPlaceholder(language: Language) {
-  if (language === "en") {
-    return "apple";
-  }
-
-  if (language === "zh") {
-    return "你好";
-  }
-
-  return "食べる";
-}
-
-function getReadingPlaceholder(language: Language) {
-  if (language === "zh") {
-    return "ni hao";
-  }
-
-  return "たべる";
-}
-
-function getMeaningPlaceholder(language: Language) {
-  if (language === "en") {
-    return "사과";
-  }
-
-  if (language === "zh") {
-    return "안녕하세요";
-  }
-
-  return "먹다";
-}
-
-function getExamplePlaceholder(language: Language) {
-  if (language === "en") {
-    return "I eat an apple.";
-  }
-
-  if (language === "zh") {
-    return "你好，今天见到你很高兴。";
-  }
-
-  return "朝ごはんを食べる。";
 }
 
 /**
@@ -162,127 +97,26 @@ function WordFormBody({
   session,
   wordId,
 }: WordFormBodyProps) {
-  const router = useRouter();
   const isEdit = mode === "edit";
   const languageOption = getLanguageOption(language);
   const canAutoGenerateReading = language === "ja" || language === "zh";
-  const [form, setForm] = useState<WordFormState>(initialForm);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGeneratingReading, setIsGeneratingReading] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!session) {
-      setErrorMessage("로그인이 필요합니다.");
-      return;
-    }
-
-    const input = normalizeInput(form, language);
-
-    if (!input.term) {
-      setErrorMessage(`${languageOption.termLabel}를 입력해주세요.`);
-      return;
-    }
-
-    setErrorMessage("");
-    setIsSubmitting(true);
-
-    try {
-      let savedWordId = wordId;
-
-      if (isEdit && wordId) {
-        await updateWord(wordId, input);
-      } else {
-        savedWordId = await createWord(session.uid, input);
-      }
-
-      const params = new URLSearchParams({ lang: language });
-
-      if (savedWordId) {
-        params.set("wordId", savedWordId);
-      }
-
-      storeWordSaveNotice({
-        language,
-        type: isEdit ? "updated" : "created",
-      });
-      router.replace(`/words?${params.toString()}`);
-      router.refresh();
-    } catch (error) {
-      console.error("Failed to save word.", error);
-      setErrorMessage(getWordFormErrorMessage(error, "save"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!wordId || !confirm("이 단어를 삭제할까요?")) {
-      return;
-    }
-
-    setErrorMessage("");
-    setIsSubmitting(true);
-
-    try {
-      await deleteWord(wordId);
-      storeWordSaveNotice({ language, type: "deleted" });
-      router.replace(`/words?lang=${language}`);
-      router.refresh();
-    } catch (error) {
-      console.error("Failed to delete word.", error);
-      setErrorMessage(getWordFormErrorMessage(error, "delete"));
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleGenerateReading() {
-    const text = form.term.trim();
-
-    if (!text) {
-      setErrorMessage(`${languageOption.termLabel}를 먼저 입력해주세요.`);
-      return;
-    }
-
-    setErrorMessage("");
-    setIsGeneratingReading(true);
-
-    try {
-      const response = await fetch(language === "zh" ? "/api/pinyin" : "/api/furigana", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      });
-      const data = (await response.json()) as {
-        furigana?: string;
-        pinyin?: string;
-        reading?: string;
-        error?: string;
-      };
-      const generatedReading = data.reading ?? data.furigana ?? data.pinyin;
-
-      if (!response.ok || !generatedReading) {
-        throw new Error(data.error ?? "failed to generate reading");
-      }
-
-      setForm((currentForm) => ({
-        ...currentForm,
-        reading: generatedReading,
-      }));
-    } catch {
-      setErrorMessage(
-        language === "zh"
-          ? "병음을 자동 생성하지 못했습니다."
-          : "후리가나를 자동 생성하지 못했습니다.",
-      );
-    } finally {
-      setIsGeneratingReading(false);
-    }
-  }
+  const {
+    errorMessage,
+    form,
+    handleDelete,
+    handleGenerateReading,
+    handleSubmit,
+    isGeneratingReading,
+    isSubmitting,
+    updateField,
+  } = useWordFormState({
+    initialForm,
+    isEdit,
+    language,
+    session,
+    termLabel: languageOption.termLabel,
+    wordId,
+  });
 
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
@@ -295,7 +129,7 @@ function WordFormBody({
         </span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => setForm({ ...form, term: event.target.value })}
+          onChange={(event) => updateField("term", event.target.value)}
           placeholder={getTermPlaceholder(language)}
           required
           value={form.term}
@@ -315,7 +149,7 @@ function WordFormBody({
           >
             <input
               className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-              onChange={(event) => setForm({ ...form, reading: event.target.value })}
+              onChange={(event) => updateField("reading", event.target.value)}
               placeholder={getReadingPlaceholder(language)}
               value={form.reading}
             />
@@ -340,7 +174,7 @@ function WordFormBody({
         </span>
         <input
           className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => setForm({ ...form, meaning: event.target.value })}
+          onChange={(event) => updateField("meaning", event.target.value)}
           placeholder={getMeaningPlaceholder(language)}
           value={form.meaning}
         />
@@ -353,7 +187,7 @@ function WordFormBody({
         </span>
         <textarea
           className="min-h-28 rounded-lg border-slate-200 bg-white text-base leading-6"
-          onChange={(event) => setForm({ ...form, exampleSentence: event.target.value })}
+          onChange={(event) => updateField("exampleSentence", event.target.value)}
           placeholder={getExamplePlaceholder(language)}
           value={form.exampleSentence}
         />
@@ -367,7 +201,7 @@ function WordFormBody({
         <textarea
           className="min-h-24 rounded-lg border-slate-200 bg-white text-base leading-6"
           onChange={(event) =>
-            setForm({ ...form, exampleTranslation: event.target.value })
+            updateField("exampleTranslation", event.target.value)
           }
           placeholder="아침밥을 먹다."
           value={form.exampleTranslation}
