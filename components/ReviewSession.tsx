@@ -2,86 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { REVIEW_LIMIT, reviewModes } from "@/components/review/review-options";
 import { useReviewSessionState } from "@/components/review/useReviewSessionState";
+import { useReviewWordsQuery } from "@/components/review/useReviewWordsQuery";
+import type { ReviewMode } from "@/components/review/types";
 import { getLanguageOption } from "@/lib/languages";
 import {
   getWordReading,
   getWordTerm,
-  listAllWords,
   updateWordStudyStatus,
 } from "@/lib/words";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
-import type { Word, WordStatus } from "@/types/word";
-
-const REVIEW_LIMIT = 20;
-
-type ReviewMode = "priority" | "unknown" | "stale" | "random";
+import type { WordStatus } from "@/types/word";
 
 type ReviewSessionProps = {
   language: Language;
 };
-
-const reviewModes: Array<{
-  description: string;
-  label: string;
-  value: ReviewMode;
-}> = [
-  {
-    description: "모르는 단어와 오래 안 본 단어를 우선 확인합니다.",
-    label: "추천",
-    value: "priority",
-  },
-  {
-    description: "모르겠어요로 남아 있는 단어만 확인합니다.",
-    label: "모르는 단어",
-    value: "unknown",
-  },
-  {
-    description: "최근에 덜 본 단어부터 다시 확인합니다.",
-    label: "오래 안 본 단어",
-    value: "stale",
-  },
-  {
-    description: "저장된 단어를 무작위로 섞어 확인합니다.",
-    label: "전체 섞기",
-    value: "random",
-  },
-];
-
-function getLastSeenTime(word: Word) {
-  return word.lastSeenAt?.toMillis?.() ?? 0;
-}
-
-function shuffleWords(words: Word[]) {
-  return [...words].sort(() => Math.random() - 0.5);
-}
-
-function getModeWords(words: Word[], mode: ReviewMode) {
-  if (mode === "unknown") {
-    return words
-      .filter((word) => word.status === "unknown")
-      .sort((a, b) => getLastSeenTime(a) - getLastSeenTime(b));
-  }
-
-  if (mode === "stale") {
-    return [...words].sort((a, b) => getLastSeenTime(a) - getLastSeenTime(b));
-  }
-
-  if (mode === "random") {
-    return shuffleWords(words);
-  }
-
-  return [...words].sort((a, b) => {
-    if (a.status !== b.status) {
-      return a.status === "unknown" ? -1 : 1;
-    }
-
-    return getLastSeenTime(a) - getLastSeenTime(b);
-  });
-}
 
 function getEmptyReviewMessage(mode: ReviewMode) {
   if (mode === "unknown") {
@@ -91,36 +30,21 @@ function getEmptyReviewMessage(mode: ReviewMode) {
   return "복습할 단어가 없습니다";
 }
 
-function getFirebaseErrorCode(error: unknown) {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code?: unknown }).code;
-
-    return typeof code === "string" ? code : "";
-  }
-
-  return "";
-}
-
-function getReviewErrorMessage(error: unknown) {
-  const code = getFirebaseErrorCode(error);
-
-  if (code === "permission-denied") {
-    return "복습할 단어를 불러올 권한이 없습니다. Firebase Rules를 확인해주세요.";
-  }
-
-  return "복습할 단어를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
-
+/**
+ * 선택한 언어의 단어를 20개 단위로 복습하는 화면을 렌더링합니다.
+ *
+ * @param props - 복습 화면에 필요한 속성입니다.
+ * @param props.language - 복습할 단어장의 현재 언어입니다.
+ * @returns 복습 모드 선택, 카드 복습, 완료/빈 상태/에러 상태 UI를 렌더링합니다.
+ */
 export function ReviewSession({ language }: ReviewSessionProps) {
   const router = useRouter();
-  const session = useSession();
+  const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
   const [reviewMode, setReviewMode] = useState<ReviewMode>("priority");
-  const [reviewWords, setReviewWords] = useState<Word[]>([]);
-  const [reviewTotalCount, setReviewTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [reviewOffset, setReviewOffset] = useState(0);
+  const [randomSeed, setRandomSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const {
     currentIndex,
     isAnswerVisible,
@@ -130,42 +54,25 @@ export function ReviewSession({ language }: ReviewSessionProps) {
     revealAnswer,
     unknownCount,
   } = useReviewSessionState();
-
-  const loadReviewWords = useCallback(async () => {
-    if (!session) {
-      return;
-    }
-
-    if (!session.defaultLanguage) {
-      router.replace("/onboarding/language");
-      return;
-    }
-
-    setErrorMessage("");
-    setIsLoading(true);
-
-    try {
-      const words = await listAllWords(session.uid, language);
-      const modeWords = getModeWords(words, reviewMode);
-
-      setReviewWords(modeWords.slice(0, REVIEW_LIMIT));
-      setReviewTotalCount(modeWords.length);
-      resetReviewProgress();
-    } catch (error) {
-      console.error("Failed to load review words.", error);
-      setErrorMessage(getReviewErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [language, resetReviewProgress, reviewMode, router, session]);
+  const {
+    errorMessage,
+    isLoading,
+    refetchReviewWords,
+    reviewTotalCount,
+    reviewWords,
+  } = useReviewWordsQuery({
+    language,
+    offset: reviewOffset,
+    randomSeed,
+    reviewMode,
+    session,
+  });
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadReviewWords();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [loadReviewWords]);
+    if (session && !session.defaultLanguage) {
+      router.replace("/onboarding/language");
+    }
+  }, [router, session]);
 
   async function handleStudyStatus(status: WordStatus) {
     const currentWord = reviewWords[currentIndex];
@@ -175,7 +82,6 @@ export function ReviewSession({ language }: ReviewSessionProps) {
     }
 
     setIsSaving(true);
-    setErrorMessage("");
 
     try {
       await updateWordStudyStatus(currentWord.id, status);
@@ -188,12 +94,41 @@ export function ReviewSession({ language }: ReviewSessionProps) {
     }
   }
 
+  function handleReviewModeChange(nextReviewMode: ReviewMode) {
+    setReviewMode(nextReviewMode);
+    setReviewOffset(0);
+    resetReviewProgress();
+
+    if (nextReviewMode === "random") {
+      setRandomSeed((seed) => seed + 1);
+    }
+  }
+
+  function handleRestartReview() {
+    resetReviewProgress();
+
+    if (isRandomMode) {
+      setReviewOffset(0);
+      setRandomSeed((seed) => seed + 1);
+      void refetchReviewWords();
+      return;
+    }
+
+    if (hasNextReviewSet) {
+      setReviewOffset((offset) => offset + REVIEW_LIMIT);
+      return;
+    }
+
+    setReviewOffset(0);
+    void refetchReviewWords();
+  }
+
   const currentWord = reviewWords[currentIndex];
   const isComplete = reviewWords.length > 0 && currentIndex >= reviewWords.length;
   const activeReviewMode = reviewModes.find((mode) => mode.value === reviewMode) ?? reviewModes[0];
   const isRandomMode = reviewMode === "random";
   const remainingReviewCount = Math.max(
-    reviewTotalCount - reviewWords.length,
+    reviewTotalCount - reviewOffset - reviewWords.length,
     0,
   );
   const hasNextReviewSet = !isRandomMode && remainingReviewCount > 0;
@@ -210,7 +145,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
             }`}
             disabled={isLoading || isSaving}
             key={mode.value}
-            onClick={() => setReviewMode(mode.value)}
+            onClick={() => handleReviewModeChange(mode.value)}
             type="button"
           >
             {mode.label}
@@ -245,7 +180,10 @@ export function ReviewSession({ language }: ReviewSessionProps) {
         </p>
         <button
           className="min-h-12 rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700"
-          onClick={() => void loadReviewWords()}
+          onClick={() => {
+            resetReviewProgress();
+            void refetchReviewWords();
+          }}
           type="button"
         >
           다시 불러오기
@@ -309,7 +247,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
         <div className="grid gap-2">
           <button
             className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white"
-            onClick={() => void loadReviewWords()}
+            onClick={handleRestartReview}
             type="button"
           >
             {isRandomMode
