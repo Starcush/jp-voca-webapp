@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useReviewSessionState } from "@/components/review/useReviewSessionState";
 import { getLanguageOption } from "@/lib/languages";
 import {
   getWordReading,
@@ -117,13 +118,18 @@ export function ReviewSession({ language }: ReviewSessionProps) {
   const [reviewMode, setReviewMode] = useState<ReviewMode>("priority");
   const [reviewWords, setReviewWords] = useState<Word[]>([]);
   const [reviewTotalCount, setReviewTotalCount] = useState(0);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [knownCount, setKnownCount] = useState(0);
-  const [unknownCount, setUnknownCount] = useState(0);
-  const [isAnswerVisible, setIsAnswerVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const {
+    currentIndex,
+    isAnswerVisible,
+    knownCount,
+    recordAnswer,
+    resetReviewProgress,
+    revealAnswer,
+    unknownCount,
+  } = useReviewSessionState();
 
   const loadReviewWords = useCallback(async () => {
     if (!session) {
@@ -144,17 +150,14 @@ export function ReviewSession({ language }: ReviewSessionProps) {
 
       setReviewWords(modeWords.slice(0, REVIEW_LIMIT));
       setReviewTotalCount(modeWords.length);
-      setCurrentIndex(0);
-      setKnownCount(0);
-      setUnknownCount(0);
-      setIsAnswerVisible(false);
+      resetReviewProgress();
     } catch (error) {
       console.error("Failed to load review words.", error);
       setErrorMessage(getReviewErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
-  }, [language, reviewMode, router, session]);
+  }, [language, resetReviewProgress, reviewMode, router, session]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -176,15 +179,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
 
     try {
       await updateWordStudyStatus(currentWord.id, status);
-
-      if (status === "known") {
-        setKnownCount((count) => count + 1);
-      } else {
-        setUnknownCount((count) => count + 1);
-      }
-
-      setCurrentIndex((index) => index + 1);
-      setIsAnswerVisible(false);
+      recordAnswer(status);
     } catch (error) {
       console.error("Failed to update review status.", error);
       toast.error("복습 상태를 저장하지 못했습니다.");
@@ -356,7 +351,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
       <article className="flex flex-1 flex-col justify-center rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <button
           className="grid gap-4 text-center"
-          onClick={() => setIsAnswerVisible(true)}
+          onClick={revealAnswer}
           type="button"
         >
           <p className="text-4xl font-bold leading-tight tracking-normal text-word-kanji">
@@ -428,7 +423,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
       ) : (
         <button
           className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white"
-          onClick={() => setIsAnswerVisible(true)}
+          onClick={revealAnswer}
           type="button"
         >
           정답 보기
