@@ -1,0 +1,180 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isLanguage(language) {
+      return language in ["ja", "en", "zh"];
+    }
+
+    function isOptionalString(field, maxLength) {
+      return !(field in request.resource.data)
+        || (
+          request.resource.data[field] is string
+          && request.resource.data[field].size() <= maxLength
+        );
+    }
+
+    function isTimestampOrNull(field) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] == null
+        || request.resource.data[field] is timestamp;
+    }
+
+    function hasWordTerm() {
+      return (
+          "term" in request.resource.data
+          && request.resource.data.term is string
+          && request.resource.data.term.size() > 0
+          && request.resource.data.term.size() <= 200
+        )
+        || (
+          "kanji" in request.resource.data
+          && request.resource.data.kanji is string
+          && request.resource.data.kanji.size() > 0
+          && request.resource.data.kanji.size() <= 200
+        );
+    }
+
+    function isValidUser() {
+      return request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "username",
+          "defaultLanguage",
+          "enabledLanguages",
+          "createdAt",
+          "updatedAt",
+        ])
+        && request.resource.data.uid is string
+        && request.resource.data.username is string
+        && request.resource.data.username.size() > 0
+        && request.resource.data.username.size() <= 80
+        && isOptionalString("email", 254)
+        && (
+          !("defaultLanguage" in request.resource.data)
+          || isLanguage(request.resource.data.defaultLanguage)
+        )
+        && (
+          !("enabledLanguages" in request.resource.data)
+          || (
+            request.resource.data.enabledLanguages is list
+            && request.resource.data.enabledLanguages.size() > 0
+            && request.resource.data.enabledLanguages.size() <= 3
+            && request.resource.data.enabledLanguages.hasOnly(["ja", "en", "zh"])
+          )
+        )
+        && request.resource.data.createdAt is timestamp
+        && (
+          !("updatedAt" in request.resource.data)
+          || request.resource.data.updatedAt is timestamp
+        );
+    }
+
+    function isValidWord() {
+      return request.resource.data.keys().hasOnly([
+          "uid",
+          "language",
+          "notebookId",
+          "term",
+          "kanji",
+          "reading",
+          "yomikataFurigana",
+          "meaning",
+          "exampleSentence",
+          "exampleTranslation",
+          "status",
+          "lastSeenAt",
+          "createdAt",
+          "updatedAt",
+        ])
+        && request.resource.data.uid is string
+        && isLanguage(request.resource.data.language)
+        && hasWordTerm()
+        && isOptionalString("term", 200)
+        && isOptionalString("kanji", 200)
+        && isOptionalString("notebookId", 120)
+        && isOptionalString("reading", 300)
+        && isOptionalString("yomikataFurigana", 300)
+        && isOptionalString("meaning", 500)
+        && isOptionalString("exampleSentence", 1000)
+        && isOptionalString("exampleTranslation", 1000)
+        && (
+          !("status" in request.resource.data)
+          || request.resource.data.status in ["unknown", "known"]
+        )
+        && isTimestampOrNull("lastSeenAt")
+        && (
+          !("createdAt" in request.resource.data)
+          || request.resource.data.createdAt is timestamp
+        )
+        && (
+          !("updatedAt" in request.resource.data)
+          || request.resource.data.updatedAt is timestamp
+        );
+    }
+
+    function isValidNotebook() {
+      return request.resource.data.keys().hasOnly([
+          "uid",
+          "language",
+          "title",
+          "description",
+          "createdAt",
+          "updatedAt",
+        ])
+        && request.resource.data.uid is string
+        && isLanguage(request.resource.data.language)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && isOptionalString("description", 500)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && isValidUser();
+      allow update: if isOwner(userId)
+        && resource.data.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && isValidUser();
+      allow delete: if false;
+    }
+
+    match /words/{wordId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && isValidWord();
+      allow update: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && isValidWord();
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /notebooks/{notebookId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && isValidNotebook();
+      allow update: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.language == resource.data.language
+        && isValidNotebook();
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
