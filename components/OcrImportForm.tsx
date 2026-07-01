@@ -81,42 +81,34 @@ function pushSentence(sentences: string[], sentence: string) {
 function splitTextIntoSentences(text: string, language: Language) {
   const sentences: string[] = [];
   const lineJoiner = language === "en" ? " " : "";
-  const paragraphs = text
+  const normalizedText = text
     .replace(/\r\n?/g, "\n")
-    .split(/\n{2,}/)
-    .map((paragraph) =>
-      paragraph
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .join(lineJoiner),
-    )
-    .filter(Boolean);
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(lineJoiner);
+  const characters = Array.from(normalizedText);
+  let buffer = "";
 
-  for (const paragraph of paragraphs) {
-    const characters = Array.from(paragraph);
-    let buffer = "";
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
 
-    for (let index = 0; index < characters.length; index += 1) {
-      const character = characters[index];
+    buffer += character;
 
-      buffer += character;
+    if (!isSentenceEnd(characters, index)) {
+      continue;
+    }
 
-      if (!isSentenceEnd(characters, index)) {
-        continue;
-      }
-
-      while (closingMarks.has(characters[index + 1])) {
-        index += 1;
-        buffer += characters[index];
-      }
-
-      pushSentence(sentences, buffer);
-      buffer = "";
+    while (closingMarks.has(characters[index + 1])) {
+      index += 1;
+      buffer += characters[index];
     }
 
     pushSentence(sentences, buffer);
+    buffer = "";
   }
+
+  pushSentence(sentences, buffer);
 
   return sentences;
 }
