@@ -17,6 +17,7 @@ type OcrImportFormProps = {
 
 const OCR_IMAGE_MAX_SIZE = 1800;
 const OCR_IMAGE_QUALITY = 0.86;
+const MAX_STAGED_EXPRESSIONS = 10;
 
 type StagedExpression = {
   exampleSentence?: string;
@@ -260,7 +261,7 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
   const [selectedText, setSelectedText] = useState("");
   const [stagedExpressions, setStagedExpressions] = useState<StagedExpression[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isAddingSelection, setIsAddingSelection] = useState(false);
+  const [isEnrichingExpressions, setIsEnrichingExpressions] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSavingWords, setIsSavingWords] = useState(false);
   const sentenceRef = useRef<HTMLDivElement>(null);
@@ -306,7 +307,7 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
     setSelectedText(normalizeSelectedText(selection.toString()));
   }
 
-  async function addExpression(term: string, sourceSentence: string) {
+  function addExpression(term: string, sourceSentence: string) {
     const normalizedTerm = normalizeSelectedText(term);
 
     if (!normalizedTerm) {
@@ -323,34 +324,72 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
       return;
     }
 
+    if (stagedExpressions.length >= MAX_STAGED_EXPRESSIONS) {
+      toast.info(
+        `한 번에 최대 ${MAX_STAGED_EXPRESSIONS}개까지 추가할 수 있습니다.`,
+      );
+      return;
+    }
+
     setErrorMessage("");
-    setIsAddingSelection(true);
+    setStagedExpressions((currentExpressions) => [
+      ...currentExpressions,
+      {
+        id: crypto.randomUUID(),
+        meaning: "",
+        reading: "",
+        sourceSentence,
+        term: normalizedTerm,
+        useExample: true,
+      },
+    ]);
+    setSelectedText("");
+    window.getSelection()?.removeAllRanges();
+  }
+
+  async function enrichStagedExpressions() {
+    if (stagedExpressions.length === 0) {
+      setErrorMessage("읽기와 뜻을 찾을 표현을 먼저 추가해주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsEnrichingExpressions(true);
 
     try {
-      const reading = await generateReading(language, normalizedTerm);
-      const meaning = await suggestMeaning({
-        language,
-        reading,
-        sentence: sourceSentence,
-        term: normalizedTerm,
-      });
-      setStagedExpressions((currentExpressions) => [
-        ...currentExpressions,
-        {
-          id: crypto.randomUUID(),
-          meaning,
-          reading,
-          sourceSentence,
-          term: normalizedTerm,
-          useExample: true,
-        },
-      ]);
-      setSelectedText("");
-      window.getSelection()?.removeAllRanges();
-    } catch {
-      setErrorMessage("선택한 표현을 추가하지 못했습니다.");
+      const enrichedExpressions = await Promise.all(
+        stagedExpressions.map(async (expression) => {
+          const term = expression.term.trim();
+
+          if (!term) {
+            return expression;
+          }
+
+          const reading =
+            expression.reading.trim() || (await generateReading(language, term));
+          const meaning =
+            expression.meaning.trim() ||
+            (await suggestMeaning({
+              language,
+              reading,
+              sentence: expression.sourceSentence,
+              term,
+            }));
+
+          return {
+            ...expression,
+            meaning,
+            reading,
+          };
+        }),
+      );
+
+      setStagedExpressions(enrichedExpressions);
+    } catch (error) {
+      console.error("Failed to enrich staged expressions.", error);
+      setErrorMessage("읽기와 뜻을 찾지 못했습니다.");
     } finally {
-      setIsAddingSelection(false);
+      setIsEnrichingExpressions(false);
     }
   }
 
@@ -481,11 +520,11 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
         message={
           isSavingWords
             ? "단어장에 저장하는 중"
-            : isAddingSelection
-              ? "선택한 표현을 준비하는 중"
+            : isEnrichingExpressions
+              ? "읽기와 뜻을 찾는 중"
               : "사진에서 텍스트를 읽는 중"
         }
-        show={isExtracting || isAddingSelection || isSavingWords}
+        show={isExtracting || isEnrichingExpressions || isSavingWords}
       />
       <section className="grid gap-5">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -581,8 +620,7 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
             {selectedText ? (
               <button
                 className="min-h-11 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isAddingSelection}
-                onClick={() => void addExpression(selectedText, currentSentence)}
+                onClick={() => addExpression(selectedText, currentSentence)}
                 type="button"
               >
                 선택한 표현 추가: {selectedText}
@@ -627,19 +665,32 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-base font-bold text-slate-950">
-                  추가 예정 {stagedExpressions.length}개
+                  추가 예정 {stagedExpressions.length} / {MAX_STAGED_EXPRESSIONS}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  뜻은 비워둘 수 있고, 틀린 읽기는 저장 전에 수정할 수 있습니다.
+                  문장을 이동해도 유지됩니다. 사진을 다시 선택하거나 텍스트를 다시 추출하면 초기화됩니다.
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  먼저 표현을 담아둔 뒤, 읽기와 뜻을 한 번에 찾을 수 있습니다.
                 </p>
               </div>
-              <button
-                className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
-                onClick={() => setStagedExpressions([])}
-                type="button"
-              >
-                비우기
-              </button>
+              <div className="grid shrink-0 gap-2">
+                <button
+                  className="rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isEnrichingExpressions}
+                  onClick={() => void enrichStagedExpressions()}
+                  type="button"
+                >
+                  읽기와 뜻 찾기
+                </button>
+                <button
+                  className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                  onClick={() => setStagedExpressions([])}
+                  type="button"
+                >
+                  비우기
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-3">
