@@ -9,6 +9,7 @@ export type Word = {
   language?: Language;
   term?: string;
   reading?: string;
+  notebookId?: string;
   kanji?: string;
   yomikataFurigana?: string;
   meaning?: string;
@@ -24,12 +25,14 @@ export type NewWordInput = {
   language: Language;
   term: string;
   reading?: string;
+  notebookId?: string;
   meaning?: string;
   exampleSentence?: string;
   exampleTranslation?: string;
 };
 
-export type UpdateWordInput = Partial<NewWordInput> & {
+export type UpdateWordInput = Partial<Omit<NewWordInput, "notebookId">> & {
+  notebookId?: string | null;
   status?: WordStatus;
   lastSeenAt?: Timestamp | null;
 };

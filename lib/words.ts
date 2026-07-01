@@ -32,6 +32,7 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
   return {
     language: input.language,
     term: input.term,
+    ...(input.notebookId ? { notebookId: input.notebookId } : {}),
     ...(input.reading ? { reading: input.reading } : {}),
     kanji: input.term,
     ...(input.reading ? { yomikataFurigana: input.reading } : {}),
@@ -48,6 +49,7 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
 
 function buildUpdateWordData(input: UpdateWordInput) {
   const hasLanguage = Object.prototype.hasOwnProperty.call(input, "language");
+  const hasNotebookId = Object.prototype.hasOwnProperty.call(input, "notebookId");
   const hasReading = Object.prototype.hasOwnProperty.call(input, "reading");
   const hasMeaning = Object.prototype.hasOwnProperty.call(input, "meaning");
   const hasExampleSentence = Object.prototype.hasOwnProperty.call(
@@ -61,6 +63,9 @@ function buildUpdateWordData(input: UpdateWordInput) {
 
   return {
     ...(hasLanguage ? { language: input.language } : {}),
+    ...(hasNotebookId
+      ? { notebookId: input.notebookId || deleteField() }
+      : {}),
     ...(input.term !== undefined ? { term: input.term, kanji: input.term } : {}),
     ...(hasReading
       ? {
