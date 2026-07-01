@@ -24,6 +24,10 @@ type StagedExpressionListProps = {
   ) => void;
 };
 
+function getReadyExpressionCount(expressions: StagedExpression[]) {
+  return expressions.filter((expression) => expression.term.trim()).length;
+}
+
 /**
  * OCR에서 선택한 표현들을 최종 저장 전까지 편집하는 목록 컴포넌트입니다.
  *
@@ -50,6 +54,12 @@ export function StagedExpressionList({
   onSave,
   onUpdate,
 }: StagedExpressionListProps) {
+  const readyExpressionCount = getReadyExpressionCount(expressions);
+  const incompleteExpressionCount = expressions.length - readyExpressionCount;
+  const canSaveExpressions =
+    expressions.length > 0 && incompleteExpressionCount === 0;
+  const canEnrichExpressions = readyExpressionCount > 0;
+
   return (
     <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
@@ -63,11 +73,20 @@ export function StagedExpressionList({
           <p className="mt-1 text-sm leading-6 text-slate-500">
             먼저 표현을 담아둔 뒤, 읽기와 뜻을 한 번에 찾을 수 있습니다.
           </p>
+          <p
+            className={`mt-2 text-sm font-bold ${
+              incompleteExpressionCount > 0 ? "text-red-600" : "text-emerald-700"
+            }`}
+          >
+            {incompleteExpressionCount > 0
+              ? `필수 항목 확인 필요 ${incompleteExpressionCount}개`
+              : `저장 준비 완료 ${readyExpressionCount}개`}
+          </p>
         </div>
         <div className="grid shrink-0 gap-2">
           <button
             className="rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isEnriching}
+            disabled={isEnriching || !canEnrichExpressions}
             onClick={onEnrich}
             type="button"
           >
@@ -84,92 +103,119 @@ export function StagedExpressionList({
       </div>
 
       <div className="grid gap-3">
-        {expressions.map((expression) => (
-          <article
-            className="grid gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3"
-            key={expression.id}
-          >
-            <div className="grid gap-2">
-              <label className="grid gap-1">
-                <span className="text-xs font-bold text-slate-500">
-                  {languageOption.termLabel}
-                </span>
-                <input
-                  className="min-h-10 rounded-md border-slate-200 bg-white text-base"
-                  onChange={(event) =>
-                    onUpdate(expression.id, {
-                      term: event.target.value,
-                    })
-                  }
-                  value={expression.term}
-                />
-              </label>
-              {languageOption.readingLabel ? (
+        {expressions.map((expression) => {
+          const isTermMissing = expression.term.trim().length === 0;
+
+          return (
+            <article
+              className={`grid gap-3 rounded-lg border bg-slate-50 p-3 ${
+                isTermMissing ? "border-red-200" : "border-slate-100"
+              }`}
+              key={expression.id}
+            >
+              <div className="grid gap-2">
                 <label className="grid gap-1">
-                  <span className="text-xs font-bold text-slate-500">
-                    {languageOption.readingLabel}
+                  <span className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    {languageOption.termLabel}
+                    <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[11px] text-white">
+                      필수
+                    </span>
+                  </span>
+                  <input
+                    aria-invalid={isTermMissing}
+                    className={`min-h-10 rounded-md bg-white text-base ${
+                      isTermMissing
+                        ? "border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500"
+                        : "border-slate-200"
+                    }`}
+                    onChange={(event) =>
+                      onUpdate(expression.id, {
+                        term: event.target.value,
+                      })
+                    }
+                    value={expression.term}
+                  />
+                  {isTermMissing ? (
+                    <span className="text-xs font-semibold text-red-600">
+                      저장하려면 단어 또는 표현을 입력해주세요.
+                    </span>
+                  ) : null}
+                </label>
+                {languageOption.readingLabel ? (
+                  <label className="grid gap-1">
+                    <span className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                      {languageOption.readingLabel}
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                        선택
+                      </span>
+                    </span>
+                    <input
+                      className="min-h-10 rounded-md border-slate-200 bg-white text-base"
+                      onChange={(event) =>
+                        onUpdate(expression.id, {
+                          reading: event.target.value,
+                        })
+                      }
+                      value={expression.reading}
+                    />
+                  </label>
+                ) : null}
+                <label className="grid gap-1">
+                  <span className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    뜻
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                      선택
+                    </span>
                   </span>
                   <input
                     className="min-h-10 rounded-md border-slate-200 bg-white text-base"
                     onChange={(event) =>
                       onUpdate(expression.id, {
-                        reading: event.target.value,
+                        meaning: event.target.value,
                       })
                     }
-                    value={expression.reading}
+                    placeholder="비워두고 저장할 수 있습니다."
+                    value={expression.meaning}
                   />
                 </label>
-              ) : null}
-              <label className="grid gap-1">
-                <span className="text-xs font-bold text-slate-500">뜻</span>
+              </div>
+              <label className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-600">
                 <input
-                  className="min-h-10 rounded-md border-slate-200 bg-white text-base"
+                  checked={expression.useExample}
+                  className="mt-1 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
                   onChange={(event) =>
                     onUpdate(expression.id, {
-                      meaning: event.target.value,
+                      useExample: event.target.checked,
                     })
                   }
-                  placeholder="선택"
-                  value={expression.meaning}
+                  type="checkbox"
                 />
+                <span>이 문장을 예문으로 사용</span>
               </label>
-            </div>
-            <label className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-600">
-              <input
-                checked={expression.useExample}
-                className="mt-1 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
-                onChange={(event) =>
-                  onUpdate(expression.id, {
-                    useExample: event.target.checked,
-                  })
-                }
-                type="checkbox"
-              />
-              <span>이 문장을 예문으로 사용</span>
-            </label>
-            {expression.useExample ? (
-              <p className="rounded-md bg-white px-3 py-2 text-sm leading-6 text-slate-500">
-                {expression.sourceSentence}
-              </p>
-            ) : null}
-            <button
-              className="justify-self-end text-sm font-bold text-red-600"
-              onClick={() => onRemove(expression.id)}
-              type="button"
-            >
-              제거
-            </button>
-          </article>
-        ))}
+              {expression.useExample ? (
+                <p className="rounded-md bg-white px-3 py-2 text-sm leading-6 text-slate-500">
+                  {expression.sourceSentence}
+                </p>
+              ) : null}
+              <button
+                className="justify-self-end text-sm font-bold text-red-600"
+                onClick={() => onRemove(expression.id)}
+                type="button"
+              >
+                제거
+              </button>
+            </article>
+          );
+        })}
       </div>
 
       <button
         className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={isSaving}
+        disabled={isSaving || !canSaveExpressions}
         onClick={onSave}
         type="button"
       >
-        단어장에 저장
+        {incompleteExpressionCount > 0 ? "필수 항목 확인 필요" : "단어장에 저장"}
       </button>
     </section>
   );

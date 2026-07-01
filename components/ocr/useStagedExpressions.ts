@@ -152,6 +152,10 @@ export function useStagedExpressions(language: Language) {
       return "읽기와 뜻을 찾을 표현을 먼저 추가해주세요.";
     }
 
+    if (!stagedExpressions.some((expression) => expression.term.trim())) {
+      return "읽기와 뜻을 찾을 단어 또는 표현을 입력해주세요.";
+    }
+
     setIsEnrichingExpressions(true);
 
     try {
@@ -218,6 +222,10 @@ export function useStagedExpressions(language: Language) {
   async function saveExpressions() {
     if (!session) {
       return "로그인이 필요합니다.";
+    }
+
+    if (stagedExpressions.some((expression) => !expression.term.trim())) {
+      return "비어 있는 단어 또는 표현을 채워주세요.";
     }
 
     const inputs: NewWordInput[] = stagedExpressions
