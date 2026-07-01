@@ -10,11 +10,16 @@ import type { Language } from "@/types/language";
 import type { NewWordInput } from "@/types/word";
 import { MAX_STAGED_EXPRESSIONS, type StagedExpression } from "./types";
 
-type MeaningRequest = {
+type VocabularyRequest = {
   language: Language;
   reading: string;
   sentence: string;
   term: string;
+};
+
+type VocabularySuggestion = {
+  meaning: string;
+  reading: string;
 };
 
 type StagedExpressionInput = Partial<
@@ -51,7 +56,12 @@ async function generateReading(language: Language, text: string) {
   return reading;
 }
 
-async function suggestMeaning({ language, reading, sentence, term }: MeaningRequest) {
+async function suggestVocabulary({
+  language,
+  reading,
+  sentence,
+  term,
+}: VocabularyRequest): Promise<VocabularySuggestion> {
   const response = await fetch("/api/meaning", {
     method: "POST",
     headers: {
@@ -66,13 +76,17 @@ async function suggestMeaning({ language, reading, sentence, term }: MeaningRequ
   });
   const data = (await response.json().catch(() => null)) as {
     meaning?: unknown;
+    reading?: unknown;
   } | null;
 
   if (!response.ok || typeof data?.meaning !== "string") {
-    return "";
+    return { meaning: "", reading: "" };
   }
 
-  return data.meaning;
+  return {
+    meaning: data.meaning,
+    reading: typeof data.reading === "string" ? data.reading : "",
+  };
 }
 
 async function trackSavedExpressions(
@@ -167,16 +181,21 @@ export function useStagedExpressions(language: Language) {
             return expression;
           }
 
+          const userReading = expression.reading.trim();
+          const currentMeaning = expression.meaning.trim();
+          const suggestion = await suggestVocabulary({
+            language,
+            reading: userReading,
+            sentence: expression.sourceSentence,
+            term,
+          });
+          const fallbackReading =
+            userReading || suggestion.reading
+              ? ""
+              : await generateReading(language, term);
           const reading =
-            expression.reading.trim() || (await generateReading(language, term));
-          const meaning =
-            expression.meaning.trim() ||
-            (await suggestMeaning({
-              language,
-              reading,
-              sentence: expression.sourceSentence,
-              term,
-            }));
+            userReading || suggestion.reading || fallbackReading;
+          const meaning = currentMeaning || suggestion.meaning;
 
           return {
             ...expression,

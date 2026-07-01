@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { NextResponse } from "next/server";
 import * as kuromoji from "kuromoji";
 import type { IpadicFeatures, Tokenizer } from "kuromoji";
+import { suggestVocabularyWithAi } from "@/lib/openai-meaning";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,10 @@ function toFurigana(tokens: IpadicFeatures[]) {
     .join("");
 }
 
+function containsHanCharacter(value: string) {
+  return /\p{Script=Han}/u.test(value);
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     text?: unknown;
@@ -55,7 +60,31 @@ export async function POST(request: Request) {
     const tokenizer = await getTokenizer();
     const furigana = toFurigana(tokenizer.tokenize(text));
 
-    return NextResponse.json({ furigana });
+    if (!containsHanCharacter(furigana)) {
+      return NextResponse.json({ furigana, reading: furigana, source: "kuromoji" });
+    }
+
+    const suggestion = await suggestVocabularyWithAi({
+      language: "ja",
+      reading: furigana,
+      sentence: "",
+      term: text,
+    }).catch((error) => {
+      console.error("Failed to correct furigana with AI.", error);
+      return { meaning: "", reading: "" };
+    });
+    const correctedFurigana = suggestion.reading.trim();
+
+    if (correctedFurigana && !containsHanCharacter(correctedFurigana)) {
+      return NextResponse.json({
+        fallbackReading: furigana,
+        furigana: correctedFurigana,
+        reading: correctedFurigana,
+        source: "ai",
+      });
+    }
+
+    return NextResponse.json({ furigana, reading: furigana, source: "kuromoji" });
   } catch {
     return NextResponse.json(
       { error: "failed to generate furigana" },
@@ -63,4 +92,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

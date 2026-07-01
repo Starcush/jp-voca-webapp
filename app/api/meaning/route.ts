@@ -4,7 +4,7 @@ import {
   normalizeMeaningTerm,
   setMeaningCache,
 } from "@/lib/meaning-cache";
-import { suggestMeaningWithAi } from "@/lib/openai-meaning";
+import { suggestVocabularyWithAi } from "@/lib/openai-meaning";
 import { isLanguage } from "@/lib/languages";
 import type { Language } from "@/types/language";
 
@@ -23,6 +23,18 @@ function getMeaningErrorMessage(error: unknown) {
   }
 
   return "failed to suggest meaning";
+}
+
+function containsHanCharacter(value: string) {
+  return /\p{Script=Han}/u.test(value);
+}
+
+function shouldRefreshReading(language: Language, reading: string) {
+  if (language === "en") {
+    return false;
+  }
+
+  return !reading || containsHanCharacter(reading);
 }
 
 export async function POST(request: Request) {
@@ -59,7 +71,10 @@ export async function POST(request: Request) {
       },
     );
 
-    if (cachedMeaning) {
+    if (
+      cachedMeaning &&
+      !shouldRefreshReading(language as Language, cachedMeaning.reading ?? "")
+    ) {
       return NextResponse.json({
         meaning: cachedMeaning.meaning,
         reading: cachedMeaning.reading ?? "",
@@ -67,18 +82,22 @@ export async function POST(request: Request) {
       });
     }
 
-    const meaning = await suggestMeaningWithAi({
+    const suggestion = await suggestVocabularyWithAi({
       language: language as Language,
+      reading: cachedMeaning?.reading ?? reading,
       sentence,
       term,
     });
+    const meaning = suggestion.meaning || cachedMeaning?.meaning || "";
+    const suggestedReading =
+      suggestion.reading || cachedMeaning?.reading || reading;
 
-    if (meaning) {
+    if (!cachedMeaning && meaning) {
       await setMeaningCache({
         language,
         meaning,
         normalizedTerm,
-        reading,
+        reading: suggestedReading,
         source: "ai",
         term,
       }).catch((error) => {
@@ -88,7 +107,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       meaning,
-      reading,
+      reading: suggestedReading,
       source: meaning ? "ai" : "empty",
     });
   } catch (error) {
