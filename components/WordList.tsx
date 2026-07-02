@@ -46,18 +46,26 @@ export function WordList({
   const router = useRouter();
   const session = useSession() ?? null;
   const enabledLanguages = useMemo(() => getSessionLanguages(session), [session]);
-  const fallbackLanguage = enabledLanguages[0] ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
-  const selectedEnabledLanguage =
-    selectedLanguage && enabledLanguages.includes(selectedLanguage)
+  const visibleLanguages = useMemo(
+    () =>
+      selectedLanguage && !enabledLanguages.includes(selectedLanguage)
+        ? [...enabledLanguages, selectedLanguage]
+        : enabledLanguages,
+    [enabledLanguages, selectedLanguage],
+  );
+  const fallbackLanguage =
+    visibleLanguages[0] ?? session?.defaultLanguage ?? DEFAULT_LANGUAGE;
+  const selectedVisibleLanguage =
+    selectedLanguage && visibleLanguages.includes(selectedLanguage)
       ? selectedLanguage
       : undefined;
   const [optimisticLanguage, setOptimisticLanguage] = useState<Language | null>(null);
   const optimisticEnabledLanguage =
-    optimisticLanguage && enabledLanguages.includes(optimisticLanguage)
+    optimisticLanguage && visibleLanguages.includes(optimisticLanguage)
       ? optimisticLanguage
       : undefined;
   const activeLanguage =
-    selectedEnabledLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
+    selectedVisibleLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
   const activeLanguageOption = getLanguageOption(activeLanguage);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
@@ -104,7 +112,7 @@ export function WordList({
       activeFilter={activeFilter}
       activeLanguage={activeLanguage}
       activeLanguageOption={activeLanguageOption}
-      enabledLanguages={enabledLanguages}
+      enabledLanguages={visibleLanguages}
       notebookId={selectedNotebookId}
       onFilterChange={setActiveFilter}
       onLanguageChange={handleLanguageChange}
@@ -231,7 +239,7 @@ export function WordList({
         <WordListEmptyState
           activeLanguage={activeLanguage}
           activeLanguageOption={activeLanguageOption}
-          enabledLanguages={enabledLanguages}
+          enabledLanguages={visibleLanguages}
           notebookId={selectedNotebookId}
           notebookShelf={notebookShelf}
           onLanguageChange={handleLanguageChange}
