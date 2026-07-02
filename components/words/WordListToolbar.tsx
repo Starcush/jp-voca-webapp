@@ -103,16 +103,27 @@ export function WordListToolbar({
           value={searchQuery}
         />
       </label>
-      <Link
-        className="mt-2 grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
-        href={buildWordListHref({
-          language: activeLanguage,
-          notebookId,
-          path: "/words/import",
-        })}
-      >
-        사진에서 가져오기
-      </Link>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link
+          className="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
+          href={buildWordListHref({
+            language: activeLanguage,
+            notebookId,
+            path: "/words/import",
+          })}
+        >
+          사진에서 가져오기
+        </Link>
+        <Link
+          className="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
+          href={buildWordListHref({
+            language: activeLanguage,
+            path: "/words/organize",
+          })}
+        >
+          단어 정리
+        </Link>
+      </div>
     </section>
   );
 }

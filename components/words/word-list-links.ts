@@ -10,7 +10,7 @@ import type { Language } from "@/types/language";
 export type WordListLinkInput = {
   language: Language;
   notebookId?: string;
-  path: "/words" | "/words/import" | "/words/new";
+  path: "/words" | "/words/import" | "/words/new" | "/words/organize";
 };
 
 /**

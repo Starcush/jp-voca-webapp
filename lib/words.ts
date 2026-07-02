@@ -14,6 +14,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
   type CollectionReference,
   type DocumentReference,
   type QueryDocumentSnapshot,
@@ -189,6 +190,29 @@ export async function createWord(uid: string, input: NewWordInput) {
 
 export async function updateWord(wordId: string, input: UpdateWordInput) {
   await updateDoc(wordDocument(wordId), buildUpdateWordData(input));
+}
+
+/**
+ * 여러 단어의 소속 노트를 한 번에 변경합니다.
+ *
+ * @param wordIds - 이동할 단어 ID 목록입니다.
+ * @param notebookId - 옮길 노트 ID입니다. 비우면 미분류로 이동합니다.
+ * @returns 일괄 업데이트가 완료되면 resolve됩니다.
+ */
+export async function updateWordsNotebook(
+  wordIds: string[],
+  notebookId?: string,
+) {
+  const batch = writeBatch(getDb());
+
+  wordIds.forEach((wordId) => {
+    batch.update(wordDocument(wordId), {
+      notebookId: notebookId || deleteField(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
 }
 
 export async function updateWordStudyStatus(wordId: string, status: WordStatus) {
