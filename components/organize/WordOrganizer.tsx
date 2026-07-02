@@ -41,6 +41,15 @@ function getSourceWords(words: Word[], sourceNotebookId: string) {
   return words.filter((word) => word.notebookId === sourceNotebookId);
 }
 
+function isSameNotebookMove(sourceNotebookId: string, targetNotebookId: string) {
+  return (
+    Boolean(targetNotebookId) &&
+    sourceNotebookId !== ALL_NOTEBOOKS_ID &&
+    getPersistedNotebookId(sourceNotebookId) ===
+      getPersistedNotebookId(targetNotebookId)
+  );
+}
+
 function toggleSelectedWord(wordIds: Set<string>, wordId: string) {
   const nextWordIds = new Set(wordIds);
 
@@ -83,7 +92,12 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
     [sourceNotebookId, words],
   );
   const selectedCount = selectedWordIds.size;
-  const canMove = selectedCount > 0 && Boolean(targetNotebookId) && !isMovingWords;
+  const isSameTarget = isSameNotebookMove(sourceNotebookId, targetNotebookId);
+  const canMove =
+    selectedCount > 0 &&
+    Boolean(targetNotebookId) &&
+    !isSameTarget &&
+    !isMovingWords;
 
   function clearSelection() {
     setSelectedWordIds(new Set());
@@ -91,6 +105,9 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
 
   function handleSourceChange(nextSourceNotebookId: string) {
     setSourceNotebookId(nextSourceNotebookId);
+    if (isSameNotebookMove(nextSourceNotebookId, targetNotebookId)) {
+      setTargetNotebookId("");
+    }
     clearSelection();
   }
 
@@ -150,11 +167,11 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-2">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <label className="grid min-w-0 gap-2">
             <span className="text-sm font-bold text-slate-700">출발 노트</span>
             <select
-              className="min-h-11 rounded-lg border-slate-200 bg-white text-base"
+              className="min-h-11 w-full min-w-0 truncate rounded-lg border-slate-200 bg-white text-base"
               onChange={(event) => handleSourceChange(event.target.value)}
               value={sourceNotebookId}
             >
@@ -168,17 +185,26 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
             </select>
           </label>
 
-          <label className="grid gap-2">
+          <label className="grid min-w-0 gap-2">
             <span className="text-sm font-bold text-slate-700">도착 노트</span>
             <select
-              className="min-h-11 rounded-lg border-slate-200 bg-white text-base"
+              className="min-h-11 w-full min-w-0 truncate rounded-lg border-slate-200 bg-white text-base"
               onChange={(event) => setTargetNotebookId(event.target.value)}
               value={targetNotebookId}
             >
               <option value="">선택</option>
-              <option value={UNFILED_NOTEBOOK_ID}>미분류</option>
+              <option
+                disabled={sourceNotebookId === UNFILED_NOTEBOOK_ID}
+                value={UNFILED_NOTEBOOK_ID}
+              >
+                미분류
+              </option>
               {notebooks.map((notebook) => (
-                <option key={notebook.id} value={notebook.id}>
+                <option
+                  disabled={sourceNotebookId === notebook.id}
+                  key={notebook.id}
+                  value={notebook.id}
+                >
                   {notebook.title}
                 </option>
               ))}
@@ -186,12 +212,18 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
           </label>
         </div>
 
+        {isSameTarget ? (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+            출발 노트와 다른 도착 노트를 선택해주세요.
+          </p>
+        ) : null}
+
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
           <p className="text-sm font-semibold text-slate-500">
             표시 {visibleWords.length}개 · 선택 {selectedCount}개
           </p>
           <button
-            className="min-h-11 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={!canMove}
             onClick={() => void handleMoveWords()}
             type="button"
