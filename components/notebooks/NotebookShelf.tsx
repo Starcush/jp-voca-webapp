@@ -35,7 +35,9 @@ export function NotebookShelf({
   const [title, setTitle] = useState("");
   const {
     createNotebook,
+    deleteNotebook,
     isCreatingNotebook,
+    isDeletingNotebook,
     isLoadingNotebooks,
     isUpdatingNotebook,
     notebooks,
@@ -99,6 +101,26 @@ export function NotebookShelf({
       },
     });
     setIsEditing(false);
+  }
+
+  async function handleDeleteNotebook() {
+    if (!selectedNotebook) {
+      return;
+    }
+
+    const shouldDelete = confirm(
+      `"${selectedNotebook.title}" 노트를 삭제할까요?\n노트 안의 단어는 삭제되지 않고 미분류로 이동합니다.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    await deleteNotebook({
+      notebookId: selectedNotebook.id,
+    });
+    setIsEditing(false);
+    onNotebookChange(undefined);
   }
 
   return (
@@ -176,16 +198,25 @@ export function NotebookShelf({
               </button>
             </form>
           ) : (
-            <div className="flex items-center justify-between gap-3">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-center">
               <p className="truncate text-sm font-bold text-slate-700">
                 현재 노트: {selectedNotebook.title}
               </p>
               <button
                 className="min-h-9 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600"
+                disabled={isDeletingNotebook}
                 onClick={handleEditStart}
                 type="button"
               >
                 이름 수정
+              </button>
+              <button
+                className="min-h-9 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isDeletingNotebook}
+                onClick={() => void handleDeleteNotebook()}
+                type="button"
+              >
+                {isDeletingNotebook ? "삭제 중" : "삭제"}
               </button>
             </div>
           )}

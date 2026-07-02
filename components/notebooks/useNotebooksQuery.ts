@@ -2,8 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createNotebook, listNotebooks, updateNotebook } from "@/lib/notebooks";
+import {
+  createNotebook,
+  deleteNotebook,
+  listNotebooks,
+  updateNotebook,
+} from "@/lib/notebooks";
 import type { AppSession } from "@/lib/session";
+import { clearWordsNotebook } from "@/lib/words";
 import type { Language } from "@/types/language";
 import type { NewNotebookInput, UpdateNotebookInput } from "@/types/notebook";
 
@@ -81,10 +87,46 @@ export function useNotebooksQuery({
       toast.success("노트 이름을 수정했습니다.");
     },
   });
+  const deleteNotebookMutation = useMutation({
+    mutationFn: async ({
+      notebookId,
+    }: {
+      notebookId: string;
+    }) => {
+      if (!session) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      await clearWordsNotebook(session.uid, language, notebookId);
+      await deleteNotebook(notebookId);
+    },
+    onError: (error) => {
+      toast.error(getNotebookErrorMessage(error));
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getNotebooksQueryKey(uid, language),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["words"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["reviewWords"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["wordOrganizer"],
+        }),
+      ]);
+      toast.success("노트를 삭제했습니다. 단어는 미분류로 이동했습니다.");
+    },
+  });
 
   return {
     createNotebook: createNotebookMutation.mutateAsync,
+    deleteNotebook: deleteNotebookMutation.mutateAsync,
     isCreatingNotebook: createNotebookMutation.isPending,
+    isDeletingNotebook: deleteNotebookMutation.isPending,
     isLoadingNotebooks: notebooksQuery.isLoading,
     isUpdatingNotebook: updateNotebookMutation.isPending,
     notebooks: notebooksQuery.data ?? [],

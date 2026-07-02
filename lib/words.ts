@@ -26,6 +26,7 @@ import type { Language } from "@/types/language";
 import type { NewWordInput, UpdateWordInput, Word, WordStatus } from "@/types/word";
 
 const WORDS_PAGE_SIZE = 10;
+const WORD_BATCH_SIZE = 450;
 
 export type WordsPageCursor = QueryDocumentSnapshot<Omit<Word, "id">>;
 
@@ -203,16 +204,51 @@ export async function updateWordsNotebook(
   wordIds: string[],
   notebookId?: string,
 ) {
-  const batch = writeBatch(getDb());
+  const batches = Array.from(
+    { length: Math.ceil(wordIds.length / WORD_BATCH_SIZE) },
+    (_, index) =>
+      wordIds.slice(index * WORD_BATCH_SIZE, (index + 1) * WORD_BATCH_SIZE),
+  );
 
-  wordIds.forEach((wordId) => {
-    batch.update(wordDocument(wordId), {
-      notebookId: notebookId || deleteField(),
-      updatedAt: serverTimestamp(),
-    });
-  });
+  await Promise.all(
+    batches.map(async (batchWordIds) => {
+      const batch = writeBatch(getDb());
 
-  await batch.commit();
+      batchWordIds.forEach((wordId) => {
+        batch.update(wordDocument(wordId), {
+          notebookId: notebookId || deleteField(),
+          updatedAt: serverTimestamp(),
+        });
+      });
+
+      await batch.commit();
+    }),
+  );
+}
+
+/**
+ * 특정 노트에 속한 단어들을 미분류로 이동합니다.
+ *
+ * @param uid - 단어 소유자 ID입니다.
+ * @param language - 노트가 속한 언어입니다.
+ * @param notebookId - 비울 노트 ID입니다.
+ * @returns 미분류로 이동한 단어 개수를 반환합니다.
+ */
+export async function clearWordsNotebook(
+  uid: string,
+  language: Language,
+  notebookId: string,
+) {
+  const words = await listAllWords(uid, language);
+  const targetWordIds = words
+    .filter((word) => word.notebookId === notebookId)
+    .map((word) => word.id);
+
+  if (targetWordIds.length > 0) {
+    await updateWordsNotebook(targetWordIds);
+  }
+
+  return targetWordIds.length;
 }
 
 export async function updateWordStudyStatus(wordId: string, status: WordStatus) {
