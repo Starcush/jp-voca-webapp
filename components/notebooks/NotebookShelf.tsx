@@ -30,17 +30,24 @@ export function NotebookShelf({
   session,
 }: NotebookShelfProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState("");
   const [title, setTitle] = useState("");
   const {
     createNotebook,
     isCreatingNotebook,
     isLoadingNotebooks,
+    isUpdatingNotebook,
     notebooks,
     notebooksErrorMessage,
+    updateNotebook,
   } = useNotebooksQuery({
     language: activeLanguage,
     session,
   });
+  const selectedNotebook = notebooks.find(
+    (notebook) => notebook.id === selectedNotebookId,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,6 +68,39 @@ export function NotebookShelf({
     onNotebookChange(notebookId);
   }
 
+  function handleEditStart() {
+    if (!selectedNotebook) {
+      return;
+    }
+
+    setEditingTitle(selectedNotebook.title);
+    setIsEditing(true);
+    setIsCreating(false);
+  }
+
+  async function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedNotebook) {
+      return;
+    }
+
+    const trimmedTitle = editingTitle.trim();
+
+    if (!trimmedTitle || trimmedTitle === selectedNotebook.title) {
+      setIsEditing(false);
+      return;
+    }
+
+    await updateNotebook({
+      notebookId: selectedNotebook.id,
+      input: {
+        title: trimmedTitle,
+      },
+    });
+    setIsEditing(false);
+  }
+
   return (
     <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-3">
@@ -72,7 +112,10 @@ export function NotebookShelf({
         </div>
         <button
           className="min-h-9 shrink-0 rounded-md bg-slate-950 px-3 text-sm font-bold text-white"
-          onClick={() => setIsCreating((currentValue) => !currentValue)}
+          onClick={() => {
+            setIsCreating((currentValue) => !currentValue);
+            setIsEditing(false);
+          }}
           type="button"
         >
           새 노트
@@ -100,6 +143,53 @@ export function NotebookShelf({
             만들기
           </button>
         </form>
+      ) : null}
+
+      {selectedNotebook ? (
+        <div className="rounded-lg bg-slate-50 p-3">
+          {isEditing ? (
+            <form className="grid gap-2 sm:grid-cols-[1fr_auto_auto]" onSubmit={handleEditSubmit}>
+              <label>
+                <span className="sr-only">노트 이름 수정</span>
+                <input
+                  className="min-h-10 w-full rounded-md border-slate-200 bg-white text-base"
+                  disabled={isUpdatingNotebook}
+                  maxLength={80}
+                  onChange={(event) => setEditingTitle(event.target.value)}
+                  value={editingTitle}
+                />
+              </label>
+              <button
+                className="min-h-10 rounded-md bg-blue-600 px-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isUpdatingNotebook || !editingTitle.trim()}
+                type="submit"
+              >
+                저장
+              </button>
+              <button
+                className="min-h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isUpdatingNotebook}
+                onClick={() => setIsEditing(false)}
+                type="button"
+              >
+                취소
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="truncate text-sm font-bold text-slate-700">
+                현재 노트: {selectedNotebook.title}
+              </p>
+              <button
+                className="min-h-9 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600"
+                onClick={handleEditStart}
+                type="button"
+              >
+                이름 수정
+              </button>
+            </div>
+          )}
+        </div>
       ) : null}
 
       {notebooksErrorMessage ? (
