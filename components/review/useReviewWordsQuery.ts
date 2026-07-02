@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
 import { REVIEW_LIMIT } from "@/components/review/review-options";
 import type { ReviewMode } from "@/components/review/types";
 import type { AppSession } from "@/lib/session";
@@ -11,6 +12,7 @@ import type { Word } from "@/types/word";
 
 type UseReviewWordsQueryInput = {
   language: Language;
+  notebookId?: string;
   offset: number;
   randomSeed: number;
   reviewMode: ReviewMode;
@@ -62,6 +64,18 @@ function getModeWords(words: Word[], mode: ReviewMode, randomSeed: number) {
   });
 }
 
+function getNotebookWords(words: Word[], notebookId?: string) {
+  if (!notebookId) {
+    return words;
+  }
+
+  if (notebookId === UNFILED_NOTEBOOK_ID) {
+    return words.filter((word) => !word.notebookId);
+  }
+
+  return words.filter((word) => word.notebookId === notebookId);
+}
+
 function getFirebaseErrorCode(error: unknown) {
   if (typeof error === "object" && error !== null && "code" in error) {
     const code = (error as { code?: unknown }).code;
@@ -88,6 +102,7 @@ function getReviewErrorMessage(error: unknown) {
  * @param input - 복습 단어 조회와 세트 계산에 필요한 조건입니다.
  * @param input.session - 현재 로그인 세션입니다.
  * @param input.language - 복습할 언어입니다.
+ * @param input.notebookId - 복습할 노트 ID입니다. 없으면 언어 전체를 복습합니다.
  * @param input.reviewMode - 복습 단어를 고르는 기준입니다.
  * @param input.offset - 전체 후보 목록에서 현재 세트가 시작되는 위치입니다.
  * @param input.randomSeed - 랜덤 모드에서 다시 섞기를 트리거하는 값입니다.
@@ -95,6 +110,7 @@ function getReviewErrorMessage(error: unknown) {
  */
 export function useReviewWordsQuery({
   language,
+  notebookId,
   offset,
   randomSeed,
   reviewMode,
@@ -107,8 +123,13 @@ export function useReviewWordsQuery({
     queryFn: () => listAllWords(uid, language),
   });
   const modeWords = useMemo(
-    () => getModeWords(wordsQuery.data ?? [], reviewMode, randomSeed),
-    [randomSeed, reviewMode, wordsQuery.data],
+    () =>
+      getModeWords(
+        getNotebookWords(wordsQuery.data ?? [], notebookId),
+        reviewMode,
+        randomSeed,
+      ),
+    [notebookId, randomSeed, reviewMode, wordsQuery.data],
   );
   const reviewWords = useMemo(
     () => modeWords.slice(offset, offset + REVIEW_LIMIT),

@@ -21,6 +21,7 @@ import type { WordStatus } from "@/types/word";
 
 type ReviewSessionProps = {
   language: Language;
+  notebookId?: string;
 };
 
 function getEmptyReviewMessage(mode: ReviewMode) {
@@ -36,9 +37,10 @@ function getEmptyReviewMessage(mode: ReviewMode) {
  *
  * @param props - 복습 화면에 필요한 속성입니다.
  * @param props.language - 복습할 단어장의 현재 언어입니다.
+ * @param props.notebookId - 복습할 노트 ID입니다. 없으면 언어 전체를 복습합니다.
  * @returns 복습 모드 선택, 카드 복습, 완료/빈 상태/에러 상태 UI를 렌더링합니다.
  */
-export function ReviewSession({ language }: ReviewSessionProps) {
+export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
   const router = useRouter();
   const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
@@ -63,6 +65,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
     reviewWords,
   } = useReviewWordsQuery({
     language,
+    notebookId,
     offset: reviewOffset,
     randomSeed,
     reviewMode,
@@ -171,6 +174,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
         language={language}
         languageLabel={languageOption.label}
         modeTabs={reviewModeTabs}
+        notebookId={notebookId}
       />
     );
   }
@@ -183,6 +187,7 @@ export function ReviewSession({ language }: ReviewSessionProps) {
         knownCount={knownCount}
         language={language}
         languageLabel={languageOption.label}
+        notebookId={notebookId}
         onRestart={handleRestartReview}
         remainingReviewCount={remainingReviewCount}
         reviewWordCount={reviewWords.length}

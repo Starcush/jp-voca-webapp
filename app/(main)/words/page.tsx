@@ -20,7 +20,12 @@ export default async function WordsPage({ searchParams }: WordsPageProps) {
   return (
     <AppFrame
       title="단어장"
-      action={<AuthStatus reviewLanguage={reviewLanguage} />}
+      action={
+        <AuthStatus
+          reviewLanguage={reviewLanguage}
+          reviewNotebookId={notebookId}
+        />
+      }
     >
       <RequireSession>
         <WordList

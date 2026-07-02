@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import type { Language } from "@/types/language";
 
 type ReviewEmptyStateProps = {
@@ -9,6 +10,7 @@ type ReviewEmptyStateProps = {
   language: Language;
   languageLabel: string;
   modeTabs: ReactNode;
+  notebookId?: string;
 };
 
 /**
@@ -19,6 +21,7 @@ type ReviewEmptyStateProps = {
  * @param props.language - 단어 추가 링크에 사용할 언어 코드입니다.
  * @param props.languageLabel - 현재 복습 언어의 표시 이름입니다.
  * @param props.modeTabs - 복습 모드 선택 탭입니다.
+ * @param props.notebookId - 단어 추가 링크에 유지할 노트 ID입니다.
  * @returns 빈 상태 안내와 단어 추가 링크를 렌더링합니다.
  */
 export function ReviewEmptyState({
@@ -26,6 +29,7 @@ export function ReviewEmptyState({
   language,
   languageLabel,
   modeTabs,
+  notebookId,
 }: ReviewEmptyStateProps) {
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -42,7 +46,11 @@ export function ReviewEmptyState({
       </div>
       <Link
         className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
-        href={`/words/new?lang=${language}`}
+        href={buildWordListHref({
+          language,
+          notebookId,
+          path: "/words/new",
+        })}
       >
         단어 추가
       </Link>

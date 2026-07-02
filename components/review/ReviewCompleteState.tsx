@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import type { Language } from "@/types/language";
 
 type ReviewCompleteStateProps = {
@@ -9,6 +10,7 @@ type ReviewCompleteStateProps = {
   knownCount: number;
   language: Language;
   languageLabel: string;
+  notebookId?: string;
   onRestart: () => void;
   remainingReviewCount: number;
   reviewWordCount: number;
@@ -27,6 +29,7 @@ type ReviewCompleteStateProps = {
  * @param props.isRandomMode - 현재 복습 모드가 전체 섞기인지 여부입니다.
  * @param props.language - 단어장 링크에 사용할 언어 코드입니다.
  * @param props.languageLabel - 현재 복습 언어의 표시 이름입니다.
+ * @param props.notebookId - 단어장 링크에 유지할 노트 ID입니다.
  * @param props.onRestart - 다음 세트 또는 재시작 버튼을 눌렀을 때 호출되는 콜백입니다.
  * @returns 복습 완료 통계와 다음 액션 버튼을 렌더링합니다.
  */
@@ -36,6 +39,7 @@ export function ReviewCompleteState({
   knownCount,
   language,
   languageLabel,
+  notebookId,
   onRestart,
   remainingReviewCount,
   reviewWordCount,
@@ -82,7 +86,11 @@ export function ReviewCompleteState({
         </button>
         <Link
           className="min-h-12 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-bold text-slate-700"
-          href={`/words?lang=${language}`}
+          href={buildWordListHref({
+            language,
+            notebookId,
+            path: "/words",
+          })}
         >
           단어장으로
         </Link>
