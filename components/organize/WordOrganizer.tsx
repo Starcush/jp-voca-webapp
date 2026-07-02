@@ -41,6 +41,28 @@ function getSourceWords(words: Word[], sourceNotebookId: string) {
   return words.filter((word) => word.notebookId === sourceNotebookId);
 }
 
+function matchesSearch(word: Word, searchQuery: string) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [getWordTerm(word), getWordReading(word), word.meaning]
+    .filter(Boolean)
+    .some((value) => value?.toLowerCase().includes(normalizedQuery));
+}
+
+function getVisibleWords(
+  words: Word[],
+  sourceNotebookId: string,
+  searchQuery: string,
+) {
+  return getSourceWords(words, sourceNotebookId).filter((word) =>
+    matchesSearch(word, searchQuery),
+  );
+}
+
 function isSameNotebookMove(sourceNotebookId: string, targetNotebookId: string) {
   return (
     Boolean(targetNotebookId) &&
@@ -72,6 +94,7 @@ function toggleSelectedWord(wordIds: Set<string>, wordId: string) {
 export function WordOrganizer({ language }: WordOrganizerProps) {
   const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
+  const [searchQuery, setSearchQuery] = useState("");
   const [sourceNotebookId, setSourceNotebookId] = useState(UNFILED_NOTEBOOK_ID);
   const [targetNotebookId, setTargetNotebookId] = useState("");
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
@@ -88,8 +111,8 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
     session: session satisfies AppSession | null,
   });
   const visibleWords = useMemo(
-    () => getSourceWords(words, sourceNotebookId),
-    [sourceNotebookId, words],
+    () => getVisibleWords(words, sourceNotebookId, searchQuery),
+    [searchQuery, sourceNotebookId, words],
   );
   const selectedCount = selectedWordIds.size;
   const isSameTarget = isSameNotebookMove(sourceNotebookId, targetNotebookId);
@@ -108,6 +131,11 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
     if (isSameNotebookMove(nextSourceNotebookId, targetNotebookId)) {
       setTargetNotebookId("");
     }
+    clearSelection();
+  }
+
+  function handleSearchChange(nextSearchQuery: string) {
+    setSearchQuery(nextSearchQuery);
     clearSelection();
   }
 
@@ -218,6 +246,16 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
           </p>
         ) : null}
 
+        <label className="grid min-w-0 gap-2">
+          <span className="text-sm font-bold text-slate-700">단어 검색</span>
+          <input
+            className="min-h-11 w-full min-w-0 rounded-lg border-slate-200 bg-white text-base"
+            onChange={(event) => handleSearchChange(event.target.value)}
+            placeholder="단어, 읽기, 뜻 검색"
+            value={searchQuery}
+          />
+        </label>
+
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
           <p className="text-sm font-semibold text-slate-500">
             표시 {visibleWords.length}개 · 선택 {selectedCount}개
@@ -292,7 +330,9 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
             ) : (
               <div className="grid min-h-40 place-items-center px-4 py-10 text-center">
                 <p className="text-sm font-semibold text-slate-500">
-                  이 출발 노트에 표시할 단어가 없습니다.
+                  {searchQuery.trim()
+                    ? "조건에 맞는 단어가 없습니다."
+                    : "이 출발 노트에 표시할 단어가 없습니다."}
                 </p>
               </div>
             )}
