@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import { useSession } from "@/lib/use-session";
 import { storeWordSaveNotice } from "@/lib/word-save-notice";
 import { createWord } from "@/lib/words";
@@ -113,9 +115,10 @@ async function trackSavedExpressions(
  * OCR에서 고른 표현들의 추가 예정 상태와 읽기/뜻 보강, 최종 저장 흐름을 관리합니다.
  *
  * @param language - 표현을 저장하고 읽기/뜻을 조회할 현재 언어 코드입니다.
+ * @param notebookId - 저장할 노트 ID입니다.
  * @returns 추가 예정 목록, 보강/저장 로딩 상태, 표현 추가/수정/삭제/비우기/보강/저장 함수를 반환합니다.
  */
-export function useStagedExpressions(language: Language) {
+export function useStagedExpressions(language: Language, notebookId?: string) {
   const router = useRouter();
   const session = useSession();
   const [stagedExpressions, setStagedExpressions] = useState<StagedExpression[]>([]);
@@ -247,10 +250,12 @@ export function useStagedExpressions(language: Language) {
       return "비어 있는 단어 또는 표현을 채워주세요.";
     }
 
+    const persistedNotebookId = getPersistedNotebookId(notebookId);
     const inputs: NewWordInput[] = stagedExpressions
       .map((expression) => ({
         language,
         term: expression.term.trim(),
+        ...(persistedNotebookId ? { notebookId: persistedNotebookId } : {}),
         reading: expression.reading.trim() || undefined,
         meaning: expression.meaning.trim() || undefined,
         exampleSentence: expression.useExample
@@ -274,7 +279,13 @@ export function useStagedExpressions(language: Language) {
         language,
         type: "created",
       });
-      router.replace(`/words?lang=${language}`);
+      router.replace(
+        buildWordListHref({
+          language,
+          notebookId,
+          path: "/words",
+        }),
+      );
       router.refresh();
       return "";
     } catch (error) {

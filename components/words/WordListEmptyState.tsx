@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { WordLanguageTabs } from "@/components/words/WordLanguageTabs";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import type { WordLanguageOption } from "@/components/words/types";
 import type { Language } from "@/types/language";
 
@@ -9,6 +11,8 @@ type WordListEmptyStateProps = {
   activeLanguage: Language;
   activeLanguageOption: WordLanguageOption;
   enabledLanguages: Language[];
+  notebookId?: string;
+  notebookShelf?: ReactNode;
   onLanguageChange: (language: Language) => void;
   wordCountLabel: string;
 };
@@ -23,6 +27,8 @@ export function WordListEmptyState({
   activeLanguage,
   activeLanguageOption,
   enabledLanguages,
+  notebookId,
+  notebookShelf,
   onLanguageChange,
   wordCountLabel,
 }: WordListEmptyStateProps) {
@@ -38,6 +44,7 @@ export function WordListEmptyState({
           {wordCountLabel}
         </p>
       </div>
+      {notebookShelf}
       <div className="flex flex-col items-center gap-4 pt-8 text-center">
         <div>
           <p className="text-lg font-bold text-slate-950">
@@ -49,13 +56,21 @@ export function WordListEmptyState({
         </div>
         <Link
           className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
-          href={`/words/new?lang=${activeLanguage}`}
+          href={buildWordListHref({
+            language: activeLanguage,
+            notebookId,
+            path: "/words/new",
+          })}
         >
           첫 단어 추가
         </Link>
         <Link
           className="min-h-11 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
-          href={`/words/import?lang=${activeLanguage}`}
+          href={buildWordListHref({
+            language: activeLanguage,
+            notebookId,
+            path: "/words/import",
+          })}
         >
           사진에서 가져오기
         </Link>

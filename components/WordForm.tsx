@@ -19,6 +19,7 @@ import type { Word } from "@/types/word";
 type WordFormProps = {
   language: Language;
   mode: "create" | "edit";
+  notebookId?: string;
   wordId?: string;
 };
 
@@ -52,10 +53,11 @@ function toFormState(word: Word): WordFormState {
  * @param props - 단어 폼에 필요한 모드와 언어 정보입니다.
  * @param props.language - 저장할 단어의 언어입니다.
  * @param props.mode - 생성 또는 수정 모드입니다.
+ * @param props.notebookId - 생성 모드에서 저장할 노트 ID입니다.
  * @param props.wordId - 수정 모드에서 불러올 단어 ID입니다.
  * @returns 단어 입력 필드, 자동 읽기 생성, 저장/삭제 액션을 렌더링합니다.
  */
-export function WordForm({ language, mode, wordId }: WordFormProps) {
+export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) {
   const session = useSession() ?? null;
   const isEdit = mode === "edit";
   const {
@@ -83,6 +85,7 @@ export function WordForm({ language, mode, wordId }: WordFormProps) {
       language={language}
       loadErrorMessage={loadErrorMessage}
       mode={mode}
+      notebookId={notebookId}
       session={session}
       wordId={wordId}
     />
@@ -94,6 +97,7 @@ function WordFormBody({
   language,
   loadErrorMessage,
   mode,
+  notebookId,
   session,
   wordId,
 }: WordFormBodyProps) {
@@ -113,6 +117,7 @@ function WordFormBody({
     initialForm,
     isEdit,
     language,
+    notebookId,
     session,
     termLabel: languageOption.termLabel,
     wordId,

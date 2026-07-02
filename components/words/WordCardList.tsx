@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WordCard } from "@/components/WordCard";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import type { ViewMode } from "@/components/words/types";
 import type { Language } from "@/types/language";
 import type { Word, WordStatus } from "@/types/word";
@@ -10,6 +11,7 @@ type WordCardListProps = {
   activeLanguage: Language;
   hasMore: boolean;
   isLoadingMore: boolean;
+  notebookId?: string;
   onLoadMore: () => void;
   onStudyStatusChange: (wordId: string, status: WordStatus) => void;
   onToggleReveal: (wordId: string) => void;
@@ -29,6 +31,7 @@ export function WordCardList({
   activeLanguage,
   hasMore,
   isLoadingMore,
+  notebookId,
   onLoadMore,
   onStudyStatusChange,
   onToggleReveal,
@@ -69,7 +72,11 @@ export function WordCardList({
       <Link
         aria-label="단어 추가"
         className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
-        href={`/words/new?lang=${activeLanguage}`}
+        href={buildWordListHref({
+          language: activeLanguage,
+          notebookId,
+          path: "/words/new",
+        })}
       >
         +
       </Link>

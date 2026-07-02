@@ -12,6 +12,7 @@ import type { Language } from "@/types/language";
 
 type OcrImportFormProps = {
   language: Language;
+  notebookId?: string;
 };
 
 /**
@@ -19,9 +20,10 @@ type OcrImportFormProps = {
  *
  * @param props - OCR 가져오기 화면에 필요한 속성입니다.
  * @param props.language - OCR 요청, 문장 분리, 저장에 사용할 현재 언어 코드입니다.
+ * @param props.notebookId - 저장할 노트 ID입니다.
  * @returns 사진 업로드, 텍스트 추출, 문장 선택, 추가 예정 목록, 단어장 저장 UI를 렌더링합니다.
  */
-export function OcrImportForm({ language }: OcrImportFormProps) {
+export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   const languageOption = getLanguageOption(language);
   const [extractedText, setExtractedText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -37,7 +39,7 @@ export function OcrImportForm({ language }: OcrImportFormProps) {
     saveExpressions,
     stagedExpressions,
     updateExpression,
-  } = useStagedExpressions(language);
+  } = useStagedExpressions(language, notebookId);
   const sentences = useMemo(
     () => splitTextIntoSentences(extractedText, language),
     [extractedText, language],

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import { filters, viewTabs } from "@/components/words/word-list-options";
 import { WordLanguageTabs } from "@/components/words/WordLanguageTabs";
 import type {
@@ -15,6 +16,7 @@ type WordListToolbarProps = {
   activeLanguage: Language;
   activeLanguageOption: WordLanguageOption;
   enabledLanguages: Language[];
+  notebookId?: string;
   onFilterChange: (filter: WordFilter) => void;
   onLanguageChange: (language: Language) => void;
   onSearchQueryChange: (query: string) => void;
@@ -35,6 +37,7 @@ export function WordListToolbar({
   activeLanguage,
   activeLanguageOption,
   enabledLanguages,
+  notebookId,
   onFilterChange,
   onLanguageChange,
   onSearchQueryChange,
@@ -102,7 +105,11 @@ export function WordListToolbar({
       </label>
       <Link
         className="mt-2 grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
-        href={`/words/import?lang=${activeLanguage}`}
+        href={buildWordListHref({
+          language: activeLanguage,
+          notebookId,
+          path: "/words/import",
+        })}
       >
         사진에서 가져오기
       </Link>

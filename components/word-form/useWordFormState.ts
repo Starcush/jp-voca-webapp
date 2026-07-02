@@ -7,6 +7,8 @@ import type {
   WordFormField,
   WordFormState,
 } from "@/components/word-form/types";
+import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import type { AppSession } from "@/lib/session";
 import { createWord, deleteWord, updateWord } from "@/lib/words";
 import { storeWordSaveNotice } from "@/lib/word-save-notice";
@@ -17,15 +19,23 @@ type UseWordFormStateInput = {
   initialForm: WordFormState;
   isEdit: boolean;
   language: Language;
+  notebookId?: string;
   session: AppSession | null;
   termLabel: string;
   wordId?: string;
 };
 
-function normalizeInput(form: WordFormState, language: Language): NewWordInput {
+function normalizeInput(
+  form: WordFormState,
+  language: Language,
+  notebookId?: string,
+): NewWordInput {
+  const persistedNotebookId = getPersistedNotebookId(notebookId);
+
   return {
     language,
     term: form.term.trim(),
+    ...(persistedNotebookId ? { notebookId: persistedNotebookId } : {}),
     reading: form.reading.trim() || undefined,
     meaning: form.meaning.trim() || undefined,
     exampleSentence: form.exampleSentence.trim() || undefined,
@@ -40,6 +50,7 @@ function normalizeInput(form: WordFormState, language: Language): NewWordInput {
  * @param input.initialForm - 폼이 처음 렌더링될 때 사용할 입력값입니다.
  * @param input.isEdit - 현재 폼이 수정 모드인지 여부입니다.
  * @param input.language - 저장할 단어의 언어입니다.
+ * @param input.notebookId - 생성 모드에서 저장할 노트 ID입니다.
  * @param input.session - 현재 로그인 세션입니다.
  * @param input.termLabel - 필수 단어 필드의 사용자 표시 라벨입니다.
  * @param input.wordId - 수정/삭제할 단어 ID입니다.
@@ -49,6 +60,7 @@ export function useWordFormState({
   initialForm,
   isEdit,
   language,
+  notebookId,
   session,
   termLabel,
   wordId,
@@ -74,7 +86,7 @@ export function useWordFormState({
       return;
     }
 
-    const input = normalizeInput(form, language);
+    const input = normalizeInput(form, language, notebookId);
 
     if (!input.term) {
       setErrorMessage(`${termLabel}를 입력해주세요.`);
@@ -97,6 +109,10 @@ export function useWordFormState({
 
       if (savedWordId) {
         params.set("wordId", savedWordId);
+      }
+
+      if (notebookId) {
+        params.set("notebookId", notebookId);
       }
 
       storeWordSaveNotice({
@@ -124,7 +140,13 @@ export function useWordFormState({
     try {
       await deleteWord(wordId);
       storeWordSaveNotice({ language, type: "deleted" });
-      router.replace(`/words?lang=${language}`);
+      router.replace(
+        buildWordListHref({
+          language,
+          notebookId,
+          path: "/words",
+        }),
+      );
       router.refresh();
     } catch (error) {
       console.error("Failed to delete word.", error);

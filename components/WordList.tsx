@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { NotebookShelf } from "@/components/notebooks/NotebookShelf";
 import { WordCardList } from "@/components/words/WordCardList";
 import { WordListEmptyState } from "@/components/words/WordListEmptyState";
 import { WordListErrorState } from "@/components/words/WordListErrorState";
@@ -11,6 +12,7 @@ import { WordListNoResultsState } from "@/components/words/WordListNoResultsStat
 import { WordListToolbar } from "@/components/words/WordListToolbar";
 import type { ViewMode, WordFilter } from "@/components/words/types";
 import { applyWordListFilter, getSessionLanguages } from "@/components/words/word-list-utils";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import { useWordListQuery } from "@/components/words/useWordListQuery";
 import { DEFAULT_LANGUAGE, getLanguageOption } from "@/lib/languages";
 import { useSession } from "@/lib/use-session";
@@ -23,6 +25,7 @@ import type { WordStatus } from "@/types/word";
 
 type WordListProps = {
   highlightedWordId?: string;
+  selectedNotebookId?: string;
   selectedLanguage?: Language;
 };
 
@@ -31,11 +34,13 @@ type WordListProps = {
  *
  * @param props - 단어 목록 화면에 필요한 URL 기반 선택값입니다.
  * @param props.highlightedWordId - 저장 직후 목록 상단에 보강해서 보여줄 단어 ID입니다.
+ * @param props.selectedNotebookId - URL query에서 선택된 노트입니다.
  * @param props.selectedLanguage - URL query에서 선택된 언어입니다.
  * @returns 언어/필터 툴바, 상태별 화면, 단어 카드 목록을 렌더링합니다.
  */
 export function WordList({
   highlightedWordId,
+  selectedNotebookId,
   selectedLanguage,
 }: WordListProps) {
   const router = useRouter();
@@ -59,7 +64,10 @@ export function WordList({
   const [searchQuery, setSearchQuery] = useState("");
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
-  const isFullLookupMode = activeFilter !== "all" || Boolean(searchQuery.trim());
+  const isFullLookupMode =
+    activeFilter !== "all" ||
+    Boolean(searchQuery.trim()) ||
+    Boolean(selectedNotebookId);
   const {
     clearStudyStatusError,
     errorMessage,
@@ -77,7 +85,12 @@ export function WordList({
     isFullLookupMode,
     session,
   });
-  const filteredWords = applyWordListFilter(words, activeFilter, searchQuery);
+  const filteredWords = applyWordListFilter(
+    words,
+    activeFilter,
+    searchQuery,
+    selectedNotebookId,
+  );
   const wordCountLabel =
     wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
   const loadingOverlay = (
@@ -92,6 +105,7 @@ export function WordList({
       activeLanguage={activeLanguage}
       activeLanguageOption={activeLanguageOption}
       enabledLanguages={enabledLanguages}
+      notebookId={selectedNotebookId}
       onFilterChange={setActiveFilter}
       onLanguageChange={handleLanguageChange}
       onSearchQueryChange={setSearchQuery}
@@ -99,6 +113,14 @@ export function WordList({
       searchQuery={searchQuery}
       viewMode={viewMode}
       wordCountLabel={wordCountLabel}
+    />
+  );
+  const notebookShelf = (
+    <NotebookShelf
+      activeLanguage={activeLanguage}
+      onNotebookChange={handleNotebookChange}
+      selectedNotebookId={selectedNotebookId}
+      session={session}
     />
   );
 
@@ -159,6 +181,18 @@ export function WordList({
     router.push(`/words?lang=${nextLanguage}`);
   }
 
+  function handleNotebookChange(nextNotebookId?: string) {
+    clearStudyStatusError();
+    setRevealedWordIds(new Set());
+    router.push(
+      buildWordListHref({
+        language: activeLanguage,
+        notebookId: nextNotebookId,
+        path: "/words",
+      }),
+    );
+  }
+
   async function handleStudyStatusChange(wordId: string, status: WordStatus) {
     setUpdatingWordIds((currentWordIds) => new Set(currentWordIds).add(wordId));
 
@@ -178,6 +212,7 @@ export function WordList({
       <>
         {loadingOverlay}
         {toolbar}
+        {notebookShelf}
         <WordListErrorState
           errorMessage={errorMessage}
           onRetry={() => {
@@ -197,6 +232,8 @@ export function WordList({
           activeLanguage={activeLanguage}
           activeLanguageOption={activeLanguageOption}
           enabledLanguages={enabledLanguages}
+          notebookId={selectedNotebookId}
+          notebookShelf={notebookShelf}
           onLanguageChange={handleLanguageChange}
           wordCountLabel={wordCountLabel}
         />
@@ -209,10 +246,12 @@ export function WordList({
       <>
         {loadingOverlay}
         {toolbar}
+        {notebookShelf}
         <WordListNoResultsState
           activeLanguage={activeLanguage}
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
+          notebookId={selectedNotebookId}
           onLoadMore={() => void loadNextPage()}
           onReset={resetListConditions}
         />
@@ -224,10 +263,12 @@ export function WordList({
     <>
       {loadingOverlay}
       {toolbar}
+      {notebookShelf}
       <WordCardList
         activeLanguage={activeLanguage}
         hasMore={hasMore}
         isLoadingMore={isLoadingMore}
+        notebookId={selectedNotebookId}
         onLoadMore={() => void loadNextPage()}
         onStudyStatusChange={(wordId, status) =>
           void handleStudyStatusChange(wordId, status)
