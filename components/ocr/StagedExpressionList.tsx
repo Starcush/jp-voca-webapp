@@ -62,19 +62,13 @@ export function StagedExpressionList({
 
   return (
     <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="grid gap-3">
+        <div className="min-w-0">
           <p className="text-base font-bold text-slate-950">
             추가 예정 {expressions.length} / {MAX_STAGED_EXPRESSIONS}
           </p>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            문장을 이동해도 유지됩니다. 사진을 다시 선택하거나 텍스트를 다시 추출하면 초기화됩니다.
-          </p>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            먼저 표현을 담아둔 뒤, 읽기와 뜻을 한 번에 찾을 수 있습니다.
-          </p>
           <p
-            className={`mt-2 text-sm font-bold ${
+            className={`mt-1 text-sm font-bold ${
               incompleteExpressionCount > 0 ? "text-red-600" : "text-emerald-700"
             }`}
           >
@@ -83,17 +77,25 @@ export function StagedExpressionList({
               : `저장 준비 완료 ${readyExpressionCount}개`}
           </p>
         </div>
-        <div className="grid shrink-0 gap-2">
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <button
-            className="rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isEnriching || !canEnrichExpressions}
             onClick={onEnrich}
             type="button"
           >
-            읽기와 뜻 찾기
+            의미 찾기
           </button>
           <button
-            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+            className="min-h-10 rounded-md bg-blue-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isSaving || !canSaveExpressions}
+            onClick={onSave}
+            type="button"
+          >
+            저장
+          </button>
+          <button
+            className="min-h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
             onClick={onClear}
             type="button"
           >
@@ -108,7 +110,7 @@ export function StagedExpressionList({
 
           return (
             <article
-              className={`grid gap-3 rounded-lg border bg-slate-50 p-3 ${
+              className={`grid gap-2 rounded-lg border bg-slate-50 p-3 ${
                 isTermMissing ? "border-red-200" : "border-slate-100"
               }`}
               key={expression.id}
@@ -198,7 +200,7 @@ export function StagedExpressionList({
                 </p>
               ) : null}
               <button
-                className="justify-self-end text-sm font-bold text-red-600"
+                className="justify-self-end rounded-md px-2 py-1 text-sm font-bold text-red-600"
                 onClick={() => onRemove(expression.id)}
                 type="button"
               >
@@ -208,15 +210,6 @@ export function StagedExpressionList({
           );
         })}
       </div>
-
-      <button
-        className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={isSaving || !canSaveExpressions}
-        onClick={onSave}
-        type="button"
-      >
-        {incompleteExpressionCount > 0 ? "필수 항목 확인 필요" : "단어장에 저장"}
-      </button>
     </section>
   );
 }

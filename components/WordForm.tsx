@@ -6,6 +6,11 @@ import {
   getReadingPlaceholder,
   getTermPlaceholder,
 } from "@/components/word-form/word-form-placeholders";
+import {
+  CurrentNotebookNotice,
+  useCurrentNotebookTarget,
+  type CurrentNotebookTarget,
+} from "@/components/notebooks/CurrentNotebookNotice";
 import type { WordFormState } from "@/components/word-form/types";
 import { useWordFormQuery } from "@/components/word-form/useWordFormQuery";
 import { useWordFormState } from "@/components/word-form/useWordFormState";
@@ -26,6 +31,7 @@ type WordFormProps = {
 type WordFormBodyProps = WordFormProps & {
   initialForm: WordFormState;
   loadErrorMessage: string;
+  notebookTarget: CurrentNotebookTarget;
   session: AppSession | null;
 };
 
@@ -60,6 +66,11 @@ function toFormState(word: Word): WordFormState {
 export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) {
   const session = useSession() ?? null;
   const isEdit = mode === "edit";
+  const notebookTarget = useCurrentNotebookTarget({
+    language,
+    notebookId,
+    session,
+  });
   const {
     errorMessage: loadErrorMessage,
     isLoading,
@@ -85,7 +96,8 @@ export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) 
       language={language}
       loadErrorMessage={loadErrorMessage}
       mode={mode}
-      notebookId={notebookId}
+      notebookId={notebookTarget.resolvedNotebookId}
+      notebookTarget={notebookTarget}
       session={session}
       wordId={wordId}
     />
@@ -98,6 +110,7 @@ function WordFormBody({
   loadErrorMessage,
   mode,
   notebookId,
+  notebookTarget,
   session,
   wordId,
 }: WordFormBodyProps) {
@@ -125,6 +138,8 @@ function WordFormBody({
 
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
+      {!isEdit ? <CurrentNotebookNotice target={notebookTarget} /> : null}
+
       <label className="grid gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
           {languageOption.termLabel}

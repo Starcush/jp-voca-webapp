@@ -2,12 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
+import {
+  CurrentNotebookNotice,
+  useCurrentNotebookTarget,
+} from "@/components/notebooks/CurrentNotebookNotice";
 import { SentenceSelector } from "@/components/ocr/SentenceSelector";
 import { StagedExpressionList } from "@/components/ocr/StagedExpressionList";
 import { useOcrImage } from "@/components/ocr/useOcrImage";
 import { useStagedExpressions } from "@/components/ocr/useStagedExpressions";
 import { getLanguageOption } from "@/lib/languages";
 import { splitTextIntoSentences } from "@/lib/sentence-splitter";
+import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
 
 type OcrImportFormProps = {
@@ -24,7 +29,13 @@ type OcrImportFormProps = {
  * @returns 사진 업로드, 텍스트 추출, 문장 선택, 추가 예정 목록, 단어장 저장 UI를 렌더링합니다.
  */
 export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
+  const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
+  const notebookTarget = useCurrentNotebookTarget({
+    language,
+    notebookId,
+    session,
+  });
   const [extractedText, setExtractedText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const { extractText, imageFile, isExtracting, previewUrl, setImageFile } =
@@ -39,7 +50,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     saveExpressions,
     stagedExpressions,
     updateExpression,
-  } = useStagedExpressions(language, notebookId);
+  } = useStagedExpressions(language, notebookTarget.resolvedNotebookId);
   const sentences = useMemo(
     () => splitTextIntoSentences(extractedText, language),
     [extractedText, language],
@@ -102,6 +113,8 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         show={isExtracting || isEnrichingExpressions || isSavingWords}
       />
       <section className="grid gap-5">
+        <CurrentNotebookNotice target={notebookTarget} />
+
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-base font-bold text-slate-950">
             {languageOption.label} 책 사진 올리기
@@ -111,17 +124,27 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           </p>
           <div className="mt-4 grid gap-2">
             <span className="text-sm font-semibold text-slate-700">사진</span>
-            <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-950 px-3 text-sm font-bold text-white">
-              사진 선택
-              <input
-                accept="image/*"
-                className="sr-only"
-                onChange={(event) =>
-                  handleImageFileChange(event.target.files?.[0])
-                }
-                type="file"
-              />
-            </label>
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-950 px-3 text-sm font-bold text-white">
+                사진 선택
+                <input
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) =>
+                    handleImageFileChange(event.target.files?.[0])
+                  }
+                  type="file"
+                />
+              </label>
+              <button
+                className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!imageFile || isExtracting}
+                onClick={() => void handleExtractText()}
+                type="button"
+              >
+                추출
+              </button>
+            </div>
             {imageFile ? (
               <p className="text-xs font-semibold text-slate-500">
                 선택됨: {imageFile.name}
@@ -143,20 +166,12 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
               {errorMessage}
             </p>
           ) : null}
-          <button
-            className="mt-4 min-h-12 w-full rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!imageFile || isExtracting}
-            onClick={() => void handleExtractText()}
-            type="button"
-          >
-            텍스트 추출
-          </button>
         </div>
 
         <label className="grid gap-2">
           <span className="text-sm font-bold text-slate-700">추출된 텍스트</span>
           <textarea
-            className="min-h-64 rounded-lg border-slate-200 bg-white text-base leading-7"
+            className="min-h-48 rounded-lg border-slate-200 bg-white text-base leading-7"
             onChange={(event) => {
               setExtractedText(event.target.value);
             }}
