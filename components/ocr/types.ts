@@ -1,7 +1,7 @@
 /**
  * OCR 가져오기에서 한 번에 담을 수 있는 추가 예정 표현의 최대 개수입니다.
  */
-export const MAX_STAGED_EXPRESSIONS = 10;
+export const MAX_STAGED_EXPRESSIONS = 50;
 
 /**
  * OCR 가져오기에서 최종 저장 전까지 임시로 들고 있는 표현 데이터입니다.
