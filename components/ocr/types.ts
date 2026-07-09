@@ -4,6 +4,22 @@
 export const MAX_STAGED_EXPRESSIONS = 50;
 
 /**
+ * OCR 추가 예정 표현의 읽기/뜻을 한 번에 요청할 내부 배치 크기입니다.
+ */
+export const ENRICHMENT_BATCH_SIZE = 10;
+
+/**
+ * OCR 추가 예정 표현의 읽기/뜻 채우기 진행 상태입니다.
+ *
+ * @property completed - 읽기/뜻 채우기를 완료한 표현 수입니다.
+ * @property total - 읽기/뜻 채우기 대상 표현 수입니다.
+ */
+export type EnrichmentProgress = {
+  completed: number;
+  total: number;
+};
+
+/**
  * OCR 가져오기에서 최종 저장 전까지 임시로 들고 있는 표현 데이터입니다.
  *
  * @property id - UI 목록에서 표현을 안정적으로 식별하기 위한 클라이언트 ID입니다.

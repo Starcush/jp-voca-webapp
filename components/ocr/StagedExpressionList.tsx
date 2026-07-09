@@ -1,6 +1,10 @@
 "use client";
 
-import { MAX_STAGED_EXPRESSIONS, type StagedExpression } from "./types";
+import {
+  MAX_STAGED_EXPRESSIONS,
+  type EnrichmentProgress,
+  type StagedExpression,
+} from "./types";
 
 type LanguageOptionLabels = {
   readingLabel?: string;
@@ -8,6 +12,7 @@ type LanguageOptionLabels = {
 };
 
 type StagedExpressionListProps = {
+  enrichmentProgress: EnrichmentProgress | null;
   expressions: StagedExpression[];
   isEnriching: boolean;
   isSaving: boolean;
@@ -32,6 +37,7 @@ function getReadyExpressionCount(expressions: StagedExpression[]) {
  * OCR에서 선택한 표현들을 최종 저장 전까지 편집하는 목록 컴포넌트입니다.
  *
  * @param props - 추가 예정 표현 목록 UI에 필요한 속성입니다.
+ * @param props.enrichmentProgress - 읽기와 뜻을 채우는 진행 상태입니다.
  * @param props.expressions - 사용자가 선택해 추가 예정 상태로 둔 표현 목록입니다.
  * @param props.isEnriching - 읽기와 뜻을 찾는 중인지 나타내는 값입니다.
  * @param props.isSaving - 단어장에 저장 중인지 나타내는 값입니다.
@@ -44,6 +50,7 @@ function getReadyExpressionCount(expressions: StagedExpression[]) {
  * @returns 표현별 편집 폼과 읽기/뜻 찾기, 비우기, 단어장 저장 UI를 렌더링합니다.
  */
 export function StagedExpressionList({
+  enrichmentProgress,
   expressions,
   isEnriching,
   isSaving,
@@ -76,6 +83,12 @@ export function StagedExpressionList({
               ? `필수 항목 확인 필요 ${incompleteExpressionCount}개`
               : `저장 준비 완료 ${readyExpressionCount}개`}
           </p>
+          {enrichmentProgress ? (
+            <p className="mt-1 text-sm font-semibold text-blue-700">
+              읽기와 뜻 채우는 중 {enrichmentProgress.completed} /{" "}
+              {enrichmentProgress.total}개 완료
+            </p>
+          ) : null}
         </div>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <button
@@ -84,7 +97,7 @@ export function StagedExpressionList({
             onClick={onEnrich}
             type="button"
           >
-            의미 찾기
+            읽기·뜻 채우기
           </button>
           <button
             className="min-h-10 rounded-md bg-blue-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"

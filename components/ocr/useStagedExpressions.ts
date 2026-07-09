@@ -10,7 +10,12 @@ import { storeWordSaveNotice } from "@/lib/word-save-notice";
 import { createWord } from "@/lib/words";
 import type { Language } from "@/types/language";
 import type { NewWordInput } from "@/types/word";
-import { MAX_STAGED_EXPRESSIONS, type StagedExpression } from "./types";
+import {
+  ENRICHMENT_BATCH_SIZE,
+  MAX_STAGED_EXPRESSIONS,
+  type EnrichmentProgress,
+  type StagedExpression,
+} from "./types";
 
 type VocabularyRequest = {
   language: Language;
@@ -24,9 +29,27 @@ type VocabularySuggestion = {
   reading: string;
 };
 
+type EnrichedExpressionResult = {
+  expression: StagedExpression;
+  failed: boolean;
+};
+
 type StagedExpressionInput = Partial<
   Pick<StagedExpression, "meaning" | "reading" | "term" | "useExample">
 >;
+
+function chunkExpressions(
+  expressions: StagedExpression[],
+  batchSize: number,
+) {
+  const chunks: StagedExpression[][] = [];
+
+  for (let index = 0; index < expressions.length; index += batchSize) {
+    chunks.push(expressions.slice(index, index + batchSize));
+  }
+
+  return chunks;
+}
 
 function normalizeExpressionText(text: string) {
   return text.replace(/\s+/g, " ").trim();
@@ -111,6 +134,46 @@ async function trackSavedExpressions(
   });
 }
 
+async function enrichExpression(
+  language: Language,
+  expression: StagedExpression,
+): Promise<EnrichedExpressionResult> {
+  const term = expression.term.trim();
+
+  if (!term) {
+    return { expression, failed: false };
+  }
+
+  try {
+    const userReading = expression.reading.trim();
+    const currentMeaning = expression.meaning.trim();
+    const suggestion = await suggestVocabulary({
+      language,
+      reading: userReading,
+      sentence: expression.sourceSentence,
+      term,
+    });
+    const fallbackReading =
+      userReading || suggestion.reading
+        ? ""
+        : await generateReading(language, term);
+    const reading = userReading || suggestion.reading || fallbackReading;
+    const meaning = currentMeaning || suggestion.meaning;
+
+    return {
+      expression: {
+        ...expression,
+        meaning,
+        reading,
+      },
+      failed: false,
+    };
+  } catch (error) {
+    console.error("Failed to enrich staged expression.", error);
+    return { expression, failed: true };
+  }
+}
+
 /**
  * OCR에서 고른 표현들의 추가 예정 상태와 읽기/뜻 보강, 최종 저장 흐름을 관리합니다.
  *
@@ -122,6 +185,8 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
   const router = useRouter();
   const session = useSession();
   const [stagedExpressions, setStagedExpressions] = useState<StagedExpression[]>([]);
+  const [enrichmentProgress, setEnrichmentProgress] =
+    useState<EnrichmentProgress | null>(null);
   const [isEnrichingExpressions, setIsEnrichingExpressions] = useState(false);
   const [isSavingWords, setIsSavingWords] = useState(false);
 
@@ -173,48 +238,59 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
       return "읽기와 뜻을 찾을 단어 또는 표현을 입력해주세요.";
     }
 
+    const targetExpressions = stagedExpressions.filter((expression) =>
+      expression.term.trim(),
+    );
+    const totalExpressionCount = targetExpressions.length;
+
     setIsEnrichingExpressions(true);
+    setEnrichmentProgress({
+      completed: 0,
+      total: totalExpressionCount,
+    });
 
     try {
-      const enrichedExpressions = await Promise.all(
-        stagedExpressions.map(async (expression) => {
-          const term = expression.term.trim();
+      const enrichedExpressionsById = new Map<string, StagedExpression>();
+      let completedExpressionCount = 0;
+      let failedExpressionCount = 0;
 
-          if (!term) {
-            return expression;
+      for (const batch of chunkExpressions(
+        targetExpressions,
+        ENRICHMENT_BATCH_SIZE,
+      )) {
+        const batchResults = await Promise.all(
+          batch.map((expression) => enrichExpression(language, expression)),
+        );
+
+        batchResults.forEach((result) => {
+          enrichedExpressionsById.set(result.expression.id, result.expression);
+
+          if (result.failed) {
+            failedExpressionCount += 1;
           }
+        });
+        completedExpressionCount += batchResults.length;
 
-          const userReading = expression.reading.trim();
-          const currentMeaning = expression.meaning.trim();
-          const suggestion = await suggestVocabulary({
-            language,
-            reading: userReading,
-            sentence: expression.sourceSentence,
-            term,
-          });
-          const fallbackReading =
-            userReading || suggestion.reading
-              ? ""
-              : await generateReading(language, term);
-          const reading =
-            userReading || suggestion.reading || fallbackReading;
-          const meaning = currentMeaning || suggestion.meaning;
+        setStagedExpressions((currentExpressions) =>
+          currentExpressions.map(
+            (expression) =>
+              enrichedExpressionsById.get(expression.id) ?? expression,
+          ),
+        );
+        setEnrichmentProgress({
+          completed: completedExpressionCount,
+          total: totalExpressionCount,
+        });
+      }
 
-          return {
-            ...expression,
-            meaning,
-            reading,
-          };
-        }),
-      );
+      if (failedExpressionCount > 0) {
+        return `일부 표현 ${failedExpressionCount}개의 읽기와 뜻을 찾지 못했습니다.`;
+      }
 
-      setStagedExpressions(enrichedExpressions);
       return "";
-    } catch (error) {
-      console.error("Failed to enrich staged expressions.", error);
-      return "읽기와 뜻을 찾지 못했습니다.";
     } finally {
       setIsEnrichingExpressions(false);
+      setEnrichmentProgress(null);
     }
   }
 
@@ -239,6 +315,7 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
 
   function clearExpressions() {
     setStagedExpressions([]);
+    setEnrichmentProgress(null);
   }
 
   async function saveExpressions() {
@@ -299,6 +376,7 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
   return {
     addExpression,
     clearExpressions,
+    enrichmentProgress,
     enrichExpressions,
     isEnrichingExpressions,
     isSavingWords,

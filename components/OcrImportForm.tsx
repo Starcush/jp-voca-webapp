@@ -43,6 +43,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   const {
     addExpression,
     clearExpressions,
+    enrichmentProgress,
     enrichExpressions,
     isEnrichingExpressions,
     isSavingWords,
@@ -107,7 +108,9 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           isSavingWords
             ? "단어장에 저장하는 중"
             : isEnrichingExpressions
-              ? "읽기와 뜻을 찾는 중"
+              ? enrichmentProgress
+                ? `읽기와 뜻을 채우는 중 ${enrichmentProgress.completed} / ${enrichmentProgress.total}개 완료`
+                : "읽기와 뜻을 채우는 중"
               : "사진에서 텍스트를 읽는 중"
         }
         show={isExtracting || isEnrichingExpressions || isSavingWords}
@@ -191,6 +194,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         {stagedExpressions.length > 0 ? (
           <StagedExpressionList
             expressions={stagedExpressions}
+            enrichmentProgress={enrichmentProgress}
             isEnriching={isEnrichingExpressions}
             isSaving={isSavingWords}
             languageOption={languageOption}
