@@ -6,9 +6,12 @@ type WordCardProps = {
   word: Word;
   maskedField?: "kanji" | "meaning";
   isRevealed?: boolean;
+  isSelected?: boolean;
   isUpdatingStudyStatus?: boolean;
+  onToggleSelect?: () => void;
   onStudyStatusChange?: (status: WordStatus) => void;
   onToggleReveal?: () => void;
+  selectionMode?: boolean;
 };
 
 function formatLastSeen(word: Word) {
@@ -35,9 +38,12 @@ export function WordCard({
   word,
   maskedField,
   isRevealed = false,
+  isSelected = false,
   isUpdatingStudyStatus = false,
+  onToggleSelect,
   onStudyStatusChange,
   onToggleReveal,
+  selectionMode = false,
 }: WordCardProps) {
   const language = getWordLanguage(word);
   const term = getWordTerm(word);
@@ -55,8 +61,23 @@ export function WordCard({
   const isKnown = word.status === "known";
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <article
+      className={`rounded-lg border bg-white p-3 shadow-sm ${
+        isSelected ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
+        {selectionMode ? (
+          <label className="mt-1 grid h-6 w-6 shrink-0 place-items-center">
+            <span className="sr-only">{term} 선택</span>
+            <input
+              checked={isSelected}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              onChange={onToggleSelect}
+              type="checkbox"
+            />
+          </label>
+        ) : null}
         <button
           type="button"
           className="min-w-0 flex-1 text-left"

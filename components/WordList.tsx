@@ -70,7 +70,10 @@ export function WordList({
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isDeletingSelectedWords, setIsDeletingSelectedWords] = useState(false);
   const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
   const isFullLookupMode =
     activeFilter !== "all" ||
@@ -78,6 +81,7 @@ export function WordList({
     Boolean(selectedNotebookId);
   const {
     clearStudyStatusError,
+    deleteSelectedWords,
     errorMessage,
     hasMore,
     isContentLoading,
@@ -103,8 +107,12 @@ export function WordList({
     wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
   const loadingOverlay = (
     <LoadingOverlay
-      message={`${activeLanguageOption.label} 단어를 불러오는 중`}
-      show={isContentLoading}
+      message={
+        isDeletingSelectedWords
+          ? "선택한 단어를 삭제하는 중"
+          : `${activeLanguageOption.label} 단어를 불러오는 중`
+      }
+      show={isContentLoading || isDeletingSelectedWords}
     />
   );
   const toolbar = (
@@ -114,9 +122,9 @@ export function WordList({
       activeLanguageOption={activeLanguageOption}
       enabledLanguages={visibleLanguages}
       notebookId={selectedNotebookId}
-      onFilterChange={setActiveFilter}
+      onFilterChange={handleFilterChange}
       onLanguageChange={handleLanguageChange}
-      onSearchQueryChange={setSearchQuery}
+      onSearchQueryChange={handleSearchQueryChange}
       onViewModeChange={handleViewModeChange}
       searchQuery={searchQuery}
       viewMode={viewMode}
@@ -153,6 +161,16 @@ export function WordList({
     setRevealedWordIds(new Set());
   }
 
+  function handleFilterChange(nextFilter: WordFilter) {
+    setActiveFilter(nextFilter);
+    clearSelection();
+  }
+
+  function handleSearchQueryChange(nextSearchQuery: string) {
+    setSearchQuery(nextSearchQuery);
+    clearSelection();
+  }
+
   function toggleWordReveal(wordId: string) {
     if (viewMode === "all") {
       return;
@@ -174,6 +192,7 @@ export function WordList({
   function resetListConditions() {
     setActiveFilter("all");
     setSearchQuery("");
+    clearSelection();
   }
 
   function handleLanguageChange(nextLanguage: Language) {
@@ -186,12 +205,14 @@ export function WordList({
     setSearchQuery("");
     clearStudyStatusError();
     setRevealedWordIds(new Set());
+    clearSelection();
     router.push(`/words?lang=${nextLanguage}`);
   }
 
   function handleNotebookChange(nextNotebookId?: string) {
     clearStudyStatusError();
     setRevealedWordIds(new Set());
+    clearSelection();
     router.push(
       buildWordListHref({
         language: activeLanguage,
@@ -199,6 +220,57 @@ export function WordList({
         path: "/words",
       }),
     );
+  }
+
+  function clearSelection() {
+    setIsSelectionMode(false);
+    setSelectedWordIds(new Set());
+  }
+
+  function toggleWordSelection(wordId: string) {
+    setSelectedWordIds((currentWordIds) => {
+      const nextWordIds = new Set(currentWordIds);
+
+      if (nextWordIds.has(wordId)) {
+        nextWordIds.delete(wordId);
+      } else {
+        nextWordIds.add(wordId);
+      }
+
+      return nextWordIds;
+    });
+  }
+
+  function selectVisibleWords() {
+    setSelectedWordIds(new Set(filteredWords.map((word) => word.id)));
+  }
+
+  async function handleDeleteSelectedWords() {
+    const wordIds = [...selectedWordIds];
+
+    if (wordIds.length === 0) {
+      return;
+    }
+
+    const shouldDelete = confirm(
+      `선택한 단어 ${wordIds.length}개를 삭제할까요?\n삭제한 단어는 되돌릴 수 없습니다.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsDeletingSelectedWords(true);
+
+    try {
+      await deleteSelectedWords(wordIds);
+      clearSelection();
+      toast.success(`선택한 단어 ${wordIds.length}개를 삭제했습니다.`);
+    } catch {
+      // 사용자용 에러 메시지는 useWordListQuery에서 화면에 표시합니다.
+    } finally {
+      setIsDeletingSelectedWords(false);
+    }
   }
 
   async function handleStudyStatusChange(wordId: string, status: WordStatus) {
@@ -275,14 +347,22 @@ export function WordList({
       <WordCardList
         activeLanguage={activeLanguage}
         hasMore={hasMore}
+        isDeletingSelectedWords={isDeletingSelectedWords}
         isLoadingMore={isLoadingMore}
+        isSelectionMode={isSelectionMode}
         notebookId={selectedNotebookId}
+        onClearSelection={clearSelection}
+        onDeleteSelectedWords={() => void handleDeleteSelectedWords()}
         onLoadMore={() => void loadNextPage()}
+        onSelectVisibleWords={selectVisibleWords}
+        onSelectionModeChange={setIsSelectionMode}
         onStudyStatusChange={(wordId, status) =>
           void handleStudyStatusChange(wordId, status)
         }
+        onToggleWordSelection={toggleWordSelection}
         onToggleReveal={toggleWordReveal}
         revealedWordIds={revealedWordIds}
+        selectedWordIds={selectedWordIds}
         updatingWordIds={updatingWordIds}
         viewMode={viewMode}
         words={filteredWords}

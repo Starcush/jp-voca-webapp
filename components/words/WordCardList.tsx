@@ -11,11 +11,19 @@ type WordCardListProps = {
   activeLanguage: Language;
   hasMore: boolean;
   isLoadingMore: boolean;
+  isDeletingSelectedWords: boolean;
+  isSelectionMode: boolean;
   notebookId?: string;
+  onClearSelection: () => void;
+  onDeleteSelectedWords: () => void;
   onLoadMore: () => void;
+  onSelectVisibleWords: () => void;
+  onSelectionModeChange: (isSelectionMode: boolean) => void;
   onStudyStatusChange: (wordId: string, status: WordStatus) => void;
   onToggleReveal: (wordId: string) => void;
+  onToggleWordSelection: (wordId: string) => void;
   revealedWordIds: Set<string>;
+  selectedWordIds: Set<string>;
   updatingWordIds: Set<string>;
   viewMode: ViewMode;
   words: Word[];
@@ -31,26 +39,78 @@ export function WordCardList({
   activeLanguage,
   hasMore,
   isLoadingMore,
+  isDeletingSelectedWords,
+  isSelectionMode,
   notebookId,
+  onClearSelection,
+  onDeleteSelectedWords,
   onLoadMore,
+  onSelectVisibleWords,
+  onSelectionModeChange,
   onStudyStatusChange,
   onToggleReveal,
+  onToggleWordSelection,
   revealedWordIds,
+  selectedWordIds,
   updatingWordIds,
   viewMode,
   words,
 }: WordCardListProps) {
+  const selectedCount = selectedWordIds.size;
+
   return (
     <>
       <section className="grid gap-2 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-bold text-slate-500">
+            {isSelectionMode ? `선택 ${selectedCount}개` : "단어 목록"}
+          </p>
+          {isSelectionMode ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                className="min-h-9 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600"
+                onClick={onSelectVisibleWords}
+                type="button"
+              >
+                전체 선택
+              </button>
+              <button
+                className="min-h-9 rounded-md bg-red-600 px-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isDeletingSelectedWords || selectedCount === 0}
+                onClick={onDeleteSelectedWords}
+                type="button"
+              >
+                삭제
+              </button>
+              <button
+                className="min-h-9 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600"
+                onClick={onClearSelection}
+                type="button"
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <button
+              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600"
+              onClick={() => onSelectionModeChange(true)}
+              type="button"
+            >
+              선택
+            </button>
+          )}
+        </div>
         {words.map((word) => (
           <WordCard
             isRevealed={revealedWordIds.has(word.id)}
+            isSelected={selectedWordIds.has(word.id)}
             isUpdatingStudyStatus={updatingWordIds.has(word.id)}
             key={word.id}
             maskedField={viewMode === "all" ? undefined : viewMode}
             onStudyStatusChange={(status) => onStudyStatusChange(word.id, status)}
+            onToggleSelect={() => onToggleWordSelection(word.id)}
             onToggleReveal={() => onToggleReveal(word.id)}
+            selectionMode={isSelectionMode}
             word={word}
           />
         ))}

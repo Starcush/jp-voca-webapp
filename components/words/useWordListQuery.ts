@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import {
   countWords,
+  deleteWords,
   getWord,
   getWordLanguage,
   listAllWords,
@@ -71,6 +72,20 @@ function getStudyStatusErrorMessage(error: unknown) {
   return "학습 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+function getDeleteWordsErrorMessage(error: unknown) {
+  const code = getFirebaseErrorCode(error);
+
+  if (code === "permission-denied") {
+    return "단어를 삭제할 권한이 없습니다. Firebase Rules가 반영됐는지 확인해주세요.";
+  }
+
+  if (code === "unavailable") {
+    return "Firestore에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.";
+  }
+
+  return "선택한 단어를 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 function getWordPagesQueryKey(
   uid: string,
   language: Language,
@@ -101,6 +116,13 @@ function updateWordInList(
     ...word,
     lastSeenAt,
     status,
+  };
+}
+
+function removeWordsFromPage(page: WordListPage, deletedWordIds: Set<string>) {
+  return {
+    ...page,
+    words: page.words.filter((word) => !deletedWordIds.has(word.id)),
   };
 }
 
@@ -258,8 +280,54 @@ export function useWordListQuery({
     }
   }
 
+  async function deleteSelectedWords(wordIds: string[]) {
+    if (!session || wordIds.length === 0) {
+      return;
+    }
+
+    clearStudyStatusError();
+
+    try {
+      await deleteWords(wordIds);
+
+      const deletedWordIds = new Set(wordIds);
+
+      queryClient.setQueriesData<InfiniteData<WordListPage>>(
+        {
+          queryKey: ["words", "pages", session.uid, activeLanguage],
+        },
+        (currentData) =>
+          currentData
+            ? {
+                ...currentData,
+                pages: currentData.pages.map((page) =>
+                  removeWordsFromPage(page, deletedWordIds),
+                ),
+              }
+            : currentData,
+      );
+      queryClient.setQueryData<Word[]>(
+        getAllWordsQueryKey(session.uid, activeLanguage),
+        (currentWords) =>
+          currentWords?.filter((word) => !deletedWordIds.has(word.id)),
+      );
+      queryClient.setQueryData<number>(
+        getWordCountQueryKey(session.uid, activeLanguage),
+        (currentCount) =>
+          typeof currentCount === "number"
+            ? Math.max(currentCount - wordIds.length, 0)
+            : currentCount,
+      );
+    } catch (error) {
+      console.error("Failed to delete selected words.", error);
+      setStudyStatusErrorMessage(getDeleteWordsErrorMessage(error));
+      throw error;
+    }
+  }
+
   return {
     clearStudyStatusError,
+    deleteSelectedWords,
     errorMessage,
     hasMore,
     isContentLoading,

@@ -265,3 +265,29 @@ export async function updateWordStudyStatus(wordId: string, status: WordStatus) 
 export async function deleteWord(wordId: string) {
   await deleteDoc(wordDocument(wordId));
 }
+
+/**
+ * 여러 단어를 한 번에 삭제합니다.
+ *
+ * @param wordIds - 삭제할 단어 ID 목록입니다.
+ * @returns 모든 삭제 배치가 완료되면 resolve됩니다.
+ */
+export async function deleteWords(wordIds: string[]) {
+  const batches = Array.from(
+    { length: Math.ceil(wordIds.length / WORD_BATCH_SIZE) },
+    (_, index) =>
+      wordIds.slice(index * WORD_BATCH_SIZE, (index + 1) * WORD_BATCH_SIZE),
+  );
+
+  await Promise.all(
+    batches.map(async (batchWordIds) => {
+      const batch = writeBatch(getDb());
+
+      batchWordIds.forEach((wordId) => {
+        batch.delete(wordDocument(wordId));
+      });
+
+      await batch.commit();
+    }),
+  );
+}
