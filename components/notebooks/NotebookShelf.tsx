@@ -31,6 +31,7 @@ export function NotebookShelf({
 }: NotebookShelfProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");
   const [title, setTitle] = useState("");
   const {
@@ -51,6 +52,13 @@ export function NotebookShelf({
     (notebook) => notebook.id === selectedNotebookId,
   );
 
+  function handleNotebookSelect(notebookId?: string) {
+    setIsCreating(false);
+    setIsEditing(false);
+    setIsManaging(false);
+    onNotebookChange(notebookId);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -67,7 +75,7 @@ export function NotebookShelf({
 
     setTitle("");
     setIsCreating(false);
-    onNotebookChange(notebookId);
+    handleNotebookSelect(notebookId);
   }
 
   function handleEditStart() {
@@ -77,6 +85,7 @@ export function NotebookShelf({
 
     setEditingTitle(selectedNotebook.title);
     setIsEditing(true);
+    setIsManaging(true);
     setIsCreating(false);
   }
 
@@ -120,6 +129,7 @@ export function NotebookShelf({
       notebookId: selectedNotebook.id,
     });
     setIsEditing(false);
+    setIsManaging(false);
     onNotebookChange(undefined);
   }
 
@@ -132,16 +142,33 @@ export function NotebookShelf({
             노트 안에서 추가한 단어는 해당 노트에 저장됩니다.
           </p>
         </div>
-        <button
-          className="min-h-9 shrink-0 rounded-md bg-slate-950 px-3 text-sm font-bold text-white"
-          onClick={() => {
-            setIsCreating((currentValue) => !currentValue);
-            setIsEditing(false);
-          }}
-          type="button"
-        >
-          새 노트
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {selectedNotebook ? (
+            <button
+              aria-expanded={isManaging}
+              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600"
+              onClick={() => {
+                setIsManaging((currentValue) => !currentValue);
+                setIsEditing(false);
+                setIsCreating(false);
+              }}
+              type="button"
+            >
+              관리
+            </button>
+          ) : null}
+          <button
+            className="min-h-9 rounded-md bg-slate-950 px-3 text-sm font-bold text-white"
+            onClick={() => {
+              setIsCreating((currentValue) => !currentValue);
+              setIsEditing(false);
+              setIsManaging(false);
+            }}
+            type="button"
+          >
+            새 노트
+          </button>
+        </div>
       </div>
 
       {isCreating ? (
@@ -167,7 +194,7 @@ export function NotebookShelf({
         </form>
       ) : null}
 
-      {selectedNotebook ? (
+      {selectedNotebook && isManaging ? (
         <div className="rounded-lg bg-slate-50 p-3">
           {isEditing ? (
             <form className="grid gap-2 sm:grid-cols-[1fr_auto_auto]" onSubmit={handleEditSubmit}>
@@ -200,7 +227,7 @@ export function NotebookShelf({
           ) : (
             <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-center">
               <p className="truncate text-sm font-bold text-slate-700">
-                현재 노트: {selectedNotebook.title}
+                {selectedNotebook.title}
               </p>
               <button
                 className="min-h-9 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600"
@@ -237,7 +264,7 @@ export function NotebookShelf({
               ? "bg-slate-950 text-white"
               : "border border-slate-200 bg-white text-slate-600"
           }`}
-          onClick={() => onNotebookChange(undefined)}
+          onClick={() => handleNotebookSelect(undefined)}
           type="button"
         >
           전체
@@ -249,7 +276,7 @@ export function NotebookShelf({
               ? "bg-slate-950 text-white"
               : "border border-slate-200 bg-white text-slate-600"
           }`}
-          onClick={() => onNotebookChange(UNFILED_NOTEBOOK_ID)}
+          onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
           type="button"
         >
           미분류
@@ -263,7 +290,7 @@ export function NotebookShelf({
                 : "border border-slate-200 bg-white text-slate-600"
             }`}
             key={notebook.id}
-            onClick={() => onNotebookChange(notebook.id)}
+            onClick={() => handleNotebookSelect(notebook.id)}
             type="button"
           >
             {notebook.title}
