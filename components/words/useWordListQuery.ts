@@ -6,6 +6,7 @@ import {
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
+import { Timestamp } from "firebase/firestore";
 import { useState } from "react";
 import {
   countWords,
@@ -14,6 +15,7 @@ import {
   getWordLanguage,
   listAllWords,
   listWordsPage,
+  toggleWordFlag,
   updateWordStudyStatus,
   type WordsPageCursor,
 } from "@/lib/words";
@@ -72,6 +74,24 @@ function getStudyStatusErrorMessage(error: unknown) {
   return "학습 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+function getFlagErrorMessage(error: unknown) {
+  const code = getFirebaseErrorCode(error);
+
+  if (code === "permission-denied") {
+    return "헷갈림 표시를 저장할 권한이 없습니다. Firebase Rules가 배포 환경의 프로젝트에 반영됐는지 확인해주세요.";
+  }
+
+  if (code === "not-found") {
+    return "단어를 찾을 수 없습니다. 이미 삭제됐거나 접근할 수 없는 단어일 수 있습니다.";
+  }
+
+  if (code === "unavailable") {
+    return "Firestore에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.";
+  }
+
+  return "헷갈림 표시를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 function getDeleteWordsErrorMessage(error: unknown) {
   const code = getFirebaseErrorCode(error);
 
@@ -117,6 +137,39 @@ function updateWordInList(
     lastSeenAt,
     status,
   };
+}
+
+function updateWordFlagInList(
+  word: Word,
+  wordId: string,
+  flaggedAt: Word["flaggedAt"],
+) {
+  if (word.id !== wordId) {
+    return word;
+  }
+
+  return {
+    ...word,
+    flaggedAt,
+  };
+}
+
+function updateWordsFlagInPages(
+  currentData: InfiniteData<WordListPage> | undefined,
+  wordId: string,
+  flaggedAt: Word["flaggedAt"],
+) {
+  return currentData
+    ? {
+        ...currentData,
+        pages: currentData.pages.map((page) => ({
+          ...page,
+          words: page.words.map((word) =>
+            updateWordFlagInList(word, wordId, flaggedAt),
+          ),
+        })),
+      }
+    : currentData;
 }
 
 function removeWordsFromPage(page: WordListPage, deletedWordIds: Set<string>) {
@@ -170,7 +223,7 @@ async function listFirstWordsPage({
  * @param input.activeLanguage - 조회할 언어입니다.
  * @param input.highlightedWordId - 목록 첫 페이지에 보강해서 보여줄 단어 ID입니다.
  * @param input.isFullLookupMode - 검색/노트 선택 때문에 전체 단어 조회가 필요한지 여부입니다.
- * @returns 단어 목록, 단어 개수, 로딩/에러 상태, 더 보기/재조회/학습 상태 변경 함수를 반환합니다.
+ * @returns 단어 목록, 단어 개수, 로딩/에러 상태, 더 보기/재조회/학습 상태 변경/임시 표시 변경 함수를 반환합니다.
  */
 export function useWordListQuery({
   activeLanguage,
@@ -280,6 +333,53 @@ export function useWordListQuery({
     }
   }
 
+  async function toggleWordFlagStatus(
+    wordId: string,
+    currentFlaggedAt: Word["flaggedAt"],
+  ) {
+    if (!session) {
+      return;
+    }
+
+    clearStudyStatusError();
+    const nextFlaggedAt = currentFlaggedAt ? null : Timestamp.now();
+    const previousPages = queryClient.getQueriesData<InfiniteData<WordListPage>>({
+      queryKey: ["words", "pages", session.uid, activeLanguage],
+    });
+    const previousAllWords = queryClient.getQueryData<Word[]>(
+      getAllWordsQueryKey(session.uid, activeLanguage),
+    );
+
+    queryClient.setQueriesData<InfiniteData<WordListPage>>(
+      {
+        queryKey: ["words", "pages", session.uid, activeLanguage],
+      },
+      (currentData) => updateWordsFlagInPages(currentData, wordId, nextFlaggedAt),
+    );
+    queryClient.setQueryData<Word[]>(
+      getAllWordsQueryKey(session.uid, activeLanguage),
+      (currentWords) =>
+        currentWords?.map((word) =>
+          updateWordFlagInList(word, wordId, nextFlaggedAt),
+        ),
+    );
+
+    try {
+      await toggleWordFlag(wordId, currentFlaggedAt);
+    } catch (error) {
+      previousPages.forEach(([queryKey, currentData]) => {
+        queryClient.setQueryData(queryKey, currentData);
+      });
+      queryClient.setQueryData(
+        getAllWordsQueryKey(session.uid, activeLanguage),
+        previousAllWords,
+      );
+      console.error("Failed to toggle word flag.", error);
+      setStudyStatusErrorMessage(getFlagErrorMessage(error));
+      throw error;
+    }
+  }
+
   async function deleteSelectedWords(wordIds: string[]) {
     if (!session || wordIds.length === 0) {
       return;
@@ -334,6 +434,7 @@ export function useWordListQuery({
     isLoadingMore,
     loadNextPage,
     refetchWords: activeWordsQuery.refetch,
+    toggleWordFlagStatus,
     updateStudyStatus,
     wordCount: wordCountQuery.data ?? null,
     words,

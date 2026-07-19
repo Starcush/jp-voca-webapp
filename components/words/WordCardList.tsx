@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { WordCard } from "@/components/WordCard";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import type { ViewMode } from "@/components/words/types";
 import type { Language } from "@/types/language";
-import type { Word, WordStatus } from "@/types/word";
+import type { Word } from "@/types/word";
+
+const WORD_LIST_FLAG_HINT_KEY = "wordlist-flag-hint-seen";
 
 type WordCardListProps = {
   activeLanguage: Language;
+  flaggingWordIds: Set<string>;
   hasMore: boolean;
   isLoadingMore: boolean;
   isDeletingSelectedWords: boolean;
@@ -19,12 +23,9 @@ type WordCardListProps = {
   onLoadMore: () => void;
   onSelectVisibleWords: () => void;
   onSelectionModeChange: (isSelectionMode: boolean) => void;
-  onStudyStatusChange: (wordId: string, status: WordStatus) => void;
-  onToggleReveal: (wordId: string) => void;
+  onToggleWordFlag: (word: Word) => void;
   onToggleWordSelection: (wordId: string) => void;
-  revealedWordIds: Set<string>;
   selectedWordIds: Set<string>;
-  updatingWordIds: Set<string>;
   viewMode: ViewMode;
   visibleCountLabel: string;
   words: Word[];
@@ -38,6 +39,7 @@ type WordCardListProps = {
  */
 export function WordCardList({
   activeLanguage,
+  flaggingWordIds,
   hasMore,
   isLoadingMore,
   isDeletingSelectedWords,
@@ -48,23 +50,34 @@ export function WordCardList({
   onLoadMore,
   onSelectVisibleWords,
   onSelectionModeChange,
-  onStudyStatusChange,
-  onToggleReveal,
+  onToggleWordFlag,
   onToggleWordSelection,
-  revealedWordIds,
   selectedWordIds,
-  updatingWordIds,
   viewMode,
   visibleCountLabel,
   words,
 }: WordCardListProps) {
   const selectedCount = selectedWordIds.size;
+  const [flagHintWordId, setFlagHintWordId] = useState<string | null>(null);
   const maskedField =
     viewMode === "all" ? undefined : viewMode === "kanji" ? "meaning" : "kanji";
 
+  function dismissFlagHint() {
+    localStorage.setItem(WORD_LIST_FLAG_HINT_KEY, "true");
+    setFlagHintWordId(null);
+  }
+
+  function handleToggleWordFlag(word: Word) {
+    if (!localStorage.getItem(WORD_LIST_FLAG_HINT_KEY)) {
+      setFlagHintWordId(word.id);
+    }
+
+    onToggleWordFlag(word);
+  }
+
   return (
     <>
-      <section className="grid gap-2 py-3">
+      <section className="grid gap-0 py-2">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-bold text-slate-500">
             {isSelectionMode ? `선택 ${selectedCount}개` : visibleCountLabel}
@@ -104,20 +117,23 @@ export function WordCardList({
             </button>
           )}
         </div>
-        {words.map((word) => (
-          <WordCard
-            isRevealed={revealedWordIds.has(word.id)}
-            isSelected={selectedWordIds.has(word.id)}
-            isUpdatingStudyStatus={updatingWordIds.has(word.id)}
-            key={word.id}
-            maskedField={maskedField}
-            onStudyStatusChange={(status) => onStudyStatusChange(word.id, status)}
-            onToggleSelect={() => onToggleWordSelection(word.id)}
-            onToggleReveal={() => onToggleReveal(word.id)}
-            selectionMode={isSelectionMode}
-            word={word}
-          />
-        ))}
+        <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          {words.map((word) => (
+            <WordCard
+              activeLanguage={activeLanguage}
+              isFlagHintVisible={flagHintWordId === word.id}
+              isFlagUpdating={flaggingWordIds.has(word.id)}
+              isSelected={selectedWordIds.has(word.id)}
+              key={word.id}
+              maskedField={maskedField}
+              onDismissFlagHint={dismissFlagHint}
+              onToggleFlag={() => handleToggleWordFlag(word)}
+              onToggleSelect={() => onToggleWordSelection(word.id)}
+              selectionMode={isSelectionMode}
+              word={word}
+            />
+          ))}
+        </div>
       </section>
       {hasMore ? (
         <div className="pb-24">

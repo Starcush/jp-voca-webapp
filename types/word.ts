@@ -17,6 +17,7 @@ export type Word = {
   exampleTranslation?: string;
   status: WordStatus;
   lastSeenAt: Timestamp | null;
+  flaggedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -35,4 +36,5 @@ export type UpdateWordInput = Partial<Omit<NewWordInput, "notebookId">> & {
   notebookId?: string | null;
   status?: WordStatus;
   lastSeenAt?: Timestamp | null;
+  flaggedAt?: Timestamp | null;
 };

@@ -20,7 +20,7 @@ import {
   popWordSaveNotice,
 } from "@/lib/word-save-notice";
 import type { Language } from "@/types/language";
-import type { WordStatus } from "@/types/word";
+import type { Word } from "@/types/word";
 
 type WordListProps = {
   highlightedWordId?: string;
@@ -70,9 +70,8 @@ export function WordList({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isDeletingSelectedWords, setIsDeletingSelectedWords] = useState(false);
-  const [revealedWordIds, setRevealedWordIds] = useState<Set<string>>(new Set());
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
-  const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
+  const [flaggingWordIds, setFlaggingWordIds] = useState<Set<string>>(new Set());
   const isFullLookupMode =
     Boolean(searchQuery.trim()) ||
     Boolean(selectedNotebookId);
@@ -85,7 +84,7 @@ export function WordList({
     isLoadingMore,
     loadNextPage,
     refetchWords,
-    updateStudyStatus,
+    toggleWordFlagStatus,
     wordCount,
     words,
   } = useWordListQuery({
@@ -155,30 +154,11 @@ export function WordList({
 
   function handleViewModeChange(nextViewMode: ViewMode) {
     setViewMode(nextViewMode);
-    setRevealedWordIds(new Set());
   }
 
   function handleSearchQueryChange(nextSearchQuery: string) {
     setSearchQuery(nextSearchQuery);
     clearSelection();
-  }
-
-  function toggleWordReveal(wordId: string) {
-    if (viewMode === "all") {
-      return;
-    }
-
-    setRevealedWordIds((currentWordIds) => {
-      const nextWordIds = new Set(currentWordIds);
-
-      if (nextWordIds.has(wordId)) {
-        nextWordIds.delete(wordId);
-      } else {
-        nextWordIds.add(wordId);
-      }
-
-      return nextWordIds;
-    });
   }
 
   function resetListConditions() {
@@ -194,14 +174,12 @@ export function WordList({
     setOptimisticLanguage(nextLanguage);
     setSearchQuery("");
     clearStudyStatusError();
-    setRevealedWordIds(new Set());
     clearSelection();
     router.push(`/words?lang=${nextLanguage}`);
   }
 
   function handleNotebookChange(nextNotebookId?: string) {
     clearStudyStatusError();
-    setRevealedWordIds(new Set());
     clearSelection();
     router.push(
       buildWordListHref({
@@ -263,15 +241,17 @@ export function WordList({
     }
   }
 
-  async function handleStudyStatusChange(wordId: string, status: WordStatus) {
-    setUpdatingWordIds((currentWordIds) => new Set(currentWordIds).add(wordId));
+  async function handleToggleWordFlag(word: Word) {
+    setFlaggingWordIds((currentWordIds) => new Set(currentWordIds).add(word.id));
 
     try {
-      await updateStudyStatus(wordId, status);
+      await toggleWordFlagStatus(word.id, word.flaggedAt);
+    } catch {
+      // 사용자용 에러 메시지는 useWordListQuery에서 화면에 표시합니다.
     } finally {
-      setUpdatingWordIds((currentWordIds) => {
+      setFlaggingWordIds((currentWordIds) => {
         const nextWordIds = new Set(currentWordIds);
-        nextWordIds.delete(wordId);
+        nextWordIds.delete(word.id);
         return nextWordIds;
       });
     }
@@ -340,14 +320,10 @@ export function WordList({
         onLoadMore={() => void loadNextPage()}
         onSelectVisibleWords={selectVisibleWords}
         onSelectionModeChange={setIsSelectionMode}
-        onStudyStatusChange={(wordId, status) =>
-          void handleStudyStatusChange(wordId, status)
-        }
+        onToggleWordFlag={(word) => void handleToggleWordFlag(word)}
         onToggleWordSelection={toggleWordSelection}
-        onToggleReveal={toggleWordReveal}
-        revealedWordIds={revealedWordIds}
+        flaggingWordIds={flaggingWordIds}
         selectedWordIds={selectedWordIds}
-        updatingWordIds={updatingWordIds}
         viewMode={viewMode}
         visibleCountLabel={visibleCountLabel}
         words={filteredWords}

@@ -24,7 +24,6 @@ export default async function EditWordPage({
   return (
     <AppFrame
       title="단어 수정"
-      eyebrow={id}
       action={
         <Link
           href={`/words?lang=${selectedLanguage}`}

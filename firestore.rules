@@ -92,6 +92,7 @@ service cloud.firestore {
           "exampleTranslation",
           "status",
           "lastSeenAt",
+          "flaggedAt",
           "createdAt",
           "updatedAt",
         ])
@@ -111,6 +112,7 @@ service cloud.firestore {
           || request.resource.data.status in ["unknown", "known"]
         )
         && isTimestampOrNull("lastSeenAt")
+        && isTimestampOrNull("flaggedAt")
         && (
           !("createdAt" in request.resource.data)
           || request.resource.data.createdAt is timestamp

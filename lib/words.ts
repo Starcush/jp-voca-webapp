@@ -44,6 +44,7 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
     uid,
     status: "unknown" as const,
     lastSeenAt: null,
+    flaggedAt: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -84,6 +85,7 @@ function buildUpdateWordData(input: UpdateWordInput) {
       : {}),
     ...(input.status !== undefined ? { status: input.status } : {}),
     ...(input.lastSeenAt !== undefined ? { lastSeenAt: input.lastSeenAt } : {}),
+    ...(input.flaggedAt !== undefined ? { flaggedAt: input.flaggedAt } : {}),
     updatedAt: serverTimestamp(),
   };
 }
@@ -260,6 +262,32 @@ export async function updateWordStudyStatus(wordId: string, status: WordStatus) 
   });
 
   return lastSeenAt;
+}
+
+/**
+ * 단어 목록에서 쓰는 임시 헷갈림 표시를 토글합니다.
+ *
+ * @param wordId - 표시를 켜거나 끌 단어 ID입니다.
+ * @returns 토글 후 저장된 flaggedAt 값입니다.
+ */
+export async function toggleWordFlag(
+  wordId: string,
+  currentFlaggedAt?: Word["flaggedAt"],
+) {
+  const nextFlaggedAt =
+    currentFlaggedAt === undefined
+      ? (await getDoc(wordDocument(wordId))).data()?.flaggedAt
+        ? null
+        : Timestamp.now()
+      : currentFlaggedAt
+        ? null
+        : Timestamp.now();
+
+  await updateDoc(wordDocument(wordId), {
+    flaggedAt: nextFlaggedAt,
+  });
+
+  return nextFlaggedAt;
 }
 
 export async function deleteWord(wordId: string) {
