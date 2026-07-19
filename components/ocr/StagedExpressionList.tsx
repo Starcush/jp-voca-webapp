@@ -76,7 +76,9 @@ export function StagedExpressionList({
           </p>
           <p
             className={`mt-1 text-sm font-bold ${
-              incompleteExpressionCount > 0 ? "text-red-600" : "text-emerald-700"
+              incompleteExpressionCount > 0
+                ? "text-status-negative"
+                : "text-status-positive"
             }`}
           >
             {incompleteExpressionCount > 0
@@ -84,7 +86,7 @@ export function StagedExpressionList({
               : `저장 준비 완료 ${readyExpressionCount}개`}
           </p>
           {enrichmentProgress ? (
-            <p className="mt-1 text-sm font-semibold text-blue-700">
+            <p className="mt-1 text-sm font-semibold text-primary-text">
               읽기와 뜻 채우는 중 {enrichmentProgress.completed} /{" "}
               {enrichmentProgress.total}개 완료
             </p>
@@ -92,7 +94,7 @@ export function StagedExpressionList({
         </div>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <button
-            className="min-h-10 rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-md bg-primary px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isEnriching || !canEnrichExpressions}
             onClick={onEnrich}
             type="button"
@@ -100,7 +102,7 @@ export function StagedExpressionList({
             읽기·뜻 채우기
           </button>
           <button
-            className="min-h-10 rounded-md bg-blue-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-md bg-status-positive px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSaving || !canSaveExpressions}
             onClick={onSave}
             type="button"
@@ -124,7 +126,7 @@ export function StagedExpressionList({
           return (
             <article
               className={`grid gap-2 rounded-lg border bg-slate-50 p-3 ${
-                isTermMissing ? "border-red-200" : "border-slate-100"
+                isTermMissing ? "border-status-negative-border" : "border-slate-100"
               }`}
               key={expression.id}
             >
@@ -132,7 +134,7 @@ export function StagedExpressionList({
                 <label className="grid gap-1">
                   <span className="flex items-center gap-2 text-xs font-bold text-slate-500">
                     {languageOption.termLabel}
-                    <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[11px] text-white">
+                    <span className="rounded-full bg-status-negative-bg px-2 py-0.5 text-[11px] text-status-negative">
                       필수
                     </span>
                   </span>
@@ -140,7 +142,7 @@ export function StagedExpressionList({
                     aria-invalid={isTermMissing}
                     className={`min-h-10 rounded-md bg-white text-base ${
                       isTermMissing
-                        ? "border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500"
+                        ? "border-status-negative-border text-status-negative focus:border-status-negative focus:ring-status-negative"
                         : "border-slate-200"
                     }`}
                     onChange={(event) =>
@@ -151,7 +153,7 @@ export function StagedExpressionList({
                     value={expression.term}
                   />
                   {isTermMissing ? (
-                    <span className="text-xs font-semibold text-red-600">
+                    <span className="text-xs font-semibold text-status-negative">
                       저장하려면 단어 또는 표현을 입력해주세요.
                     </span>
                   ) : null}
@@ -197,7 +199,7 @@ export function StagedExpressionList({
               <label className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-600">
                 <input
                   checked={expression.useExample}
-                  className="mt-1 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
+                  className="mt-1 rounded border-slate-300 text-primary focus:ring-primary"
                   onChange={(event) =>
                     onUpdate(expression.id, {
                       useExample: event.target.checked,
@@ -213,7 +215,7 @@ export function StagedExpressionList({
                 </p>
               ) : null}
               <button
-                className="justify-self-end rounded-md px-2 py-1 text-sm font-bold text-red-600"
+                className="justify-self-end rounded-md px-2 py-1 text-sm font-bold text-status-negative"
                 onClick={() => onRemove(expression.id)}
                 type="button"
               >

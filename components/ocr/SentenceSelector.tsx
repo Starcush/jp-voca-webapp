@@ -121,7 +121,7 @@ export function SentenceSelector({
             선택: {selectedText}
           </p>
           <button
-            className="min-h-10 rounded-md bg-slate-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-md bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             onClick={addSelectedExpression}
             type="button"
           >

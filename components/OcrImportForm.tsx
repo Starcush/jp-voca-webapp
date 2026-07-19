@@ -128,7 +128,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           <div className="mt-4 grid gap-2">
             <span className="text-sm font-semibold text-slate-700">사진</span>
             <div className="grid grid-cols-[1fr_auto] gap-2">
-              <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-950 px-3 text-sm font-bold text-white">
+              <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg border border-primary bg-primary-tint px-3 text-sm font-bold text-primary-text">
                 사진 선택
                 <input
                   accept="image/*"
@@ -140,7 +140,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
                 />
               </label>
               <button
-                className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!imageFile || isExtracting}
                 onClick={() => void handleExtractText()}
                 type="button"
@@ -165,7 +165,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
             </div>
           ) : null}
           {errorMessage ? (
-            <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            <p className="mt-4 rounded-md bg-status-negative-bg px-3 py-2 text-sm font-semibold text-status-negative">
               {errorMessage}
             </p>
           ) : null}
