@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BookOpenText, Search } from "lucide-react";
 import { useState } from "react";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
 import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
@@ -146,7 +147,7 @@ export function WordListHeader({
               }}
               type="button"
             >
-              ⌕
+              <Search aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
             </button>
             {isLanguageOpen ? (
               <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
@@ -197,7 +198,11 @@ export function WordListHeader({
           }}
           type="button"
         >
-          <span aria-hidden="true">▤</span>
+          <BookOpenText
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0"
+            strokeWidth={2.2}
+          />
           <span className="truncate">{notebookTitle}</span>
           <span className="shrink-0 text-xs text-slate-500">
             {activeNotebookCountLabel}

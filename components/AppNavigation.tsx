@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { signOut } from "firebase/auth";
+import {
+  ArrowLeftRight,
+  Camera,
+  List,
+  RotateCcw,
+  type LucideIcon,
+} from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { buildReviewHref } from "@/components/review/review-links";
@@ -14,7 +21,7 @@ import type { Language } from "@/types/language";
 
 type NavigationItem = {
   href: string;
-  icon: string;
+  icon: LucideIcon;
   isActive: boolean;
   label: string;
 };
@@ -42,25 +49,25 @@ function getNavigationItems({
   return [
     {
       href: buildWordListHref({ language, notebookId, path: "/words" }),
-      icon: "▦",
+      icon: List,
       isActive: pathname === "/words",
       label: "목록",
     },
     {
       href: buildWordListHref({ language, notebookId, path: "/words/import" }),
-      icon: "◎",
+      icon: Camera,
       isActive: pathname === "/words/import",
       label: "가져오기",
     },
     {
       href: buildWordListHref({ language, path: "/words/organize" }),
-      icon: "⇄",
+      icon: ArrowLeftRight,
       isActive: pathname === "/words/organize",
       label: "정리",
     },
     {
       href: buildReviewHref({ language, notebookId }),
-      icon: "↻",
+      icon: RotateCcw,
       isActive: pathname === "/review",
       label: "복습",
     },
@@ -119,9 +126,7 @@ export function AppNavigation() {
               href={item.href}
               key={item.label}
             >
-              <span aria-hidden="true" className="w-5 text-center text-base">
-                {item.icon}
-              </span>
+              <item.icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
               {item.label}
             </Link>
           ))}
@@ -169,9 +174,7 @@ export function AppNavigation() {
               href={item.href}
               key={item.label}
             >
-              <span aria-hidden="true" className="text-lg leading-5">
-                {item.icon}
-              </span>
+              <item.icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
               <span>{item.label}</span>
             </Link>
           ))}
