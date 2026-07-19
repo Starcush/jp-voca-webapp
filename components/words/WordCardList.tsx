@@ -26,6 +26,7 @@ type WordCardListProps = {
   selectedWordIds: Set<string>;
   updatingWordIds: Set<string>;
   viewMode: ViewMode;
+  visibleCountLabel: string;
   words: Word[];
 };
 
@@ -33,7 +34,7 @@ type WordCardListProps = {
  * 필터링된 단어 카드 목록과 더 보기, 플로팅 추가 버튼을 렌더링합니다.
  *
  * @param props - 표시할 단어 목록과 카드 액션 상태입니다.
- * @returns 단어 카드 목록, 페이지네이션 버튼, 단어 추가 버튼을 렌더링합니다.
+ * @returns 표시 개수, 단어 카드 목록, 페이지네이션 버튼, 단어 추가 버튼을 렌더링합니다.
  */
 export function WordCardList({
   activeLanguage,
@@ -54,16 +55,19 @@ export function WordCardList({
   selectedWordIds,
   updatingWordIds,
   viewMode,
+  visibleCountLabel,
   words,
 }: WordCardListProps) {
   const selectedCount = selectedWordIds.size;
+  const maskedField =
+    viewMode === "all" ? undefined : viewMode === "kanji" ? "meaning" : "kanji";
 
   return (
     <>
       <section className="grid gap-2 py-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-bold text-slate-500">
-            {isSelectionMode ? `선택 ${selectedCount}개` : "단어 목록"}
+            {isSelectionMode ? `선택 ${selectedCount}개` : visibleCountLabel}
           </p>
           {isSelectionMode ? (
             <div className="flex items-center gap-1.5">
@@ -106,7 +110,7 @@ export function WordCardList({
             isSelected={selectedWordIds.has(word.id)}
             isUpdatingStudyStatus={updatingWordIds.has(word.id)}
             key={word.id}
-            maskedField={viewMode === "all" ? undefined : viewMode}
+            maskedField={maskedField}
             onStudyStatusChange={(status) => onStudyStatusChange(word.id, status)}
             onToggleSelect={() => onToggleWordSelection(word.id)}
             onToggleReveal={() => onToggleReveal(word.id)}

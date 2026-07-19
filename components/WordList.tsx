@@ -9,8 +9,7 @@ import { WordListEmptyState } from "@/components/words/WordListEmptyState";
 import { WordListErrorState } from "@/components/words/WordListErrorState";
 import { WordListHeader } from "@/components/words/WordListHeader";
 import { WordListNoResultsState } from "@/components/words/WordListNoResultsState";
-import { WordListToolbar } from "@/components/words/WordListToolbar";
-import type { ViewMode, WordFilter } from "@/components/words/types";
+import type { ViewMode } from "@/components/words/types";
 import { applyWordListFilter, getSessionLanguages } from "@/components/words/word-list-utils";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import { useWordListQuery } from "@/components/words/useWordListQuery";
@@ -36,7 +35,7 @@ type WordListProps = {
  * @param props.highlightedWordId - 저장 직후 목록 상단에 보강해서 보여줄 단어 ID입니다.
  * @param props.selectedNotebookId - URL query에서 선택된 노트입니다.
  * @param props.selectedLanguage - URL query에서 선택된 언어입니다.
- * @returns 언어/필터 툴바, 상태별 화면, 단어 카드 목록을 렌더링합니다.
+ * @returns 목록 헤더, 상태별 화면, 단어 카드 목록을 렌더링합니다.
  */
 export function WordList({
   highlightedWordId,
@@ -68,7 +67,6 @@ export function WordList({
     selectedVisibleLanguage ?? optimisticEnabledLanguage ?? fallbackLanguage;
   const activeLanguageOption = getLanguageOption(activeLanguage);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
-  const [activeFilter, setActiveFilter] = useState<WordFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isDeletingSelectedWords, setIsDeletingSelectedWords] = useState(false);
@@ -76,7 +74,6 @@ export function WordList({
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
   const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(new Set());
   const isFullLookupMode =
-    activeFilter !== "all" ||
     Boolean(searchQuery.trim()) ||
     Boolean(selectedNotebookId);
   const {
@@ -99,7 +96,6 @@ export function WordList({
   });
   const filteredWords = applyWordListFilter(
     words,
-    activeFilter,
     searchQuery,
     selectedNotebookId,
   );
@@ -132,20 +128,12 @@ export function WordList({
       onLanguageChange={handleLanguageChange}
       onNotebookChange={handleNotebookChange}
       onSearchQueryChange={handleSearchQueryChange}
+      onViewModeChange={handleViewModeChange}
       searchQuery={searchQuery}
       selectedNotebookId={selectedNotebookId}
       session={session}
       totalWordCountLabel={compactWordCountLabel}
-    />
-  );
-  const toolbar = (
-    <WordListToolbar
-      activeFilter={activeFilter}
-      activeLanguageOption={activeLanguageOption}
-      onFilterChange={handleFilterChange}
-      onViewModeChange={handleViewModeChange}
       viewMode={viewMode}
-      visibleCountLabel={visibleCountLabel}
     />
   );
 
@@ -168,11 +156,6 @@ export function WordList({
   function handleViewModeChange(nextViewMode: ViewMode) {
     setViewMode(nextViewMode);
     setRevealedWordIds(new Set());
-  }
-
-  function handleFilterChange(nextFilter: WordFilter) {
-    setActiveFilter(nextFilter);
-    clearSelection();
   }
 
   function handleSearchQueryChange(nextSearchQuery: string) {
@@ -199,7 +182,6 @@ export function WordList({
   }
 
   function resetListConditions() {
-    setActiveFilter("all");
     setSearchQuery("");
     clearSelection();
   }
@@ -210,7 +192,6 @@ export function WordList({
     }
 
     setOptimisticLanguage(nextLanguage);
-    setActiveFilter("all");
     setSearchQuery("");
     clearStudyStatusError();
     setRevealedWordIds(new Set());
@@ -301,7 +282,6 @@ export function WordList({
       <>
         {loadingOverlay}
         {header}
-        {toolbar}
         <WordListErrorState
           errorMessage={errorMessage}
           onRetry={() => {
@@ -332,7 +312,6 @@ export function WordList({
       <>
         {loadingOverlay}
         {header}
-        {toolbar}
         <WordListNoResultsState
           activeLanguage={activeLanguage}
           hasMore={hasMore}
@@ -349,7 +328,6 @@ export function WordList({
     <>
       {loadingOverlay}
       {header}
-      {toolbar}
       <WordCardList
         activeLanguage={activeLanguage}
         hasMore={hasMore}
@@ -371,6 +349,7 @@ export function WordList({
         selectedWordIds={selectedWordIds}
         updatingWordIds={updatingWordIds}
         viewMode={viewMode}
+        visibleCountLabel={visibleCountLabel}
         words={filteredWords}
       />
     </>

@@ -169,7 +169,7 @@ async function listFirstWordsPage({
  * @param input.session - 현재 로그인 세션입니다.
  * @param input.activeLanguage - 조회할 언어입니다.
  * @param input.highlightedWordId - 목록 첫 페이지에 보강해서 보여줄 단어 ID입니다.
- * @param input.isFullLookupMode - 검색/필터 때문에 전체 단어 조회가 필요한지 여부입니다.
+ * @param input.isFullLookupMode - 검색/노트 선택 때문에 전체 단어 조회가 필요한지 여부입니다.
  * @returns 단어 목록, 단어 개수, 로딩/에러 상태, 더 보기/재조회/학습 상태 변경 함수를 반환합니다.
  */
 export function useWordListQuery({

@@ -5,8 +5,10 @@ import { BookOpenText, Search } from "lucide-react";
 import { useState } from "react";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
 import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
+import { viewTabs } from "@/components/words/word-list-options";
 import { languageOptions } from "@/lib/languages";
 import type { AppSession } from "@/lib/session";
+import type { ViewMode } from "@/components/words/types";
 import type { Language } from "@/types/language";
 
 type WordListHeaderProps = {
@@ -16,10 +18,12 @@ type WordListHeaderProps = {
   onLanguageChange: (language: Language) => void;
   onNotebookChange: (notebookId?: string) => void;
   onSearchQueryChange: (query: string) => void;
+  onViewModeChange: (viewMode: ViewMode) => void;
   searchQuery: string;
   selectedNotebookId?: string;
   session: AppSession | null;
   totalWordCountLabel: string;
+  viewMode: ViewMode;
 };
 
 function getNotebookTitle({
@@ -44,7 +48,7 @@ function getNotebookTitle({
  * 단어 목록의 첫 화면 헤더와 접히는 노트/언어/검색 진입점을 렌더링합니다.
  *
  * @param props - 현재 언어, 노트, 검색어와 각 변경 콜백입니다.
- * @returns 단어장 제목, 언어 전환, 인라인 검색, 노트 칩 아코디언을 렌더링합니다.
+ * @returns 단어장 제목, 언어 전환, 인라인 검색, 노트 칩, 카드 표시 토글을 렌더링합니다.
  */
 export function WordListHeader({
   activeLanguage,
@@ -53,10 +57,12 @@ export function WordListHeader({
   onLanguageChange,
   onNotebookChange,
   onSearchQueryChange,
+  onViewModeChange,
   searchQuery,
   selectedNotebookId,
   session,
   totalWordCountLabel,
+  viewMode,
 }: WordListHeaderProps) {
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
@@ -189,28 +195,48 @@ export function WordListHeader({
       )}
 
       <div className="mt-3">
-        <button
-          aria-expanded={isNotebookOpen}
-          className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm"
-          onClick={() => {
-            setIsNotebookOpen((currentValue) => !currentValue);
-            setIsLanguageOpen(false);
-          }}
-          type="button"
-        >
-          <BookOpenText
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0"
-            strokeWidth={2.2}
-          />
-          <span className="truncate">{notebookTitle}</span>
-          <span className="shrink-0 text-xs text-slate-500">
-            {activeNotebookCountLabel}
-          </span>
-          <span aria-hidden="true" className="text-slate-400">
-            {isNotebookOpen ? "⌃" : "⌄"}
-          </span>
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <button
+            aria-expanded={isNotebookOpen}
+            className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm"
+            onClick={() => {
+              setIsNotebookOpen((currentValue) => !currentValue);
+              setIsLanguageOpen(false);
+            }}
+            type="button"
+          >
+            <BookOpenText
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0"
+              strokeWidth={2.2}
+            />
+            <span className="truncate">{notebookTitle}</span>
+            <span className="shrink-0 text-xs text-slate-500">
+              {activeNotebookCountLabel}
+            </span>
+            <span aria-hidden="true" className="text-slate-400">
+              {isNotebookOpen ? "⌃" : "⌄"}
+            </span>
+          </button>
+
+          <div className="grid shrink-0 grid-cols-3 rounded-full bg-slate-100 p-1">
+            {viewTabs.map((tab) => (
+              <button
+                aria-pressed={viewMode === tab.value}
+                className={`min-h-8 rounded-full px-2 text-xs font-bold ${
+                  viewMode === tab.value
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-slate-500"
+                }`}
+                key={tab.value}
+                onClick={() => onViewModeChange(tab.value)}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {isNotebookOpen ? (
           <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">

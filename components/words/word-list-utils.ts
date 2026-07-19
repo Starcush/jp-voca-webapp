@@ -4,11 +4,6 @@ import type { AppSession } from "@/lib/session";
 import type { Language } from "@/types/language";
 import type { Word } from "@/types/word";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
-import type { WordFilter } from "@/components/words/types";
-
-function getLastSeenTime(word: Word) {
-  return word.lastSeenAt?.toMillis?.() ?? 0;
-}
 
 function matchesSearch(word: Word, searchQuery: string) {
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -41,33 +36,21 @@ function matchesNotebook(word: Word, notebookId?: string) {
 }
 
 /**
- * 검색어와 상태 필터를 기준으로 단어 목록을 화면 표시용으로 거릅니다.
+ * 검색어와 노트 선택을 기준으로 단어 목록을 화면 표시용으로 거릅니다.
  *
  * @param words - 서버에서 불러온 원본 단어 목록입니다.
- * @param filter - 현재 선택된 상태 필터입니다.
  * @param searchQuery - 사용자가 입력한 검색어입니다.
  * @param notebookId - 현재 선택된 노트 ID입니다. 없으면 전체 단어를 반환합니다.
- * @returns 검색어와 필터가 적용된 단어 목록을 반환합니다.
+ * @returns 검색어와 노트 조건이 적용된 단어 목록을 반환합니다.
  */
 export function applyWordListFilter(
   words: Word[],
-  filter: WordFilter,
   searchQuery: string,
   notebookId?: string,
 ) {
-  const searchedWords = words.filter(
+  return words.filter(
     (word) => matchesNotebook(word, notebookId) && matchesSearch(word, searchQuery),
   );
-
-  if (filter === "unknown") {
-    return searchedWords.filter((word) => word.status === "unknown");
-  }
-
-  if (filter === "stale") {
-    return [...searchedWords].sort((a, b) => getLastSeenTime(a) - getLastSeenTime(b));
-  }
-
-  return searchedWords;
 }
 
 /**
