@@ -75,7 +75,7 @@ export function WordCardList({
                 전체 선택
               </button>
               <button
-                className="min-h-9 rounded-md bg-red-600 px-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-9 rounded-md bg-status-negative px-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isDeletingSelectedWords || selectedCount === 0}
                 onClick={onDeleteSelectedWords}
                 type="button"
@@ -131,7 +131,7 @@ export function WordCardList({
       )}
       <Link
         aria-label="단어 추가"
-        className="fixed bottom-20 right-5 z-20 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg md:bottom-6"
+        className="fixed bottom-20 right-5 z-20 grid h-14 w-14 place-items-center rounded-full bg-primary text-3xl font-light leading-none text-white shadow-lg md:bottom-6"
         href={buildWordListHref({
           language: activeLanguage,
           notebookId,

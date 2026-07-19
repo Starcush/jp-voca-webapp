@@ -34,7 +34,7 @@ export function WordListEmptyState({
           </p>
         </div>
         <Link
-          className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
+          className="min-h-12 rounded-lg bg-primary px-5 py-3 text-base font-bold text-white"
           href={buildWordListHref({
             language: activeLanguage,
             notebookId,

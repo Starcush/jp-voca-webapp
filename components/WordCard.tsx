@@ -63,7 +63,9 @@ export function WordCard({
   return (
     <article
       className={`rounded-lg border bg-white p-3 shadow-sm ${
-        isSelected ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"
+        isSelected
+          ? "border-primary-border ring-2 ring-primary-tint"
+          : "border-slate-200"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -72,7 +74,7 @@ export function WordCard({
             <span className="sr-only">{term} 선택</span>
             <input
               checked={isSelected}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-300 text-primary focus:ring-primary"
               onChange={onToggleSelect}
               type="checkbox"
             />
@@ -93,7 +95,7 @@ export function WordCard({
               {term}
             </p>
             {reading ? (
-              <p className="text-xs font-medium leading-5 text-blue-500">
+              <p className="text-xs font-medium leading-5 text-primary">
                 {reading}
               </p>
             ) : null}
@@ -170,7 +172,7 @@ export function WordCard({
             aria-label={`${term} 알았어요`}
             className={`grid h-9 w-9 place-items-center rounded-md border text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
               isKnown
-                ? "border-green-200 bg-green-50 text-green-700"
+                ? "border-status-positive-border bg-status-positive-bg text-status-positive"
                 : "border-slate-200 text-slate-700"
             }`}
             disabled={isUpdatingStudyStatus}
@@ -183,7 +185,7 @@ export function WordCard({
           <button
             aria-label={`${term} 모르겠어요`}
             className={`grid h-9 w-9 place-items-center rounded-md text-base font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
-              isKnown ? "bg-slate-950 text-white" : "bg-red-600 text-white"
+              isKnown ? "bg-primary text-white" : "bg-status-negative text-white"
             }`}
             disabled={isUpdatingStudyStatus}
             onClick={() => onStudyStatusChange?.("unknown")}

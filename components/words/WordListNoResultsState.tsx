@@ -56,7 +56,7 @@ export function WordListNoResultsState({
       ) : null}
       <Link
         aria-label="단어 추가"
-        className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
+        className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-primary text-3xl font-light leading-none text-white shadow-lg"
         href={buildWordListHref({
           language: activeLanguage,
           notebookId,

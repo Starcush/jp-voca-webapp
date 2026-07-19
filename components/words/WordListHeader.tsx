@@ -159,7 +159,7 @@ export function WordListHeader({
                         aria-pressed={activeLanguage === language.code}
                         className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                           activeLanguage === language.code
-                            ? "bg-slate-950 text-white"
+                            ? "bg-primary text-white"
                             : "text-slate-600 hover:bg-slate-50"
                         }`}
                         key={language.code}
@@ -215,7 +215,7 @@ export function WordListHeader({
         {isNotebookOpen ? (
           <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
             {notebooksErrorMessage ? (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+              <p className="rounded-lg bg-status-negative-bg px-3 py-2 text-xs font-bold text-status-negative">
                 {notebooksErrorMessage}
               </p>
             ) : null}
@@ -223,7 +223,7 @@ export function WordListHeader({
               aria-pressed={!selectedNotebookId}
               className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                 !selectedNotebookId
-                  ? "bg-slate-950 text-white"
+                  ? "bg-primary text-white"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
               onClick={() => handleNotebookSelect(undefined)}
@@ -236,7 +236,7 @@ export function WordListHeader({
               aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
               className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                 selectedNotebookId === UNFILED_NOTEBOOK_ID
-                  ? "bg-slate-950 text-white"
+                  ? "bg-primary text-white"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
               onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
@@ -249,7 +249,7 @@ export function WordListHeader({
                 aria-pressed={selectedNotebookId === notebook.id}
                 className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
                   selectedNotebookId === notebook.id
-                    ? "bg-slate-950 text-white"
+                    ? "bg-primary text-white"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
                 key={notebook.id}

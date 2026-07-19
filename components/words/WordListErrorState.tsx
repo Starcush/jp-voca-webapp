@@ -17,7 +17,7 @@ export function WordListErrorState({
 }: WordListErrorStateProps) {
   return (
     <section className="grid gap-3 py-4">
-      <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+      <p className="rounded-lg bg-status-negative-bg px-4 py-3 text-sm font-semibold text-status-negative">
         {errorMessage}
       </p>
       <button

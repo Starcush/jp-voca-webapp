@@ -96,7 +96,7 @@ export function WordListToolbar({
               aria-pressed={viewMode === tab.value}
               className={`min-h-10 shrink-0 rounded-md px-3 text-sm font-bold ${
                 viewMode === tab.value
-                  ? "bg-slate-950 text-white"
+                  ? "bg-primary text-white"
                   : "border border-slate-200 bg-white text-slate-600"
               }`}
               key={tab.value}
@@ -118,7 +118,7 @@ export function WordListToolbar({
               aria-pressed={activeFilter === filter.value}
               className={`min-h-10 rounded-md text-sm font-semibold ${
                 activeFilter === filter.value
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-primary-tint text-primary-text"
                   : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200"
               }`}
               key={filter.value}

@@ -120,7 +120,7 @@ export function AppNavigation() {
               aria-current={item.isActive ? "page" : undefined}
               className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold ${
                 item.isActive
-                  ? "bg-slate-950 text-white"
+                  ? "bg-primary text-white"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
               href={item.href}
@@ -168,7 +168,7 @@ export function AppNavigation() {
               aria-current={item.isActive ? "page" : undefined}
               className={`grid min-h-12 place-items-center rounded-lg px-1 text-[11px] font-bold ${
                 item.isActive
-                  ? "bg-slate-950 text-white"
+                  ? "bg-primary text-white"
                   : "text-slate-500 hover:bg-slate-50"
               }`}
               href={item.href}
