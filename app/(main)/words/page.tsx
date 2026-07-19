@@ -1,8 +1,7 @@
 import { AppFrame } from "@/components/AppFrame";
-import { AuthStatus } from "@/components/AuthStatus";
 import { RequireSession } from "@/components/RequireSession";
 import { WordList } from "@/components/WordList";
-import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
+import { isLanguage } from "@/lib/languages";
 
 type WordsPageProps = {
   searchParams: Promise<{
@@ -15,18 +14,9 @@ type WordsPageProps = {
 export default async function WordsPage({ searchParams }: WordsPageProps) {
   const { lang, notebookId, wordId } = await searchParams;
   const selectedLanguage = isLanguage(lang) ? lang : undefined;
-  const reviewLanguage = selectedLanguage ?? DEFAULT_LANGUAGE;
 
   return (
-    <AppFrame
-      title="단어장"
-      action={
-        <AuthStatus
-          reviewLanguage={reviewLanguage}
-          reviewNotebookId={notebookId}
-        />
-      }
-    >
+    <AppFrame title="단어장" showHeader={false}>
       <RequireSession>
         <WordList
           highlightedWordId={wordId}

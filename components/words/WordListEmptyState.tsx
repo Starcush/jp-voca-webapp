@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { WordLanguageTabs } from "@/components/words/WordLanguageTabs";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import type { WordLanguageOption } from "@/components/words/types";
 import type { Language } from "@/types/language";
@@ -10,11 +8,7 @@ import type { Language } from "@/types/language";
 type WordListEmptyStateProps = {
   activeLanguage: Language;
   activeLanguageOption: WordLanguageOption;
-  enabledLanguages: Language[];
   notebookId?: string;
-  notebookShelf?: ReactNode;
-  onLanguageChange: (language: Language) => void;
-  wordCountLabel: string;
 };
 
 /**
@@ -26,26 +20,11 @@ type WordListEmptyStateProps = {
 export function WordListEmptyState({
   activeLanguage,
   activeLanguageOption,
-  enabledLanguages,
   notebookId,
-  notebookShelf,
-  onLanguageChange,
-  wordCountLabel,
 }: WordListEmptyStateProps) {
   return (
-    <section className="flex flex-1 flex-col gap-6 pt-3">
-      <div>
-        <WordLanguageTabs
-          activeLanguage={activeLanguage}
-          enabledLanguages={enabledLanguages}
-          onLanguageChange={onLanguageChange}
-        />
-        <p className="mt-2 text-xs font-bold text-slate-500">
-          {wordCountLabel}
-        </p>
-      </div>
-      {notebookShelf}
-      <div className="flex flex-col items-center gap-4 pt-8 text-center">
+    <section className="flex flex-1 flex-col gap-6">
+      <div className="flex flex-col items-center gap-4 px-4 pt-16 text-center">
         <div>
           <p className="text-lg font-bold text-slate-950">
             {activeLanguageOption.label} 첫 단어를 추가해볼까요?

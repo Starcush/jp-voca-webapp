@@ -1,0 +1,267 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
+import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
+import { languageOptions } from "@/lib/languages";
+import type { AppSession } from "@/lib/session";
+import type { Language } from "@/types/language";
+
+type WordListHeaderProps = {
+  activeLanguage: Language;
+  activeNotebookCountLabel: string;
+  enabledLanguages: Language[];
+  onLanguageChange: (language: Language) => void;
+  onNotebookChange: (notebookId?: string) => void;
+  onSearchQueryChange: (query: string) => void;
+  searchQuery: string;
+  selectedNotebookId?: string;
+  session: AppSession | null;
+  totalWordCountLabel: string;
+};
+
+function getNotebookTitle({
+  notebookTitle,
+  selectedNotebookId,
+}: {
+  notebookTitle?: string;
+  selectedNotebookId?: string;
+}) {
+  if (!selectedNotebookId) {
+    return "전체";
+  }
+
+  if (selectedNotebookId === UNFILED_NOTEBOOK_ID) {
+    return "미분류";
+  }
+
+  return notebookTitle ?? "알 수 없음";
+}
+
+/**
+ * 단어 목록의 첫 화면 헤더와 접히는 노트/언어/검색 진입점을 렌더링합니다.
+ *
+ * @param props - 현재 언어, 노트, 검색어와 각 변경 콜백입니다.
+ * @returns 단어장 제목, 언어 전환, 인라인 검색, 노트 칩 아코디언을 렌더링합니다.
+ */
+export function WordListHeader({
+  activeLanguage,
+  activeNotebookCountLabel,
+  enabledLanguages,
+  onLanguageChange,
+  onNotebookChange,
+  onSearchQueryChange,
+  searchQuery,
+  selectedNotebookId,
+  session,
+  totalWordCountLabel,
+}: WordListHeaderProps) {
+  const [isNotebookOpen, setIsNotebookOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(Boolean(searchQuery.trim()));
+  const { isLoadingNotebooks, notebooks, notebooksErrorMessage } =
+    useNotebooksQuery({
+      language: activeLanguage,
+      session,
+    });
+  const activeLanguageOption =
+    languageOptions.find((language) => language.code === activeLanguage) ??
+    languageOptions[0];
+  const selectedNotebook = notebooks.find(
+    (notebook) => notebook.id === selectedNotebookId,
+  );
+  const notebookTitle = getNotebookTitle({
+    notebookTitle: selectedNotebook?.title,
+    selectedNotebookId,
+  });
+
+  function handleSearchClose() {
+    setIsSearchOpen(false);
+    onSearchQueryChange("");
+  }
+
+  function handleNotebookSelect(nextNotebookId?: string) {
+    onNotebookChange(nextNotebookId);
+    setIsNotebookOpen(false);
+  }
+
+  function handleLanguageSelect(nextLanguage: Language) {
+    onLanguageChange(nextLanguage);
+    setIsLanguageOpen(false);
+  }
+
+  return (
+    <header className="sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-slate-50/95 px-4 pb-3 pt-1 backdrop-blur md:static md:mx-0 md:rounded-t-xl md:border md:bg-white md:p-4">
+      {isSearchOpen ? (
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+          <label>
+            <span className="sr-only">단어 검색</span>
+            <input
+              autoFocus
+              className="min-h-11 w-full rounded-lg border-slate-200 bg-white text-base md:bg-slate-50"
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              placeholder="단어, 읽기, 뜻, 예문 검색"
+              value={searchQuery}
+            />
+          </label>
+          <button
+            className="min-h-11 rounded-lg px-3 text-sm font-bold text-slate-600"
+            onClick={handleSearchClose}
+            type="button"
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-black tracking-normal text-slate-950">
+              단어장
+            </h1>
+            <p className="mt-0.5 text-xs font-bold text-slate-500">
+              {activeLanguageOption.label} · {totalWordCountLabel}
+            </p>
+          </div>
+          <div className="relative flex shrink-0 items-center gap-2">
+            <button
+              aria-expanded={isLanguageOpen}
+              aria-label="학습 언어 선택"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-lg"
+              onClick={() => {
+                setIsLanguageOpen((currentValue) => !currentValue);
+                setIsNotebookOpen(false);
+              }}
+              type="button"
+            >
+              <span aria-hidden="true">{activeLanguageOption.flag}</span>
+            </button>
+            <button
+              aria-label="단어 검색"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-base font-black text-slate-700"
+              onClick={() => {
+                setIsSearchOpen(true);
+                setIsLanguageOpen(false);
+                setIsNotebookOpen(false);
+              }}
+              type="button"
+            >
+              ⌕
+            </button>
+            {isLanguageOpen ? (
+              <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="grid gap-1">
+                  {languageOptions
+                    .filter((language) => enabledLanguages.includes(language.code))
+                    .map((language) => (
+                      <button
+                        aria-pressed={activeLanguage === language.code}
+                        className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
+                          activeLanguage === language.code
+                            ? "bg-slate-950 text-white"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                        key={language.code}
+                        onClick={() => handleLanguageSelect(language.code)}
+                        type="button"
+                      >
+                        <span>
+                          <span aria-hidden="true">{language.flag}</span>{" "}
+                          {language.label}
+                        </span>
+                        {activeLanguage === language.code ? (
+                          <span aria-hidden="true">✓</span>
+                        ) : null}
+                      </button>
+                    ))}
+                </div>
+                <Link
+                  className="mt-2 grid min-h-10 place-items-center rounded-lg border border-slate-200 text-sm font-bold text-slate-600"
+                  href="/settings"
+                >
+                  언어 관리
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3">
+        <button
+          aria-expanded={isNotebookOpen}
+          className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm"
+          onClick={() => {
+            setIsNotebookOpen((currentValue) => !currentValue);
+            setIsLanguageOpen(false);
+          }}
+          type="button"
+        >
+          <span aria-hidden="true">▤</span>
+          <span className="truncate">{notebookTitle}</span>
+          <span className="shrink-0 text-xs text-slate-500">
+            {activeNotebookCountLabel}
+          </span>
+          <span aria-hidden="true" className="text-slate-400">
+            {isNotebookOpen ? "⌃" : "⌄"}
+          </span>
+        </button>
+
+        {isNotebookOpen ? (
+          <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+            {notebooksErrorMessage ? (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                {notebooksErrorMessage}
+              </p>
+            ) : null}
+            <button
+              aria-pressed={!selectedNotebookId}
+              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
+                !selectedNotebookId
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={() => handleNotebookSelect(undefined)}
+              type="button"
+            >
+              전체
+              <span className="text-xs opacity-70">{totalWordCountLabel}</span>
+            </button>
+            <button
+              aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
+              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
+                selectedNotebookId === UNFILED_NOTEBOOK_ID
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
+              type="button"
+            >
+              미분류
+            </button>
+            {notebooks.map((notebook) => (
+              <button
+                aria-pressed={selectedNotebookId === notebook.id}
+                className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
+                  selectedNotebookId === notebook.id
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+                key={notebook.id}
+                onClick={() => handleNotebookSelect(notebook.id)}
+                type="button"
+              >
+                <span className="truncate">{notebook.title}</span>
+              </button>
+            ))}
+            {isLoadingNotebooks ? (
+              <p className="px-3 py-2 text-sm font-bold text-slate-400">
+                노트를 불러오는 중
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </header>
+  );
+}

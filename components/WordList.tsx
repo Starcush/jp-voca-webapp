@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
-import { NotebookShelf } from "@/components/notebooks/NotebookShelf";
 import { WordCardList } from "@/components/words/WordCardList";
 import { WordListEmptyState } from "@/components/words/WordListEmptyState";
 import { WordListErrorState } from "@/components/words/WordListErrorState";
+import { WordListHeader } from "@/components/words/WordListHeader";
 import { WordListNoResultsState } from "@/components/words/WordListNoResultsState";
 import { WordListToolbar } from "@/components/words/WordListToolbar";
 import type { ViewMode, WordFilter } from "@/components/words/types";
@@ -105,6 +105,15 @@ export function WordList({
   );
   const wordCountLabel =
     wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
+  const compactWordCountLabel =
+    wordCount === null ? "확인 중" : `${wordCount}개`;
+  const activeNotebookCountLabel = selectedNotebookId
+    ? `${filteredWords.length}개`
+    : compactWordCountLabel;
+  const visibleCountLabel =
+    isFullLookupMode || filteredWords.length !== words.length
+      ? `표시 ${filteredWords.length}개`
+      : wordCountLabel;
   const loadingOverlay = (
     <LoadingOverlay
       message={
@@ -115,28 +124,28 @@ export function WordList({
       show={isContentLoading || isDeletingSelectedWords}
     />
   );
+  const header = (
+    <WordListHeader
+      activeLanguage={activeLanguage}
+      activeNotebookCountLabel={activeNotebookCountLabel}
+      enabledLanguages={visibleLanguages}
+      onLanguageChange={handleLanguageChange}
+      onNotebookChange={handleNotebookChange}
+      onSearchQueryChange={handleSearchQueryChange}
+      searchQuery={searchQuery}
+      selectedNotebookId={selectedNotebookId}
+      session={session}
+      totalWordCountLabel={compactWordCountLabel}
+    />
+  );
   const toolbar = (
     <WordListToolbar
       activeFilter={activeFilter}
-      activeLanguage={activeLanguage}
       activeLanguageOption={activeLanguageOption}
-      enabledLanguages={visibleLanguages}
-      notebookId={selectedNotebookId}
       onFilterChange={handleFilterChange}
-      onLanguageChange={handleLanguageChange}
-      onSearchQueryChange={handleSearchQueryChange}
       onViewModeChange={handleViewModeChange}
-      searchQuery={searchQuery}
       viewMode={viewMode}
-      wordCountLabel={wordCountLabel}
-    />
-  );
-  const notebookShelf = (
-    <NotebookShelf
-      activeLanguage={activeLanguage}
-      onNotebookChange={handleNotebookChange}
-      selectedNotebookId={selectedNotebookId}
-      session={session}
+      visibleCountLabel={visibleCountLabel}
     />
   );
 
@@ -291,8 +300,8 @@ export function WordList({
     return (
       <>
         {loadingOverlay}
+        {header}
         {toolbar}
-        {notebookShelf}
         <WordListErrorState
           errorMessage={errorMessage}
           onRetry={() => {
@@ -308,14 +317,11 @@ export function WordList({
     return (
       <>
         {loadingOverlay}
+        {header}
         <WordListEmptyState
           activeLanguage={activeLanguage}
           activeLanguageOption={activeLanguageOption}
-          enabledLanguages={visibleLanguages}
           notebookId={selectedNotebookId}
-          notebookShelf={notebookShelf}
-          onLanguageChange={handleLanguageChange}
-          wordCountLabel={wordCountLabel}
         />
       </>
     );
@@ -325,8 +331,8 @@ export function WordList({
     return (
       <>
         {loadingOverlay}
+        {header}
         {toolbar}
-        {notebookShelf}
         <WordListNoResultsState
           activeLanguage={activeLanguage}
           hasMore={hasMore}
@@ -342,8 +348,8 @@ export function WordList({
   return (
     <>
       {loadingOverlay}
+      {header}
       {toolbar}
-      {notebookShelf}
       <WordCardList
         activeLanguage={activeLanguage}
         hasMore={hasMore}

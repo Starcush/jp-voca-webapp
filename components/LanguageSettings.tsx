@@ -1,8 +1,11 @@
 "use client";
 
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { languageOptions } from "@/lib/languages";
-import { storeSession } from "@/lib/session";
+import { clearStoredSession, storeSession } from "@/lib/session";
 import { updateUserLanguageSettings } from "@/lib/users";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
@@ -28,11 +31,13 @@ function moveLanguageToFront(languages: Language[], language: Language) {
 }
 
 export function LanguageSettings() {
+  const router = useRouter();
   const session = useSession();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>(() =>
     getInitialLanguages(session?.defaultLanguage, session?.enabledLanguages),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const defaultLanguage = selectedLanguages[0];
@@ -91,6 +96,14 @@ export function LanguageSettings() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function handleSignOut() {
+    setIsSigningOut(true);
+    void signOut(getFirebaseAuth()).finally(() => {
+      clearStoredSession();
+      router.replace("/login");
+    });
   }
 
   if (!session) {
@@ -195,6 +208,15 @@ export function LanguageSettings() {
         type="button"
       >
         {isSaving ? "저장 중" : "설정 저장"}
+      </button>
+
+      <button
+        className="min-h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isSigningOut}
+        onClick={handleSignOut}
+        type="button"
+      >
+        {isSigningOut ? "나가는 중" : "로그아웃"}
       </button>
     </section>
   );

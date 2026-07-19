@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { RequireSession } from "@/components/RequireSession";
 import { ReviewSession } from "@/components/ReviewSession";
-import { buildWordListHref } from "@/components/words/word-list-links";
 import { DEFAULT_LANGUAGE, getLanguageOption, isLanguage } from "@/lib/languages";
 
 type ReviewPageProps = {
@@ -18,21 +16,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   const language = getLanguageOption(selectedLanguage);
 
   return (
-    <AppFrame
-      title={`${language.label} 복습`}
-      action={
-        <Link
-          href={buildWordListHref({
-            language: selectedLanguage,
-            notebookId,
-            path: "/words",
-          })}
-          className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
-        >
-          단어장
-        </Link>
-      }
-    >
+    <AppFrame title={`${language.label} 복습`}>
       <RequireSession>
         <ReviewSession
           key={`${selectedLanguage}:${notebookId ?? "all"}`}

@@ -131,7 +131,7 @@ export function WordCardList({
       )}
       <Link
         aria-label="단어 추가"
-        className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg"
+        className="fixed bottom-20 right-5 z-20 grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-3xl font-light leading-none text-white shadow-lg md:bottom-6"
         href={buildWordListHref({
           language: activeLanguage,
           notebookId,
