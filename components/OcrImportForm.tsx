@@ -22,6 +22,7 @@ import { getLanguageOption } from "@/lib/languages";
 import { splitTextIntoSentences } from "@/lib/sentence-splitter";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
+import type { OcrReadingDirection } from "@/types/ocr";
 
 type OcrImportFormProps = {
   language: Language;
@@ -43,16 +44,21 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     activeStep,
     clearErrorMessage,
     completeExtraction,
+    editableSentences,
     errorMessage,
     extractedText,
+    mergeSentenceWithPrevious,
+    prepareSentences,
     readingDirection,
+    removeSentence,
     resetForImage,
     selectedNotebookId,
     setActiveStep,
     setErrorMessage,
-    setExtractedText,
     setReadingDirection,
     setSelectedNotebookId,
+    splitSentenceByLines,
+    updateSentence,
   } = useOcrImportState(getPersistedNotebookId(notebookId));
   const notebookTarget = useCurrentNotebookTarget({
     language,
@@ -77,17 +83,31 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     stagedExpressions,
     updateExpression,
   } = useStagedExpressions(language, notebookTarget.resolvedNotebookId);
-  const sentences = useMemo(
+  const detectedSentences = useMemo(
     () => splitTextIntoSentences(extractedText, language),
     [extractedText, language],
   );
-  const canSelectExpressions = sentences.length > 0;
+  const selectableSentences = useMemo(
+    () => editableSentences,
+    [editableSentences],
+  );
+  const canPrepareSentences = detectedSentences.length > 0;
+  const canSelectExpressions = selectableSentences.some((sentence) =>
+    sentence.trim(),
+  );
   const canConfirmExpressions = stagedExpressions.length > 0;
+  const sentenceMergeSeparator = language === "en" ? " " : "";
   const resolvedActiveStep = getResolvedOcrImportStep({
     activeStep,
     canConfirmExpressions,
     canSelectExpressions,
   });
+
+  function scrollToStepTop() {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0 });
+    });
+  }
 
   function handleNotebookChange(nextNotebookId?: string) {
     setSelectedNotebookId(nextNotebookId);
@@ -109,17 +129,28 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     resetForImage();
   }
 
-  async function handleExtractText() {
+  async function handleExtractText(
+    options: {
+      nextStep?: OcrImportStep;
+      readingDirection?: OcrReadingDirection;
+    } = {},
+  ) {
     clearErrorMessage();
 
     try {
-      const text = await extractText();
-      completeExtraction(text);
+      const text = await extractText(options.readingDirection);
+      const sentences = splitTextIntoSentences(text, language);
+      completeExtraction(text, sentences);
       clearExpressions();
 
       if (!text) {
         setErrorMessage("인식된 텍스트가 없습니다. 더 선명한 사진으로 다시 시도해주세요.");
         return;
+      }
+
+      if (options.nextStep === "select") {
+        prepareSentences(sentences);
+        scrollToStepTop();
       }
     } catch (error) {
       setErrorMessage(
@@ -128,6 +159,25 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           : "텍스트를 추출하지 못했습니다.",
       );
     }
+  }
+
+  function handleReextractText(direction: OcrReadingDirection) {
+    setReadingDirection(direction);
+    void handleExtractText({
+      nextStep: "select",
+      readingDirection: direction,
+    });
+  }
+
+  function handlePrepareSentences() {
+    if (detectedSentences.length === 0) {
+      setErrorMessage("정리할 문장이 없습니다. 추출된 텍스트를 확인해주세요.");
+      return;
+    }
+
+    clearExpressions();
+    prepareSentences(detectedSentences);
+    scrollToStepTop();
   }
 
   function handleAddExpression(term: string, sourceSentence: string) {
@@ -157,6 +207,17 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   }
 
   function handleStepChange(nextStep: OcrImportStep) {
+    if (nextStep === "select" && activeStep === "extract") {
+      if (detectedSentences.length === 0) {
+        return;
+      }
+
+      clearExpressions();
+      prepareSentences(detectedSentences);
+      scrollToStepTop();
+      return;
+    }
+
     if (!canUseOcrImportStep(nextStep, {
       canConfirmExpressions,
       canSelectExpressions,
@@ -166,6 +227,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
 
     clearErrorMessage();
     setActiveStep(nextStep);
+    scrollToStepTop();
   }
 
   return (
@@ -199,7 +261,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
 
         {resolvedActiveStep === "extract" ? (
           <OcrExtractStep
-            canSelectExpressions={canSelectExpressions}
+            canSelectExpressions={canPrepareSentences}
             extractedText={extractedText}
             imageFile={imageFile}
             isExtracting={isExtracting}
@@ -207,15 +269,12 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
             languageLabel={languageOption.label}
             notebooks={notebooks}
             onExtractText={() => void handleExtractText()}
-            onExtractedTextChange={setExtractedText}
             onImageFileChange={handleImageFileChange}
-            onNext={() => handleStepChange("select")}
+            onNext={handlePrepareSentences}
             onNotebookChange={handleNotebookChange}
-            onReadingDirectionChange={setReadingDirection}
             previewUrl={previewUrl}
-            readingDirection={readingDirection}
             selectedNotebookId={selectedNotebookId}
-            shouldShowReadingDirection={language === "ja"}
+            sentenceCount={detectedSentences.length}
             target={notebookTarget}
           />
         ) : null}
@@ -223,12 +282,18 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         {resolvedActiveStep === "select" ? (
           <OcrSelectStep
             canConfirmExpressions={canConfirmExpressions}
-            extractedText={extractedText}
             language={language}
+            mergeSeparator={sentenceMergeSeparator}
             onAddExpression={handleAddExpression}
             onBack={() => handleStepChange("extract")}
             onConfirm={() => handleStepChange("confirm")}
-            sentences={sentences}
+            onMergeSentenceWithPrevious={mergeSentenceWithPrevious}
+            onReextractText={handleReextractText}
+            onRemoveSentence={removeSentence}
+            readingDirection={readingDirection}
+            onSplitSentenceByLines={splitSentenceByLines}
+            onUpdateSentence={updateSentence}
+            sentences={selectableSentences}
             stagedExpressions={stagedExpressions}
             stagedExpressionCount={stagedExpressions.length}
           />

@@ -294,38 +294,12 @@ function buildVerticalRightToLeftText(annotation: VisionTextAnnotation) {
   return pageTexts.join("\n\n").trim();
 }
 
-function shouldUseVerticalText(annotation: VisionTextAnnotation) {
-  const tokens = annotation.pages?.flatMap((page) => getPageTokens(page)) ?? [];
-
-  if (tokens.length < 8) {
-    return false;
-  }
-
-  const tallTokenRatio =
-    tokens.filter((token) => token.height > token.width * 1.35).length /
-    tokens.length;
-  const wideTokenRatio =
-    tokens.filter((token) => token.width > token.height * 1.35).length /
-    tokens.length;
-  const columns = groupVerticalColumns(tokens);
-  const denseColumnCount = columns.filter(
-    (column) => column.tokens.length >= 3,
-  ).length;
-  const rows = groupHorizontalRows(tokens);
-  const denseRowCount = rows.filter((row) => row.tokens.length >= 3).length;
-
-  return (
-    (tallTokenRatio >= 0.35 && denseColumnCount >= 3) ||
-    (wideTokenRatio >= 0.35 && denseRowCount >= 3)
-  );
-}
-
 /**
- * Google Vision 문서 OCR 결과에서 텍스트를 추출하고, 필요하면 일본어 세로쓰기 순서로 재정렬합니다.
+ * Google Vision 문서 OCR 결과에서 텍스트를 추출하고, 사용자가 명시한 경우에만 일본어 세로쓰기 순서로 재정렬합니다.
  *
  * @param image - OCR에 사용할 이미지 버퍼입니다.
  * @param languageHints - Google Vision에 전달할 언어 힌트입니다.
- * @param readingDirection - OCR 결과 텍스트 조립에 사용할 읽기 방향입니다.
+ * @param readingDirection - OCR 결과 텍스트 조립에 사용할 읽기 방향입니다. auto는 Google Vision 원문 순서를 유지합니다.
  * @returns 추출 및 보정된 OCR 텍스트를 반환합니다.
  */
 export async function extractTextFromImage(
@@ -351,10 +325,7 @@ export async function extractTextFromImage(
     return "";
   }
 
-  if (
-    readingDirection === "vertical-rl" ||
-    (readingDirection === "auto" && shouldUseVerticalText(annotation))
-  ) {
+  if (readingDirection === "vertical-rl") {
     return buildVerticalRightToLeftText(annotation) || fullText;
   }
 

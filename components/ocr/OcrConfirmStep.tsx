@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import { StagedExpressionList } from "@/components/ocr/StagedExpressionList";
 import type {
   EnrichmentProgress,
@@ -46,11 +47,12 @@ export function OcrConfirmStep({
   return (
     <section className="grid gap-4">
       <button
-        className="min-h-10 justify-self-start rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-muted"
+        className="inline-flex min-h-10 items-center gap-1 justify-self-start rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-muted"
         onClick={onBack}
         type="button"
       >
-        문장 선택으로 돌아가기
+        <ChevronLeft aria-hidden className="size-4" />
+        <span>문장 확인</span>
       </button>
       <StagedExpressionList
         expressions={expressions}

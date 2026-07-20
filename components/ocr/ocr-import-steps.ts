@@ -25,9 +25,9 @@ export const readingDirectionOptions: Array<{
   label: string;
   value: OcrReadingDirection;
 }> = [
-  { label: "자동", value: "auto" },
+  { label: "기본", value: "auto" },
   { label: "가로쓰기", value: "horizontal" },
-  { label: "세로쓰기", value: "vertical-rl" },
+  { label: "세로쓰기 보정", value: "vertical-rl" },
 ];
 
 /**
@@ -40,13 +40,13 @@ export const ocrImportSteps: OcrImportStepOption[] = [
     value: "extract",
   },
   {
-    description: "문장 선택",
-    label: "선택",
+    description: "문장 확인",
+    label: "문장",
     value: "select",
   },
   {
-    description: "읽기/뜻 확인",
-    label: "확인",
+    description: "담은 표현",
+    label: "표현",
     value: "confirm",
   },
 ];
@@ -106,5 +106,9 @@ export function getResolvedOcrImportStep({
     return activeStep;
   }
 
-  return canSelectExpressions ? "select" : "extract";
+  if (canSelectExpressions) {
+    return "select";
+  }
+
+  return "extract";
 }

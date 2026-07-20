@@ -86,7 +86,7 @@ export function useOcrImage(
     };
   }, [previewUrl]);
 
-  async function extractText() {
+  async function extractText(overrideReadingDirection?: OcrReadingDirection) {
     if (!imageFile) {
       throw new Error("사진을 먼저 선택해주세요.");
     }
@@ -98,7 +98,10 @@ export function useOcrImage(
       const formData = new FormData();
       formData.append("image", preparedImage, "ocr-image.jpg");
       formData.append("language", language);
-      formData.append("readingDirection", readingDirection);
+      formData.append(
+        "readingDirection",
+        overrideReadingDirection ?? readingDirection,
+      );
 
       const response = await fetch("/api/ocr", {
         method: "POST",
