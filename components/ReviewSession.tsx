@@ -12,6 +12,7 @@ import { ReviewCompleteState } from "@/components/review/ReviewCompleteState";
 import { ReviewEmptyState } from "@/components/review/ReviewEmptyState";
 import { ReviewErrorState } from "@/components/review/ReviewErrorState";
 import { ReviewLoadingState } from "@/components/review/ReviewLoadingState";
+import { ReviewNotebookSelector } from "@/components/review/ReviewNotebookSelector";
 import { useReviewSessionState } from "@/components/review/useReviewSessionState";
 import { useReviewWordsQuery } from "@/components/review/useReviewWordsQuery";
 import { getLanguageOption } from "@/lib/languages";
@@ -120,51 +121,73 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
     0,
   );
   const hasNextReviewSet = remainingReviewCount > 0;
+  const reviewNotebookSelector = (
+    <ReviewNotebookSelector
+      language={language}
+      reviewTotalCount={reviewTotalCount}
+      selectedNotebookId={notebookId}
+      session={session}
+    />
+  );
 
   if (isLoading) {
-    return <ReviewLoadingState languageLabel={languageOption.label} />;
+    return (
+      <div className="flex flex-1 flex-col gap-3">
+        {reviewNotebookSelector}
+        <ReviewLoadingState languageLabel={languageOption.label} />
+      </div>
+    );
   }
 
   if (errorMessage) {
     return (
-      <ReviewErrorState
-        errorMessage={errorMessage}
-        onRetry={() => {
-          resetReviewProgress();
-          void refetchReviewWords();
-        }}
-      />
+      <div className="flex flex-1 flex-col gap-3">
+        {reviewNotebookSelector}
+        <ReviewErrorState
+          errorMessage={errorMessage}
+          onRetry={() => {
+            resetReviewProgress();
+            void refetchReviewWords();
+          }}
+        />
+      </div>
     );
   }
 
   if (reviewWords.length === 0) {
     return (
-      <ReviewEmptyState
-        emptyMessage={
-          reviewDirection === "meaningToTerm"
-            ? "뜻이 입력된 복습 단어가 없습니다"
-            : "복습할 단어가 없습니다"
-        }
-        language={language}
-        languageLabel={languageOption.label}
-        notebookId={notebookId}
-      />
+      <div className="flex flex-1 flex-col gap-3">
+        {reviewNotebookSelector}
+        <ReviewEmptyState
+          emptyMessage={
+            reviewDirection === "meaningToTerm"
+              ? "뜻이 입력된 복습 단어가 없습니다"
+              : "복습할 단어가 없습니다"
+          }
+          language={language}
+          languageLabel={languageOption.label}
+          notebookId={notebookId}
+        />
+      </div>
     );
   }
 
   if (isComplete) {
     return (
-      <ReviewCompleteState
-        hasNextReviewSet={hasNextReviewSet}
-        knownCount={knownCount}
-        language={language}
-        languageLabel={languageOption.label}
-        notebookId={notebookId}
-        onRestart={handleRestartReview}
-        remainingReviewCount={remainingReviewCount}
-        reviewWordCount={reviewWords.length}
-        unknownCount={unknownCount}
-      />
+      <div className="flex flex-1 flex-col gap-3">
+        {reviewNotebookSelector}
+        <ReviewCompleteState
+          hasNextReviewSet={hasNextReviewSet}
+          knownCount={knownCount}
+          language={language}
+          languageLabel={languageOption.label}
+          notebookId={notebookId}
+          onRestart={handleRestartReview}
+          remainingReviewCount={remainingReviewCount}
+          reviewWordCount={reviewWords.length}
+          unknownCount={unknownCount}
+        />
+      </div>
     );
   }
 
@@ -173,18 +196,21 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
   }
 
   return (
-    <ReviewCard
-      currentIndex={currentIndex}
-      isAnswerVisible={isAnswerVisible}
-      isSaving={isSaving}
-      languageLabel={languageOption.label}
-      onRevealAnswer={revealAnswer}
-      onReviewDirectionChange={handleReviewDirectionChange}
-      onStudyStatus={(status) => void handleStudyStatus(status)}
-      readingLabel={languageOption.readingLabel}
-      reviewDirection={reviewDirection}
-      reviewWordCount={reviewWords.length}
-      word={currentWord}
-    />
+    <div className="flex flex-1 flex-col gap-3">
+      {reviewNotebookSelector}
+      <ReviewCard
+        currentIndex={currentIndex}
+        isAnswerVisible={isAnswerVisible}
+        isSaving={isSaving}
+        languageLabel={languageOption.label}
+        onRevealAnswer={revealAnswer}
+        onReviewDirectionChange={handleReviewDirectionChange}
+        onStudyStatus={(status) => void handleStudyStatus(status)}
+        readingLabel={languageOption.readingLabel}
+        reviewDirection={reviewDirection}
+        reviewWordCount={reviewWords.length}
+        word={currentWord}
+      />
+    </div>
   );
 }

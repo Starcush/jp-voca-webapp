@@ -34,7 +34,7 @@ export function ReviewEmptyState({
           {languageLabel} {emptyMessage}
         </p>
         <p className="mt-2 text-sm font-medium leading-6 text-brand-muted">
-          다른 복습 모드를 선택하거나 단어를 추가해보세요.
+          다른 노트를 선택하거나 단어를 추가해보세요.
         </p>
       </div>
       <Link
