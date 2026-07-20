@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
 
 type AppRouteTransitionContextValue = {
   isNavigating: boolean;
@@ -31,13 +30,8 @@ export function AppRouteTransitionProvider({
 }: {
   children: ReactNode;
 }) {
-  const pathname = usePathname();
   const [isNavigating, setIsNavigating] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [pathname]);
 
   useEffect(
     () => () => {

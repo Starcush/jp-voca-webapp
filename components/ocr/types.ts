@@ -20,6 +20,17 @@ export type EnrichmentProgress = {
 };
 
 /**
+ * OCR 저장 전 확인 UI에서 언어별로 표시할 필드 라벨입니다.
+ *
+ * @property readingLabel - 일본어/중국어처럼 읽기 필드가 있는 언어의 읽기 라벨입니다.
+ * @property termLabel - 단어/표현 필드의 라벨입니다.
+ */
+export type OcrLanguageOptionLabels = {
+  readingLabel?: string;
+  termLabel: string;
+};
+
+/**
  * OCR 가져오기에서 최종 저장 전까지 임시로 들고 있는 표현 데이터입니다.
  *
  * @property id - UI 목록에서 표현을 안정적으로 식별하기 위한 클라이언트 ID입니다.

@@ -4,20 +4,16 @@ import { useState } from "react";
 import {
   MAX_STAGED_EXPRESSIONS,
   type EnrichmentProgress,
+  type OcrLanguageOptionLabels,
   type StagedExpression,
 } from "./types";
-
-type LanguageOptionLabels = {
-  readingLabel?: string;
-  termLabel: string;
-};
 
 type StagedExpressionListProps = {
   enrichmentProgress: EnrichmentProgress | null;
   expressions: StagedExpression[];
   isEnriching: boolean;
   isSaving: boolean;
-  languageOption: LanguageOptionLabels;
+  languageOption: OcrLanguageOptionLabels;
   onClear: () => void;
   onEnrich: () => void;
   onRemove: (expressionId: string) => void;
@@ -189,7 +185,7 @@ function StagedExpressionCard({
   onUpdate,
 }: {
   expression: StagedExpression;
-  languageOption: LanguageOptionLabels;
+  languageOption: OcrLanguageOptionLabels;
   onRemove: (expressionId: string) => void;
   onUpdate: (
     expressionId: string,

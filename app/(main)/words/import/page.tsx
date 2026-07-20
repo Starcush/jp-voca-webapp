@@ -17,7 +17,11 @@ export default async function ImportWordsPage({ searchParams }: ImportWordsPageP
   return (
     <AppFrame title="사진에서 가져오기" language={selectedLanguage}>
       <RequireSession>
-        <OcrImportForm language={selectedLanguage} notebookId={notebookId} />
+        <OcrImportForm
+          key={`${selectedLanguage}:${notebookId ?? "unfiled"}`}
+          language={selectedLanguage}
+          notebookId={notebookId}
+        />
       </RequireSession>
     </AppFrame>
   );
