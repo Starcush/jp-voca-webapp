@@ -28,6 +28,16 @@ service cloud.firestore {
         || request.resource.data[field] is timestamp;
     }
 
+    function isNumberOrNull(field) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] == null
+        || request.resource.data[field] is number;
+    }
+
+    function isTextSize(textSize) {
+      return textSize in ["default", "large"];
+    }
+
     function hasWordTerm() {
       return (
           "term" in request.resource.data
@@ -50,6 +60,7 @@ service cloud.firestore {
           "username",
           "defaultLanguage",
           "enabledLanguages",
+          "textSize",
           "createdAt",
           "updatedAt",
         ])
@@ -70,6 +81,10 @@ service cloud.firestore {
             && request.resource.data.enabledLanguages.size() <= 3
             && request.resource.data.enabledLanguages.hasOnly(["ja", "en", "zh"])
           )
+        )
+        && (
+          !("textSize" in request.resource.data)
+          || isTextSize(request.resource.data.textSize)
         )
         && request.resource.data.createdAt is timestamp
         && (
@@ -93,6 +108,16 @@ service cloud.firestore {
           "status",
           "lastSeenAt",
           "flaggedAt",
+          "fsrsDueAt",
+          "fsrsStability",
+          "fsrsDifficulty",
+          "fsrsElapsedDays",
+          "fsrsScheduledDays",
+          "fsrsLearningSteps",
+          "fsrsReps",
+          "fsrsLapses",
+          "fsrsState",
+          "fsrsLastReviewAt",
           "createdAt",
           "updatedAt",
         ])
@@ -113,6 +138,20 @@ service cloud.firestore {
         )
         && isTimestampOrNull("lastSeenAt")
         && isTimestampOrNull("flaggedAt")
+        && isTimestampOrNull("fsrsDueAt")
+        && isTimestampOrNull("fsrsLastReviewAt")
+        && isNumberOrNull("fsrsStability")
+        && isNumberOrNull("fsrsDifficulty")
+        && isNumberOrNull("fsrsElapsedDays")
+        && isNumberOrNull("fsrsScheduledDays")
+        && isNumberOrNull("fsrsLearningSteps")
+        && isNumberOrNull("fsrsReps")
+        && isNumberOrNull("fsrsLapses")
+        && (
+          !("fsrsState" in request.resource.data)
+          || request.resource.data.fsrsState == null
+          || request.resource.data.fsrsState in [0, 1, 2, 3]
+        )
         && (
           !("createdAt" in request.resource.data)
           || request.resource.data.createdAt is timestamp

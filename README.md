@@ -46,39 +46,11 @@ Vercel 프로젝트의 Environment Variables에 로컬과 같은 `NEXT_PUBLIC_FI
 
 이메일은 중복 가입 방지와 계정 복구를 위해 사용합니다. 비밀번호는 Firebase Auth 기본 정책에 맞춰 6자 이상이어야 합니다.
 
-가입 후 사용할 학습 언어를 하나 이상 선택합니다. 선택한 언어들은 `users/{uid}.enabledLanguages`에 저장되고, 처음 열 언어는 `users/{uid}.defaultLanguage`에 저장됩니다.
+가입 후 사용할 학습 언어를 하나 이상 선택합니다. 선택한 언어들은 `users/{uid}.enabledLanguages`에 저장되고, 처음 열 언어는 `users/{uid}.defaultLanguage`에 저장됩니다. 앱 글자 크기 설정은 `users/{uid}.textSize`에 `default` 또는 `large`로 저장됩니다.
 
 Firestore Rules는 Firebase Auth uid 기준으로 사용자별 데이터만 접근하도록 설정합니다.
 
-```js
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    match /users/{uid} {
-      allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid)
-        && request.resource.data.uid == uid;
-      allow delete: if false;
-    }
-
-    match /words/{wordId} {
-      allow read, update, delete: if isSignedIn()
-        && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid;
-    }
-  }
-}
-```
+Rules 원본은 `firestore.rules` 파일을 기준으로 관리합니다. 사용자 설정 필드(`defaultLanguage`, `enabledLanguages`, `textSize`), 단어 필드, FSRS 복습 스케줄 필드가 모두 허용 목록에 포함되어 있어야 합니다.
 
 배포된 앱에서 `Missing or insufficient permissions`가 나오면 Firestore Rules가 아직 반영되지 않았거나, 다른 Firebase 프로젝트의 환경변수를 보고 있을 가능성이 큽니다.
 
