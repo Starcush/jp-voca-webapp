@@ -68,16 +68,12 @@ export function WordList({
   const activeLanguageOption = getLanguageOption(activeLanguage);
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isDeletingSelectedWords, setIsDeletingSelectedWords] = useState(false);
-  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
   const [flaggingWordIds, setFlaggingWordIds] = useState<Set<string>>(new Set());
   const isFullLookupMode =
     Boolean(searchQuery.trim()) ||
     Boolean(selectedNotebookId);
   const {
     clearStudyStatusError,
-    deleteSelectedWords,
     errorMessage,
     hasMore,
     isContentLoading,
@@ -98,25 +94,15 @@ export function WordList({
     searchQuery,
     selectedNotebookId,
   );
-  const wordCountLabel =
-    wordCount === null ? "저장된 단어 확인 중" : `저장된 단어 ${wordCount}개`;
   const compactWordCountLabel =
     wordCount === null ? "확인 중" : `${wordCount}개`;
   const activeNotebookCountLabel = selectedNotebookId
     ? `${filteredWords.length}개`
     : compactWordCountLabel;
-  const visibleCountLabel =
-    isFullLookupMode || filteredWords.length !== words.length
-      ? `표시 ${filteredWords.length}개`
-      : wordCountLabel;
   const loadingOverlay = (
     <LoadingOverlay
-      message={
-        isDeletingSelectedWords
-          ? "선택한 단어를 삭제하는 중"
-          : `${activeLanguageOption.label} 단어를 불러오는 중`
-      }
-      show={isContentLoading || isDeletingSelectedWords}
+      message={`${activeLanguageOption.label} 단어를 불러오는 중`}
+      show={isContentLoading}
     />
   );
   const header = (
@@ -158,12 +144,10 @@ export function WordList({
 
   function handleSearchQueryChange(nextSearchQuery: string) {
     setSearchQuery(nextSearchQuery);
-    clearSelection();
   }
 
   function resetListConditions() {
     setSearchQuery("");
-    clearSelection();
   }
 
   function handleLanguageChange(nextLanguage: Language) {
@@ -174,13 +158,11 @@ export function WordList({
     setOptimisticLanguage(nextLanguage);
     setSearchQuery("");
     clearStudyStatusError();
-    clearSelection();
     router.push(`/words?lang=${nextLanguage}`);
   }
 
   function handleNotebookChange(nextNotebookId?: string) {
     clearStudyStatusError();
-    clearSelection();
     router.push(
       buildWordListHref({
         language: activeLanguage,
@@ -188,57 +170,6 @@ export function WordList({
         path: "/words",
       }),
     );
-  }
-
-  function clearSelection() {
-    setIsSelectionMode(false);
-    setSelectedWordIds(new Set());
-  }
-
-  function toggleWordSelection(wordId: string) {
-    setSelectedWordIds((currentWordIds) => {
-      const nextWordIds = new Set(currentWordIds);
-
-      if (nextWordIds.has(wordId)) {
-        nextWordIds.delete(wordId);
-      } else {
-        nextWordIds.add(wordId);
-      }
-
-      return nextWordIds;
-    });
-  }
-
-  function selectVisibleWords() {
-    setSelectedWordIds(new Set(filteredWords.map((word) => word.id)));
-  }
-
-  async function handleDeleteSelectedWords() {
-    const wordIds = [...selectedWordIds];
-
-    if (wordIds.length === 0) {
-      return;
-    }
-
-    const shouldDelete = confirm(
-      `선택한 단어 ${wordIds.length}개를 삭제할까요?\n삭제한 단어는 되돌릴 수 없습니다.`,
-    );
-
-    if (!shouldDelete) {
-      return;
-    }
-
-    setIsDeletingSelectedWords(true);
-
-    try {
-      await deleteSelectedWords(wordIds);
-      clearSelection();
-      toast.success(`선택한 단어 ${wordIds.length}개를 삭제했습니다.`);
-    } catch {
-      // 사용자용 에러 메시지는 useWordListQuery에서 화면에 표시합니다.
-    } finally {
-      setIsDeletingSelectedWords(false);
-    }
   }
 
   async function handleToggleWordFlag(word: Word) {
@@ -311,21 +242,12 @@ export function WordList({
       <WordCardList
         activeLanguage={activeLanguage}
         hasMore={hasMore}
-        isDeletingSelectedWords={isDeletingSelectedWords}
         isLoadingMore={isLoadingMore}
-        isSelectionMode={isSelectionMode}
         notebookId={selectedNotebookId}
-        onClearSelection={clearSelection}
-        onDeleteSelectedWords={() => void handleDeleteSelectedWords()}
         onLoadMore={() => void loadNextPage()}
-        onSelectVisibleWords={selectVisibleWords}
-        onSelectionModeChange={setIsSelectionMode}
         onToggleWordFlag={(word) => void handleToggleWordFlag(word)}
-        onToggleWordSelection={toggleWordSelection}
         flaggingWordIds={flaggingWordIds}
-        selectedWordIds={selectedWordIds}
         viewMode={viewMode}
-        visibleCountLabel={visibleCountLabel}
         words={filteredWords}
       />
     </>

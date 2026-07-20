@@ -9,6 +9,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        japanese: [
+          '"Hiragino Sans"',
+          '"Hiragino Kaku Gothic ProN"',
+          '"Yu Gothic"',
+          "YuGothic",
+          '"Noto Sans JP"',
+          "Meiryo",
+          "sans-serif",
+        ],
+      },
       colors: {
         word: {
           kanji: "#191919",

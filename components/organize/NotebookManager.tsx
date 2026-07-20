@@ -166,7 +166,7 @@ export function NotebookManager({ language }: NotebookManagerProps) {
                 key={notebook.id}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-[17px] font-bold leading-6 text-word-kanji">
+                  <p className="truncate text-[17px] font-semibold leading-6 text-word-kanji">
                     {notebook.title}
                   </p>
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-word-meaning">

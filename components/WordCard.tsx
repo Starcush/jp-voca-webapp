@@ -8,12 +8,9 @@ type WordCardProps = {
   activeLanguage: Language;
   isFlagHintVisible?: boolean;
   isFlagUpdating?: boolean;
-  isSelected?: boolean;
   maskedField?: "kanji" | "meaning";
   onDismissFlagHint?: () => void;
   onToggleFlag: () => void;
-  onToggleSelect?: () => void;
-  selectionMode?: boolean;
   word: Word;
 };
 
@@ -24,24 +21,22 @@ function getMaskedClass(shouldMask: boolean) {
 /**
  * 단어 목록에서 한 단어를 조밀한 행 형태로 렌더링합니다.
  *
- * @param props - 표시할 단어, 선택 상태, 마스킹 상태, 행/점 액션 콜백입니다.
+ * @param props - 표시할 단어, 마스킹 상태, 행/점 액션 콜백입니다.
  * @returns 임시 표시 점과 단어 요약 2줄을 가진 목록 행을 렌더링합니다.
  */
 export function WordCard({
   activeLanguage,
   isFlagHintVisible = false,
   isFlagUpdating = false,
-  isSelected = false,
   maskedField,
   onDismissFlagHint,
   onToggleFlag,
-  onToggleSelect,
-  selectionMode = false,
   word,
 }: WordCardProps) {
   const term = getWordTerm(word);
   const reading = getWordReading(word);
   const isFlagged = Boolean(word.flaggedAt);
+  const languageTextClass = activeLanguage === "ja" ? "font-japanese" : "";
 
   return (
     <article>
@@ -50,33 +45,17 @@ export function WordCard({
           isFlagged
             ? "bg-white px-3 shadow-[0_3px_10px_rgba(36,28,61,0.12)] ring-1 ring-brand-flag/45"
             : "bg-white px-3 shadow-[0_1px_3px_rgba(36,28,61,0.06)]"
-        } ${
-          isSelected ? "bg-primary-tint ring-1 ring-primary-border" : ""
         }`}
       >
-        {selectionMode ? (
-          <label className="grid h-8 w-6 shrink-0 place-items-center">
-            <span className="sr-only">{term} 선택</span>
-            <input
-              checked={isSelected}
-              className="rounded border-brand-border-strong text-primary focus:ring-primary"
-              onChange={onToggleSelect}
-              type="checkbox"
-            />
-          </label>
-        ) : null}
-
         <button
           aria-label={
-            selectionMode
-              ? `${term} 선택`
-              : isFlagged
-                ? `${term} 헷갈림 표시 해제`
-                : `${term} 헷갈림 표시`
+            isFlagged
+              ? `${term} 헷갈림 표시 해제`
+              : `${term} 헷갈림 표시`
           }
           className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!selectionMode && isFlagUpdating}
-          onClick={selectionMode ? onToggleSelect : onToggleFlag}
+          disabled={isFlagUpdating}
+          onClick={onToggleFlag}
           type="button"
         >
           <span className="grid h-8 w-6 shrink-0 place-items-center">
@@ -95,11 +74,15 @@ export function WordCard({
                 maskedField === "kanji",
               )}`}
             >
-              <span className="break-words text-[17px] font-bold leading-6 text-word-kanji">
+              <span
+                className={`break-words text-[17px] font-semibold leading-6 text-word-kanji ${languageTextClass}`}
+              >
                 {term}
               </span>
               {reading ? (
-                <span className="break-words text-xs font-semibold text-brand-muted">
+                <span
+                  className={`break-words text-xs font-semibold text-primary-text ${languageTextClass}`}
+                >
                   {reading}
                 </span>
               ) : null}
@@ -128,18 +111,16 @@ export function WordCard({
           </span>
         </button>
 
-        {!selectionMode ? (
-          <div className="flex shrink-0 items-center gap-1 pt-0.5">
-            <Link
-              aria-label={`${term} 수정`}
-              className="grid h-8 w-8 place-items-center rounded-lg text-neutral-500"
-              href={`/words/${word.id}/edit?lang=${activeLanguage}`}
-              title="수정"
-            >
-              <Pencil aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
-            </Link>
-          </div>
-          ) : null}
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
+          <Link
+            aria-label={`${term} 수정`}
+            className="grid h-8 w-8 place-items-center rounded-lg text-neutral-500"
+            href={`/words/${word.id}/edit?lang=${activeLanguage}`}
+            title="수정"
+          >
+            <Pencil aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
+          </Link>
+        </div>
       </div>
       {isFlagHintVisible ? (
         <div className="relative ml-9 mr-3 mt-2 rounded-xl bg-brand-text px-4 py-3 text-white shadow-xl">

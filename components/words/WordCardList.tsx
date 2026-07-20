@@ -16,19 +16,10 @@ type WordCardListProps = {
   flaggingWordIds: Set<string>;
   hasMore: boolean;
   isLoadingMore: boolean;
-  isDeletingSelectedWords: boolean;
-  isSelectionMode: boolean;
   notebookId?: string;
-  onClearSelection: () => void;
-  onDeleteSelectedWords: () => void;
   onLoadMore: () => void;
-  onSelectVisibleWords: () => void;
-  onSelectionModeChange: (isSelectionMode: boolean) => void;
   onToggleWordFlag: (word: Word) => void;
-  onToggleWordSelection: (wordId: string) => void;
-  selectedWordIds: Set<string>;
   viewMode: ViewMode;
-  visibleCountLabel: string;
   words: Word[];
 };
 
@@ -36,29 +27,19 @@ type WordCardListProps = {
  * 필터링된 단어 카드 목록과 더 보기, 플로팅 추가 버튼을 렌더링합니다.
  *
  * @param props - 표시할 단어 목록과 카드 액션 상태입니다.
- * @returns 표시 개수, 단어 카드 목록, 페이지네이션 버튼, 단어 추가 버튼을 렌더링합니다.
+ * @returns 단어 카드 목록, 페이지네이션 버튼, 단어 추가 버튼을 렌더링합니다.
  */
 export function WordCardList({
   activeLanguage,
   flaggingWordIds,
   hasMore,
   isLoadingMore,
-  isDeletingSelectedWords,
-  isSelectionMode,
   notebookId,
-  onClearSelection,
-  onDeleteSelectedWords,
   onLoadMore,
-  onSelectVisibleWords,
-  onSelectionModeChange,
   onToggleWordFlag,
-  onToggleWordSelection,
-  selectedWordIds,
   viewMode,
-  visibleCountLabel,
   words,
 }: WordCardListProps) {
-  const selectedCount = selectedWordIds.size;
   const [flagHintWordId, setFlagHintWordId] = useState<string | null>(null);
   const maskedField =
     viewMode === "all" ? undefined : viewMode === "kanji" ? "meaning" : "kanji";
@@ -78,59 +59,17 @@ export function WordCardList({
 
   return (
     <>
-      <section className="grid gap-3 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-bold text-brand-muted">
-            {isSelectionMode ? `선택 ${selectedCount}개` : visibleCountLabel}
-          </p>
-          {isSelectionMode ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted"
-                onClick={onSelectVisibleWords}
-                type="button"
-              >
-                전체 선택
-              </button>
-              <button
-                className="min-h-9 rounded-md bg-status-negative px-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isDeletingSelectedWords || selectedCount === 0}
-                onClick={onDeleteSelectedWords}
-                type="button"
-              >
-                삭제
-              </button>
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted"
-                onClick={onClearSelection}
-                type="button"
-              >
-                취소
-              </button>
-            </div>
-          ) : (
-            <button
-              className="min-h-9 rounded-md border border-brand-border bg-white px-3 text-xs font-bold text-brand-muted"
-              onClick={() => onSelectionModeChange(true)}
-              type="button"
-            >
-              선택
-            </button>
-          )}
-        </div>
+      <section className="grid gap-2 py-3">
         <div className="grid gap-2">
           {words.map((word) => (
             <WordCard
               activeLanguage={activeLanguage}
               isFlagHintVisible={flagHintWordId === word.id}
               isFlagUpdating={flaggingWordIds.has(word.id)}
-              isSelected={selectedWordIds.has(word.id)}
               key={word.id}
               maskedField={maskedField}
               onDismissFlagHint={dismissFlagHint}
               onToggleFlag={() => handleToggleWordFlag(word)}
-              onToggleSelect={() => onToggleWordSelection(word.id)}
-              selectionMode={isSelectionMode}
               word={word}
             />
           ))}

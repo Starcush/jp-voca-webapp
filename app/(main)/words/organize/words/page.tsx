@@ -16,7 +16,11 @@ export default async function OrganizeWordsPage({
   const selectedLanguage = isLanguage(lang) ? lang : DEFAULT_LANGUAGE;
 
   return (
-    <AppFrame title="단어 관리" language={selectedLanguage}>
+    <AppFrame
+      backHref={`/words/organize?lang=${selectedLanguage}`}
+      language={selectedLanguage}
+      title="단어 관리"
+    >
       <RequireSession>
         <WordOrganizer language={selectedLanguage} />
       </RequireSession>

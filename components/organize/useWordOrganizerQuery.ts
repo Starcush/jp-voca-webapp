@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { listNotebooks } from "@/lib/notebooks";
 import type { AppSession } from "@/lib/session";
-import { listAllWords, updateWordsNotebook } from "@/lib/words";
+import { deleteWords, listAllWords, updateWordsNotebook } from "@/lib/words";
 import type { Language } from "@/types/language";
 
 function getOrganizerQueryKey(uid: string, language: Language) {
@@ -75,11 +75,30 @@ export function useWordOrganizerQuery({
       toast.success(`${variables.wordIds.length}개 단어를 이동했습니다.`);
     },
   });
+  const deleteWordsMutation = useMutation({
+    mutationFn: (wordIds: string[]) => deleteWords(wordIds),
+    onError: (error) => {
+      toast.error(getOrganizerErrorMessage(error));
+    },
+    onSuccess: async (_, wordIds) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getOrganizerQueryKey(uid, language),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["words"],
+        }),
+      ]);
+      toast.success(`${wordIds.length}개 단어를 삭제했습니다.`);
+    },
+  });
 
   return {
+    deleteWords: deleteWordsMutation.mutateAsync,
     errorMessage: organizerQuery.error
       ? getOrganizerErrorMessage(organizerQuery.error)
       : "",
+    isDeletingWords: deleteWordsMutation.isPending,
     isLoading: organizerQuery.isLoading,
     isMovingWords: moveWordsMutation.isPending,
     moveWords: moveWordsMutation.mutateAsync,

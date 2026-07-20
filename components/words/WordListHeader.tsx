@@ -258,18 +258,6 @@ export function WordListHeader({
               전체
               <span className="text-xs opacity-70">{totalWordCountLabel}</span>
             </button>
-            <button
-              aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
-              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
-                selectedNotebookId === UNFILED_NOTEBOOK_ID
-                  ? "bg-brand-green text-white"
-                  : "text-brand-muted hover:bg-brand-background"
-              }`}
-              onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
-              type="button"
-            >
-              미분류
-            </button>
             {notebooks.map((notebook) => (
               <button
                 aria-pressed={selectedNotebookId === notebook.id}
@@ -285,6 +273,18 @@ export function WordListHeader({
                 <span className="truncate">{notebook.title}</span>
               </button>
             ))}
+            <button
+              aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
+              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
+                selectedNotebookId === UNFILED_NOTEBOOK_ID
+                  ? "bg-brand-green text-white"
+                  : "text-brand-muted hover:bg-brand-background"
+              }`}
+              onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
+              type="button"
+            >
+              미분류
+            </button>
             {isLoadingNotebooks ? (
               <p className="px-3 py-2 text-sm font-bold text-brand-muted-soft">
                 노트를 불러오는 중
