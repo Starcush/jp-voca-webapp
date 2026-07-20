@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { signOut } from "firebase/auth";
 import {
   Camera,
   CaseSensitive,
@@ -14,9 +13,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { buildReviewHref } from "@/components/review/review-links";
 import { buildWordListHref } from "@/components/words/word-list-links";
-import { DEFAULT_LANGUAGE, getLanguageOption, isLanguage } from "@/lib/languages";
-import { getFirebaseAuth } from "@/lib/firebase";
-import { clearStoredSession } from "@/lib/session";
+import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
 
@@ -87,14 +84,11 @@ function getNavigationItems({
 export function AppNavigation() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const session = useSession();
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const activeLanguage = getActiveLanguage(
     searchParams.get("lang"),
     session?.defaultLanguage,
   );
-  const activeLanguageOption = getLanguageOption(activeLanguage);
   const notebookId = searchParams.get("notebookId") ?? undefined;
   const items = getNavigationItems({
     language: activeLanguage,
@@ -102,19 +96,11 @@ export function AppNavigation() {
     pathname,
   });
 
-  function handleSignOut() {
-    setIsSigningOut(true);
-    void signOut(getFirebaseAuth()).finally(() => {
-      clearStoredSession();
-      router.replace("/login");
-    });
-  }
-
   return (
     <>
-      <aside className="sticky top-4 hidden h-[calc(100dvh-2rem)] flex-col rounded-xl border border-brand-border bg-white p-3 shadow-sm md:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-brand-border bg-brand-background px-4 py-6 md:flex">
         <Link
-          className="mb-4 rounded-lg px-3 py-2 text-xl font-black tracking-normal text-brand-text"
+          className="mb-5 rounded-lg px-3 py-2 text-xl font-black tracking-normal text-brand-text"
           href={buildWordListHref({ language: activeLanguage, path: "/words" })}
         >
           단어장
@@ -123,10 +109,10 @@ export function AppNavigation() {
           {items.map((item) => (
             <Link
               aria-current={item.isActive ? "page" : undefined}
-              className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold ${
+              className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold transition-colors ${
                 item.isActive
-                  ? "text-brand-green"
-                  : "text-brand-muted hover:bg-brand-background"
+                  ? "bg-white text-brand-green shadow-sm"
+                  : "text-brand-muted hover:bg-white"
               }`}
               href={item.href}
               key={item.label}
@@ -136,31 +122,6 @@ export function AppNavigation() {
             </Link>
           ))}
         </nav>
-        <div className="mt-auto grid gap-2">
-          <Link
-            className="flex min-h-10 items-center gap-2 rounded-lg border border-brand-border px-3 text-sm font-bold text-brand-muted"
-            href="/settings"
-          >
-            <span aria-hidden="true">{activeLanguageOption.flag}</span>
-            {activeLanguageOption.label}
-          </Link>
-          <Link
-            className="min-h-10 rounded-lg border border-brand-border px-3 py-2 text-sm font-bold text-brand-muted"
-            href="/settings"
-          >
-            설정
-          </Link>
-          {session ? (
-            <button
-              className="min-h-10 rounded-lg border border-brand-border px-3 text-sm font-bold text-brand-muted disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSigningOut}
-              onClick={handleSignOut}
-              type="button"
-            >
-              {isSigningOut ? "나가는 중" : "로그아웃"}
-            </button>
-          ) : null}
-        </div>
       </aside>
 
       <nav

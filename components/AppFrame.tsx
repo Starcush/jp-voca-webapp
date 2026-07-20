@@ -31,14 +31,14 @@ export function AppFrame({
   showHeader = true,
 }: AppFrameProps) {
   return (
-    <main className="min-h-dvh bg-brand-background px-4 pb-16 pt-0 text-brand-text md:py-4 md:pb-4">
-      <div className="mx-auto grid min-h-[calc(100dvh-2rem)] w-full max-w-6xl gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
+    <main className="min-h-dvh bg-brand-background px-4 pb-16 pt-0 text-brand-text md:bg-white md:p-0">
+      <div className="grid min-h-dvh w-full md:grid-cols-[216px_minmax(0,1fr)]">
         <Suspense fallback={null}>
           <AppNavigation />
         </Suspense>
-        <section className="mx-auto flex w-full max-w-md flex-col md:max-w-none">
+        <section className="mx-auto flex w-full max-w-md flex-col md:mx-0 md:max-w-none md:bg-white md:px-8 md:py-8 lg:px-10">
           {showHeader ? (
-            <header className="sticky top-0 z-20 -mx-4 mb-4 flex items-center justify-between gap-3 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:rounded-t-xl md:border md:p-4">
+            <header className="sticky top-0 z-20 -mx-4 mb-4 flex items-center justify-between gap-3 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:mb-6 md:border-0 md:p-0 md:shadow-none">
               <div className="flex min-w-0 items-center gap-1">
                 {backHref ? (
                   <Link

@@ -118,9 +118,9 @@ export function WordListHeader({
   }
 
   return (
-    <header className="sticky top-0 z-20 -mx-4 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:rounded-t-xl md:border md:p-4">
+    <header className="sticky top-0 z-20 -mx-4 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:mb-6 md:border-0 md:p-0 md:shadow-none">
       {isSearchOpen ? (
-        <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2 md:hidden">
           <label>
             <span className="sr-only">단어 검색</span>
             <input
@@ -161,7 +161,7 @@ export function WordListHeader({
             </button>
             <button
               aria-label="단어 검색"
-              className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-base font-black text-brand-muted shadow-sm"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-base font-black text-brand-muted shadow-sm md:hidden"
               onClick={() => {
                 setIsSearchOpen(true);
                 setIsLanguageOpen(false);
@@ -215,8 +215,8 @@ export function WordListHeader({
         </div>
       )}
 
-      <div className="mt-3">
-        <div className="grid gap-2">
+      <div className={isSearchOpen ? "mt-3 hidden md:block" : "mt-3 md:mt-5"}>
+        <div className="grid gap-2 md:grid-cols-[minmax(220px,320px)_minmax(260px,1fr)_max-content] md:items-center md:gap-3">
           <NotebookDropdown
             ariaLabel="노트 선택"
             buttonLabel={notebookTitle}
@@ -236,7 +236,17 @@ export function WordListHeader({
             selectedKey={selectedNotebookKey}
           />
 
-          <div className="grid grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm">
+          <label className="hidden md:block">
+            <span className="sr-only">단어 검색</span>
+            <input
+              className="min-h-11 w-full rounded-lg border border-brand-border bg-white px-3 text-sm font-semibold text-brand-text shadow-sm placeholder:text-brand-muted"
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              placeholder="단어, 읽기, 뜻, 예문 검색"
+              value={searchQuery}
+            />
+          </label>
+
+          <div className="grid grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm md:min-w-72">
             {viewTabs.map((tab) => (
               <button
                 aria-pressed={viewMode === tab.value}
