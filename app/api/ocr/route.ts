@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { extractTextFromImage } from "@/lib/google-vision";
 import { isLanguage } from "@/lib/languages";
 import type { Language } from "@/types/language";
+import type { OcrReadingDirection } from "@/types/ocr";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,11 @@ const languageHints: Record<Language, string[]> = {
   ja: ["ja", "en"],
   zh: ["zh", "zh-CN", "en"],
 };
+const readingDirections = new Set<OcrReadingDirection>([
+  "auto",
+  "horizontal",
+  "vertical-rl",
+]);
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -25,10 +31,16 @@ export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   const image = formData?.get("image");
   const languageValue = formData?.get("language");
+  const readingDirectionValue = formData?.get("readingDirection");
   const language =
     typeof languageValue === "string" && isLanguage(languageValue)
       ? languageValue
       : "ja";
+  const readingDirection =
+    typeof readingDirectionValue === "string" &&
+    readingDirections.has(readingDirectionValue as OcrReadingDirection)
+      ? (readingDirectionValue as OcrReadingDirection)
+      : "auto";
 
   if (!(image instanceof File)) {
     return NextResponse.json(
@@ -53,7 +65,11 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await image.arrayBuffer());
-    const text = await extractTextFromImage(buffer, languageHints[language]);
+    const text = await extractTextFromImage(
+      buffer,
+      languageHints[language],
+      readingDirection,
+    );
 
     return NextResponse.json({ text });
   } catch (error) {

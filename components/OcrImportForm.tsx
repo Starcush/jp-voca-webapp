@@ -17,11 +17,20 @@ import { getLanguageOption } from "@/lib/languages";
 import { splitTextIntoSentences } from "@/lib/sentence-splitter";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
+import type { OcrReadingDirection } from "@/types/ocr";
 
 type OcrImportFormProps = {
   language: Language;
   notebookId?: string;
 };
+const readingDirectionOptions: Array<{
+  label: string;
+  value: OcrReadingDirection;
+}> = [
+  { label: "자동", value: "auto" },
+  { label: "가로쓰기", value: "horizontal" },
+  { label: "세로쓰기", value: "vertical-rl" },
+];
 
 /**
  * OCR 가져오기 화면의 최상위 조립 컴포넌트입니다.
@@ -37,6 +46,8 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   const [selectedNotebookId, setSelectedNotebookId] = useState(
     getPersistedNotebookId(notebookId),
   );
+  const [readingDirection, setReadingDirection] =
+    useState<OcrReadingDirection>("auto");
   const notebookTarget = useCurrentNotebookTarget({
     language,
     notebookId: selectedNotebookId,
@@ -49,7 +60,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   const [extractedText, setExtractedText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const { extractText, imageFile, isExtracting, previewUrl, setImageFile } =
-    useOcrImage(language);
+    useOcrImage(language, readingDirection);
   const {
     addExpression,
     clearExpressions,
@@ -70,6 +81,10 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   useEffect(() => {
     setSelectedNotebookId(getPersistedNotebookId(notebookId));
   }, [language, notebookId]);
+
+  useEffect(() => {
+    setReadingDirection("auto");
+  }, [language]);
 
   function handleNotebookChange(nextNotebookId?: string) {
     setSelectedNotebookId(nextNotebookId);
@@ -182,6 +197,30 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
                 추출
               </button>
             </div>
+            {language === "ja" ? (
+              <div className="grid gap-2">
+                <span className="text-sm font-semibold text-brand-text">
+                  읽기 방향
+                </span>
+                <div className="grid grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm">
+                  {readingDirectionOptions.map((option) => (
+                    <button
+                      aria-pressed={readingDirection === option.value}
+                      className={`min-h-8 rounded-full px-2 text-xs font-bold ${
+                        readingDirection === option.value
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-brand-muted"
+                      }`}
+                      key={option.value}
+                      onClick={() => setReadingDirection(option.value)}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {imageFile ? (
               <p className="text-xs font-semibold text-brand-muted">
                 선택됨: {imageFile.name}

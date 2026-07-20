@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Language } from "@/types/language";
+import type { OcrReadingDirection } from "@/types/ocr";
 
 const OCR_IMAGE_MAX_SIZE = 1800;
 const OCR_IMAGE_QUALITY = 0.86;
@@ -63,9 +64,13 @@ async function prepareImageForOcr(file: File) {
  * OCR 이미지 선택, 미리보기 URL, 이미지 리사이즈, 텍스트 추출 요청을 관리합니다.
  *
  * @param language - OCR 요청에 사용할 현재 언어 코드입니다.
+ * @param readingDirection - OCR 결과 조립에 사용할 읽기 방향입니다.
  * @returns 선택된 이미지 파일, 미리보기 URL, 추출 로딩 상태, 이미지 변경 함수, 텍스트 추출 함수를 반환합니다.
  */
-export function useOcrImage(language: Language) {
+export function useOcrImage(
+  language: Language,
+  readingDirection: OcrReadingDirection,
+) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const previewUrl = useMemo(
@@ -93,6 +98,7 @@ export function useOcrImage(language: Language) {
       const formData = new FormData();
       formData.append("image", preparedImage, "ocr-image.jpg");
       formData.append("language", language);
+      formData.append("readingDirection", readingDirection);
 
       const response = await fetch("/api/ocr", {
         method: "POST",
