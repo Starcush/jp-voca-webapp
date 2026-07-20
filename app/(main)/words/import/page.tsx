@@ -1,7 +1,7 @@
 import { AppFrame } from "@/components/AppFrame";
 import { OcrImportForm } from "@/components/OcrImportForm";
 import { RequireSession } from "@/components/RequireSession";
-import { DEFAULT_LANGUAGE, getLanguageOption, isLanguage } from "@/lib/languages";
+import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
 
 type ImportWordsPageProps = {
   searchParams: Promise<{
@@ -13,10 +13,9 @@ type ImportWordsPageProps = {
 export default async function ImportWordsPage({ searchParams }: ImportWordsPageProps) {
   const { lang, notebookId } = await searchParams;
   const selectedLanguage = isLanguage(lang) ? lang : DEFAULT_LANGUAGE;
-  const language = getLanguageOption(selectedLanguage);
 
   return (
-    <AppFrame title="사진에서 가져오기" eyebrow={language.flag}>
+    <AppFrame title="사진에서 가져오기" language={selectedLanguage}>
       <RequireSession>
         <OcrImportForm language={selectedLanguage} notebookId={notebookId} />
       </RequireSession>
