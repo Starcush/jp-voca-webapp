@@ -151,7 +151,7 @@ export function NotebookManager({ language }: NotebookManagerProps) {
         }
         show={isLoading || isMutating}
       />
-      <section className="min-h-[calc(100dvh-9rem)] pb-24">
+      <section className="min-h-[calc(100dvh-9rem)] pb-16">
         {notebooksErrorMessage ? (
           <p className="mb-3 rounded-lg bg-status-negative-bg px-3 py-2 text-sm font-semibold text-status-negative">
             {notebooksErrorMessage}

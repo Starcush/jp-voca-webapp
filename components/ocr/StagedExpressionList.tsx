@@ -104,7 +104,7 @@ export function StagedExpressionList({
   }
 
   return (
-    <section className="grid gap-3 pb-28">
+    <section className="grid gap-3 pb-20">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-semibold text-brand-text">

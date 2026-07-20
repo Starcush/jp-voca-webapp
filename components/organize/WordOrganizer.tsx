@@ -244,7 +244,7 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
   }
 
   return (
-    <section className="-mt-2 grid gap-4 pb-28">
+    <section className="-mt-2 grid gap-4 pb-20">
       <div className="sticky top-[4.5rem] z-10 -mx-4 bg-brand-background/95 px-4 pb-2 pt-1 backdrop-blur md:static md:mx-0 md:bg-transparent md:p-0">
         <div className="grid gap-2">
           <div className="grid grid-cols-2 rounded-full bg-brand-background p-1">

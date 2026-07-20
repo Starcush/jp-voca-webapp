@@ -43,7 +43,7 @@ export function WordListNoResultsState({
         </button>
       </section>
       {hasMore ? (
-        <div className="pb-24">
+        <div className="pb-16">
           <button
             className="min-h-12 w-full rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoadingMore}

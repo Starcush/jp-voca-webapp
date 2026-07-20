@@ -31,7 +31,7 @@ export function AppFrame({
   showHeader = true,
 }: AppFrameProps) {
   return (
-    <main className="min-h-dvh bg-brand-background px-4 pb-24 pt-0 text-brand-text md:py-4 md:pb-4">
+    <main className="min-h-dvh bg-brand-background px-4 pb-16 pt-0 text-brand-text md:py-4 md:pb-4">
       <div className="mx-auto grid min-h-[calc(100dvh-2rem)] w-full max-w-6xl gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
         <Suspense fallback={null}>
           <AppNavigation />

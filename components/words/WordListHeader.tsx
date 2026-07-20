@@ -127,9 +127,6 @@ export function WordListHeader({
             <h1 className="truncate text-2xl font-black tracking-normal text-brand-text">
               단어장
             </h1>
-            <p className="mt-0.5 text-xs font-bold text-brand-muted">
-              {activeLanguageOption.label} · {totalWordCountLabel}
-            </p>
           </div>
           <div className="relative flex shrink-0 items-center gap-2">
             <button

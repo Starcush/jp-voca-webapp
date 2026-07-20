@@ -76,7 +76,7 @@ export function WordCardList({
         </div>
       </section>
       {hasMore ? (
-        <div className="pb-24">
+        <div className="pb-16">
           <button
             className="min-h-12 w-full rounded-lg border border-brand-border bg-white text-base font-bold text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoadingMore}
@@ -87,7 +87,7 @@ export function WordCardList({
           </button>
         </div>
       ) : (
-        <div className="pb-24" />
+        <div className="pb-16" />
       )}
       <Link
         aria-label="단어 추가"
