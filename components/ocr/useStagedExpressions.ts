@@ -25,6 +25,7 @@ type VocabularyRequest = {
 };
 
 type VocabularySuggestion = {
+  failed: boolean;
   meaning: string;
   reading: string;
 };
@@ -105,10 +106,11 @@ async function suggestVocabulary({
   } | null;
 
   if (!response.ok || typeof data?.meaning !== "string") {
-    return { meaning: "", reading: "" };
+    return { failed: true, meaning: "", reading: "" };
   }
 
   return {
+    failed: false,
     meaning: data.meaning,
     reading: typeof data.reading === "string" ? data.reading : "",
   };
@@ -159,18 +161,29 @@ async function enrichExpression(
         : await generateReading(language, term);
     const reading = userReading || suggestion.reading || fallbackReading;
     const meaning = currentMeaning || suggestion.meaning;
+    const failed =
+      suggestion.failed ||
+      (!currentMeaning && !suggestion.meaning.trim()) ||
+      (language !== "en" && !userReading && !reading.trim());
 
     return {
       expression: {
         ...expression,
+        enrichmentFailed: failed,
         meaning,
         reading,
       },
-      failed: false,
+      failed,
     };
   } catch (error) {
     console.error("Failed to enrich staged expression.", error);
-    return { expression, failed: true };
+    return {
+      expression: {
+        ...expression,
+        enrichmentFailed: true,
+      },
+      failed: true,
+    };
   }
 }
 
@@ -217,6 +230,7 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
     setStagedExpressions((currentExpressions) => [
       ...currentExpressions,
       {
+        enrichmentFailed: false,
         id: crypto.randomUUID(),
         meaning: "",
         reading: "",
@@ -300,6 +314,7 @@ export function useStagedExpressions(language: Language, notebookId?: string) {
         expression.id === expressionId
           ? {
               ...expression,
+              enrichmentFailed: false,
               ...input,
             }
           : expression,

@@ -38,9 +38,11 @@ export type OcrLanguageOptionLabels = {
  * @property reading - 일본어 후리가나 또는 중국어 병음입니다. 영어에서는 빈 문자열을 사용합니다.
  * @property meaning - AI 추천 또는 사용자가 입력한 뜻입니다.
  * @property sourceSentence - 표현을 선택한 원문 문장입니다.
+ * @property enrichmentFailed - 읽기/뜻 찾기 요청이 실패했는지 여부입니다.
  * @property useExample - sourceSentence를 예문으로 저장할지 여부입니다.
  */
 export type StagedExpression = {
+  enrichmentFailed?: boolean;
   id: string;
   meaning: string;
   reading: string;

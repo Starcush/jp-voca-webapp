@@ -34,12 +34,25 @@ function hasIncompleteOptionalFields(
   expressions: StagedExpression[],
   hasReadingField: boolean,
 ) {
-  return expressions.some(
+  return getIncompleteOptionalFieldCount(expressions, hasReadingField) > 0;
+}
+
+function getIncompleteOptionalFieldCount(
+  expressions: StagedExpression[],
+  hasReadingField: boolean,
+) {
+  return expressions.filter(
     (expression) =>
       expression.term.trim() &&
       ((hasReadingField && !expression.reading.trim()) ||
         !expression.meaning.trim()),
-  );
+  ).length;
+}
+
+function getEnrichmentFailedCount(expressions: StagedExpression[]) {
+  return expressions.filter(
+    (expression) => expression.term.trim() && expression.enrichmentFailed,
+  ).length;
 }
 
 /**
@@ -76,10 +89,15 @@ export function StagedExpressionList({
   const canSaveExpressions =
     expressions.length > 0 && incompleteExpressionCount === 0;
   const canEnrichExpressions = readyExpressionCount > 0;
-  const needsIncompleteSaveConfirm = hasIncompleteOptionalFields(
+  const incompleteOptionalFieldCount = getIncompleteOptionalFieldCount(
     expressions,
     Boolean(languageOption.readingLabel),
   );
+  const enrichmentFailedCount = getEnrichmentFailedCount(expressions);
+  const needsIncompleteSaveConfirm = hasIncompleteOptionalFields(
+    expressions,
+    Boolean(languageOption.readingLabel),
+  ) || enrichmentFailedCount > 0;
 
   function handleSaveClick() {
     if (!canSaveExpressions) {
@@ -168,7 +186,9 @@ export function StagedExpressionList({
         </div>
       </div>
       <IncompleteSaveConfirmDialog
+        enrichmentFailedCount={enrichmentFailedCount}
         hasReadingField={Boolean(languageOption.readingLabel)}
+        incompleteOptionalFieldCount={incompleteOptionalFieldCount}
         isSaving={isSaving}
         onCancel={() => setIsSaveConfirmOpen(false)}
         onConfirm={handleConfirmSave}
@@ -301,13 +321,17 @@ function StagedExpressionCard({
 }
 
 function IncompleteSaveConfirmDialog({
+  enrichmentFailedCount,
   hasReadingField,
+  incompleteOptionalFieldCount,
   isSaving,
   onCancel,
   onConfirm,
   open,
 }: {
+  enrichmentFailedCount: number;
   hasReadingField: boolean;
+  incompleteOptionalFieldCount: number;
   isSaving: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -328,11 +352,21 @@ function IncompleteSaveConfirmDialog({
           <h2 className="text-lg font-black text-brand-text">
             그대로 저장할까요?
           </h2>
-          <p className="text-sm font-medium leading-6 text-brand-muted">
-            {hasReadingField
-              ? "읽기나 뜻이 비어 있는 항목이 있습니다. 나중에 수정할 수 있으니 그대로 저장해도 괜찮습니다."
-              : "뜻이 비어 있는 항목이 있습니다. 나중에 수정할 수 있으니 그대로 저장해도 괜찮습니다."}
-          </p>
+          <div className="grid gap-1 text-sm font-medium leading-6 text-brand-muted">
+            {incompleteOptionalFieldCount > 0 ? (
+              <p>
+                {hasReadingField
+                  ? `읽기 또는 뜻이 비어 있는 항목이 ${incompleteOptionalFieldCount}개 있어요.`
+                  : `뜻이 비어 있는 항목이 ${incompleteOptionalFieldCount}개 있어요.`}
+              </p>
+            ) : null}
+            {enrichmentFailedCount > 0 ? (
+              <p>
+                읽기·뜻 찾기에 실패한 항목이 {enrichmentFailedCount}개 있어요.
+              </p>
+            ) : null}
+            <p>직접 수정하거나 그대로 저장할 수 있습니다.</p>
+          </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <button
@@ -341,7 +375,7 @@ function IncompleteSaveConfirmDialog({
             onClick={onCancel}
             type="button"
           >
-            취소
+            계속 수정
           </button>
           <button
             className="min-h-11 rounded-lg bg-primary px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
