@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 import {
-  CurrentNotebookNotice,
+  CurrentNotebookSelector,
   useCurrentNotebookTarget,
 } from "@/components/notebooks/CurrentNotebookNotice";
+import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
+import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import { SentenceSelector } from "@/components/ocr/SentenceSelector";
 import { StagedExpressionList } from "@/components/ocr/StagedExpressionList";
 import { useOcrImage } from "@/components/ocr/useOcrImage";
 import { useStagedExpressions } from "@/components/ocr/useStagedExpressions";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import { getLanguageOption } from "@/lib/languages";
 import { splitTextIntoSentences } from "@/lib/sentence-splitter";
 import { useSession } from "@/lib/use-session";
@@ -31,9 +34,16 @@ type OcrImportFormProps = {
 export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
   const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
+  const [selectedNotebookId, setSelectedNotebookId] = useState(
+    getPersistedNotebookId(notebookId),
+  );
   const notebookTarget = useCurrentNotebookTarget({
     language,
-    notebookId,
+    notebookId: selectedNotebookId,
+    session,
+  });
+  const { isLoadingNotebooks, notebooks } = useNotebooksQuery({
+    language,
     session,
   });
   const [extractedText, setExtractedText] = useState("");
@@ -56,6 +66,24 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     () => splitTextIntoSentences(extractedText, language),
     [extractedText, language],
   );
+
+  useEffect(() => {
+    setSelectedNotebookId(getPersistedNotebookId(notebookId));
+  }, [language, notebookId]);
+
+  function handleNotebookChange(nextNotebookId?: string) {
+    setSelectedNotebookId(nextNotebookId);
+
+    window.history.replaceState(
+      null,
+      "",
+      buildWordListHref({
+        language,
+        notebookId: nextNotebookId,
+        path: "/words/import",
+      }),
+    );
+  }
 
   function handleImageFileChange(file?: File) {
     setImageFile(file ?? null);
@@ -116,7 +144,13 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         show={isExtracting || isEnrichingExpressions || isSavingWords}
       />
       <section className="grid gap-5">
-        <CurrentNotebookNotice target={notebookTarget} />
+        <CurrentNotebookSelector
+          isLoadingNotebooks={isLoadingNotebooks}
+          notebooks={notebooks}
+          onNotebookChange={handleNotebookChange}
+          selectedNotebookId={selectedNotebookId}
+          target={notebookTarget}
+        />
 
         <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
           <p className="text-base font-bold text-brand-text">
