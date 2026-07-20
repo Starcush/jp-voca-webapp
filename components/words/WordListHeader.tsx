@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import { useState } from "react";
 import {
   NotebookDropdown,
@@ -171,6 +171,17 @@ export function WordListHeader({
             >
               <Search aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
             </button>
+            <Link
+              aria-label="설정"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-brand-muted shadow-sm"
+              href="/settings"
+              onClick={() => {
+                setIsLanguageOpen(false);
+                setIsNotebookOpen(false);
+              }}
+            >
+              <Settings aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
+            </Link>
             {isLanguageOpen ? (
               <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-brand-border bg-white p-2 text-brand-text shadow-lg">
                 <div className="grid gap-1">
@@ -198,12 +209,6 @@ export function WordListHeader({
                       </button>
                     ))}
                 </div>
-                <Link
-                  className="mt-2 grid min-h-10 place-items-center rounded-lg border border-brand-border text-sm font-bold text-brand-muted"
-                  href="/settings"
-                >
-                  언어 관리
-                </Link>
               </div>
             ) : null}
           </div>

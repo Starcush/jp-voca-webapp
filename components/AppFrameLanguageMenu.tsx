@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { languageOptions } from "@/lib/languages";
@@ -29,7 +27,7 @@ function getEnabledLanguages(activeLanguage: Language, enabledLanguages?: Langua
  *
  * @param props - 현재 헤더에 표시할 학습 언어입니다.
  * @param props.activeLanguage - 현재 URL과 화면에서 선택된 언어 코드입니다.
- * @returns 언어 국기 버튼, 활성 언어 목록, 언어 관리 링크를 렌더링합니다.
+ * @returns 언어 국기 버튼과 활성 언어 목록을 렌더링합니다.
  */
 export function AppFrameLanguageMenu({
   activeLanguage,
@@ -97,12 +95,6 @@ export function AppFrameLanguageMenu({
                 </button>
               ))}
           </div>
-          <Link
-            className="mt-2 grid min-h-10 place-items-center rounded-lg border border-brand-border text-sm font-bold text-brand-muted"
-            href="/settings"
-          >
-            언어 관리
-          </Link>
         </div>
       ) : null}
     </div>

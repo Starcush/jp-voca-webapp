@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import { Suspense, type ReactNode } from "react";
 import { AppFrameLanguageMenu } from "@/components/AppFrameLanguageMenu";
 import { AppNavigation } from "@/components/AppNavigation";
@@ -61,7 +61,20 @@ export function AppFrame({
               </div>
               {action ??
                 (language ? (
-                  <AppFrameLanguageMenu activeLanguage={language} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <AppFrameLanguageMenu activeLanguage={language} />
+                    <Link
+                      aria-label="설정"
+                      className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-brand-muted shadow-sm"
+                      href="/settings"
+                    >
+                      <Settings
+                        aria-hidden="true"
+                        className="h-5 w-5"
+                        strokeWidth={2.2}
+                      />
+                    </Link>
+                  </div>
                 ) : eyebrow ? (
                   <span
                     aria-label={eyebrow}
