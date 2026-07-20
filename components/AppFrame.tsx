@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { Suspense, type ReactNode } from "react";
 import { AppFrameLanguageMenu } from "@/components/AppFrameLanguageMenu";
 import { AppNavigation } from "@/components/AppNavigation";
@@ -8,6 +9,7 @@ type AppFrameProps = {
   title: string;
   eyebrow?: string;
   action?: ReactNode;
+  backHref?: string;
   children: ReactNode;
   language?: Language;
   showHeader?: boolean;
@@ -23,6 +25,7 @@ export function AppFrame({
   title,
   eyebrow,
   action,
+  backHref,
   children,
   language,
   showHeader = true,
@@ -36,11 +39,26 @@ export function AppFrame({
         <section className="mx-auto flex w-full max-w-md flex-col md:max-w-none">
           {showHeader ? (
             <header className="sticky top-0 z-20 -mx-4 mb-4 flex items-center justify-between gap-3 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:rounded-t-xl md:border md:p-4">
-              <Link href="/words" className="min-w-0">
-                <h1 className="truncate text-2xl font-black tracking-normal text-brand-text">
-                  {title}
-                </h1>
-              </Link>
+              <div className="flex min-w-0 items-center gap-1">
+                {backHref ? (
+                  <Link
+                    aria-label="뒤로가기"
+                    className="-ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-brand-text"
+                    href={backHref}
+                  >
+                    <ChevronLeft
+                      aria-hidden="true"
+                      className="h-6 w-6"
+                      strokeWidth={2.4}
+                    />
+                  </Link>
+                ) : null}
+                <Link href={backHref ?? "/words"} className="min-w-0">
+                  <h1 className="truncate text-2xl font-black tracking-normal text-brand-text">
+                    {title}
+                  </h1>
+                </Link>
+              </div>
               {action ??
                 (language ? (
                   <AppFrameLanguageMenu activeLanguage={language} />

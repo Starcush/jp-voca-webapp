@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-Light.otf") format("opentype");
+  font-display: swap;
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-Regular.otf") format("opentype");
+  font-display: swap;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-Medium.otf") format("opentype");
+  font-display: swap;
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-SemiBold.otf") format("opentype");
+  font-display: swap;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-Bold.otf") format("opentype");
+  font-display: swap;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-ExtraBold.otf") format("opentype");
+  font-display: swap;
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: pretendard;
+  src: url("/fonts/Pretendard-Black.otf") format("opentype");
+  font-display: swap;
+  font-weight: 900;
+}
+
 :root {
   color-scheme: light;
   --background: #f2f2f2;
@@ -21,12 +70,10 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family:
-    "Noto Sans KR",
-    "Apple SD Gothic Neo",
-    Arial,
-    Helvetica,
-    sans-serif;
+  font-family: pretendard, sans-serif;
+  font-size: 14px;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
