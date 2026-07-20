@@ -10,7 +10,7 @@ import {
 import { getDb } from "@/lib/firebase";
 import { USERS_COLLECTION, userPath } from "@/lib/firestore-paths";
 import type { Language } from "@/types/language";
-import type { AppUser } from "@/types/user";
+import type { AppUser, TextSizePreference } from "@/types/user";
 
 export function usersCollection() {
   return collection(getDb(), USERS_COLLECTION) as CollectionReference<AppUser>;
@@ -43,6 +43,23 @@ export async function updateUserLanguageSettings(
   await updateDoc(userDocument(uid), {
     defaultLanguage,
     enabledLanguages: languages,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * 사용자의 앱 글자 크기 설정을 저장합니다.
+ *
+ * @param uid - 설정을 저장할 사용자 ID입니다.
+ * @param textSize - 앱 전체에 적용할 글자 크기 옵션입니다.
+ * @returns Firestore 사용자 문서 업데이트가 끝나면 resolve됩니다.
+ */
+export async function updateUserTextSizeSetting(
+  uid: string,
+  textSize: TextSizePreference,
+) {
+  await updateDoc(userDocument(uid), {
+    textSize,
     updatedAt: serverTimestamp(),
   });
 }

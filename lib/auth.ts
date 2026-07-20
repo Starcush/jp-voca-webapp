@@ -104,6 +104,7 @@ async function upsertUserDocument(uid: string, email: string) {
   return {
     defaultLanguage: userData?.defaultLanguage,
     enabledLanguages: userData?.enabledLanguages,
+    textSize: userData?.textSize,
     username,
   };
 }
@@ -143,6 +144,7 @@ export async function authenticateWithAccount(
       defaultLanguage: appUser.defaultLanguage,
       enabledLanguages: appUser.enabledLanguages,
       rememberLogin,
+      textSize: appUser.textSize,
       uid: user.uid,
       username: appUser.username,
     };
@@ -168,6 +170,7 @@ export async function createSessionFromFirebaseUser(
     defaultLanguage: appUser.defaultLanguage,
     enabledLanguages: appUser.enabledLanguages,
     rememberLogin,
+    textSize: appUser.textSize,
     uid: user.uid,
     username: appUser.username,
   };

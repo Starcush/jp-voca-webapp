@@ -75,7 +75,7 @@ export function WordCard({
               )}`}
             >
               <span
-                className={`break-words text-[17px] font-semibold leading-6 text-word-kanji ${languageTextClass}`}
+                className={`break-words text-[1.0625rem] font-semibold leading-6 text-word-kanji ${languageTextClass}`}
               >
                 {term}
               </span>
@@ -88,7 +88,7 @@ export function WordCard({
               ) : null}
             </span>
             <span
-              className={`break-words text-[13px] font-medium leading-5 text-word-meaning ${getMaskedClass(
+              className={`break-words text-[0.8125rem] font-medium leading-5 text-word-meaning ${getMaskedClass(
                 maskedField === "meaning",
               )}`}
             >

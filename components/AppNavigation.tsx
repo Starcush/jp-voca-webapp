@@ -122,7 +122,7 @@ export function AppNavigationFallback() {
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {fallbackNavigationItems.map((item) => (
             <div
-              className="grid min-h-12 place-items-center rounded-lg px-1 text-[11px] font-bold text-brand-muted"
+              className="grid min-h-12 place-items-center rounded-lg px-1 text-xs font-bold text-brand-muted"
               key={item.label}
             >
               <item.icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
@@ -213,7 +213,7 @@ export function AppNavigation() {
           {items.map((item) => (
             <Link
               aria-current={item.isActive ? "page" : undefined}
-              className={`grid min-h-12 place-items-center rounded-lg px-1 text-[11px] font-bold ${
+              className={`grid min-h-12 place-items-center rounded-lg px-1 text-xs font-bold ${
                 item.isActive
                   ? "text-brand-green"
                   : "text-brand-muted hover:bg-brand-background"

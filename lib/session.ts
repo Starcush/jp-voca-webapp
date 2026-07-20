@@ -1,4 +1,5 @@
 import type { Language } from "@/types/language";
+import type { TextSizePreference } from "@/types/user";
 
 export const APP_SESSION_STORAGE_KEY = "jp-voca-webapp.session";
 export const APP_SESSION_CHANGE_EVENT = "jp-voca-webapp.session-change";
@@ -8,6 +9,7 @@ export type AppSession = {
   defaultLanguage?: Language;
   enabledLanguages?: Language[];
   rememberLogin?: boolean;
+  textSize?: TextSizePreference;
   uid: string;
   username: string;
 };

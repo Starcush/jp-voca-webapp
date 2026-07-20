@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppToaster } from "@/components/AppToaster";
 import { QueryProvider } from "@/components/QueryProvider";
+import { TextSizeProvider } from "@/components/TextSizeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <QueryProvider>
-          {children}
+          <TextSizeProvider>{children}</TextSizeProvider>
           <AppToaster />
         </QueryProvider>
       </body>

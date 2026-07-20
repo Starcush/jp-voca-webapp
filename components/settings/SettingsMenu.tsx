@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Languages, UserRound } from "lucide-react";
+import { ALargeSmall, ChevronRight, Languages, UserRound } from "lucide-react";
 
 /**
  * 설정 홈에서 계정 관리와 언어 관리로 이동하는 메뉴 리스트를 렌더링합니다.
@@ -24,6 +24,12 @@ export function SettingsMenu() {
           href="/settings/language"
           icon={<Languages aria-hidden="true" className="h-5 w-5" />}
           label="언어 관리"
+        />
+        <SettingsMenuItem
+          description="앱 전체 글자 크기 설정"
+          href="/settings/text-size"
+          icon={<ALargeSmall aria-hidden="true" className="h-5 w-5" />}
+          label="글자 크기"
         />
       </div>
     </section>
