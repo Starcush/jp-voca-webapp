@@ -1,6 +1,6 @@
 import { AppFrame } from "@/components/AppFrame";
 import { RequireSession } from "@/components/RequireSession";
-import { WordOrganizer } from "@/components/organize/WordOrganizer";
+import { OrganizeMenu } from "@/components/organize/OrganizeMenu";
 import { DEFAULT_LANGUAGE, getLanguageOption, isLanguage } from "@/lib/languages";
 
 type OrganizeWordsPageProps = {
@@ -17,9 +17,9 @@ export default async function OrganizeWordsPage({
   const language = getLanguageOption(selectedLanguage);
 
   return (
-    <AppFrame title="단어 정리" eyebrow={language.label}>
+    <AppFrame title="단어 정리" eyebrow={language.flag}>
       <RequireSession>
-        <WordOrganizer language={selectedLanguage} />
+        <OrganizeMenu language={selectedLanguage} />
       </RequireSession>
     </AppFrame>
   );

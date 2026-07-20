@@ -1,24 +1,25 @@
 import { AppFrame } from "@/components/AppFrame";
-import { OcrImportForm } from "@/components/OcrImportForm";
 import { RequireSession } from "@/components/RequireSession";
+import { WordOrganizer } from "@/components/organize/WordOrganizer";
 import { DEFAULT_LANGUAGE, getLanguageOption, isLanguage } from "@/lib/languages";
 
-type ImportWordsPageProps = {
+type OrganizeWordsPageProps = {
   searchParams: Promise<{
     lang?: string;
-    notebookId?: string;
   }>;
 };
 
-export default async function ImportWordsPage({ searchParams }: ImportWordsPageProps) {
-  const { lang, notebookId } = await searchParams;
+export default async function OrganizeWordsPage({
+  searchParams,
+}: OrganizeWordsPageProps) {
+  const { lang } = await searchParams;
   const selectedLanguage = isLanguage(lang) ? lang : DEFAULT_LANGUAGE;
   const language = getLanguageOption(selectedLanguage);
 
   return (
-    <AppFrame title="사진에서 가져오기" eyebrow={language.flag}>
+    <AppFrame title="단어 관리" eyebrow={language.flag}>
       <RequireSession>
-        <OcrImportForm language={selectedLanguage} notebookId={notebookId} />
+        <WordOrganizer language={selectedLanguage} />
       </RequireSession>
     </AppFrame>
   );

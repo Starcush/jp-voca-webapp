@@ -16,7 +16,7 @@ const config: Config = {
           example: "#777777",
         },
         brand: {
-          background: "#FAFAFA",
+          background: "#F2F2F2",
           surface: "#FFFFFF",
           border: "#E5E5E5",
           "border-strong": "#C4C4C4",

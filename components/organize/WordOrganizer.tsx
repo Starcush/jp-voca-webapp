@@ -163,7 +163,7 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
   if (isLoading) {
     return (
       <section className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-semibold text-slate-500">
+        <p className="text-sm font-semibold text-brand-muted">
           정리할 단어를 불러오는 중
         </p>
       </section>
@@ -172,21 +172,21 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
 
   return (
     <section className="grid gap-4">
-      <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-3 rounded-lg border border-brand-border bg-white p-4 shadow-sm">
         <div>
-          <p className="text-base font-bold text-slate-950">
+          <p className="text-base font-bold text-brand-text">
             {languageOption.label} 단어 정리
           </p>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
+          <p className="mt-1 text-sm leading-6 text-brand-muted">
             기존 단어를 선택해서 미분류나 다른 노트로 옮길 수 있습니다.
           </p>
         </div>
 
         {errorMessage ? (
-          <div className="grid gap-2 rounded-md bg-red-50 px-3 py-2">
-            <p className="text-sm font-semibold text-red-700">{errorMessage}</p>
+          <div className="grid gap-2 rounded-md bg-status-negative-bg px-3 py-2">
+            <p className="text-sm font-semibold text-status-negative">{errorMessage}</p>
             <button
-              className="justify-self-start text-sm font-bold text-red-700 underline"
+              className="justify-self-start text-sm font-bold text-status-negative underline"
               onClick={() => void refetch()}
               type="button"
             >
@@ -197,9 +197,9 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
 
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <label className="grid min-w-0 gap-2">
-            <span className="text-sm font-bold text-slate-700">출발 노트</span>
+            <span className="text-sm font-bold text-brand-text">출발 노트</span>
             <select
-              className="min-h-11 w-full min-w-0 truncate rounded-lg border-slate-200 bg-white text-base"
+              className="min-h-11 w-full min-w-0 truncate rounded-lg border-brand-border bg-white text-base"
               onChange={(event) => handleSourceChange(event.target.value)}
               value={sourceNotebookId}
             >
@@ -214,9 +214,9 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
           </label>
 
           <label className="grid min-w-0 gap-2">
-            <span className="text-sm font-bold text-slate-700">도착 노트</span>
+            <span className="text-sm font-bold text-brand-text">도착 노트</span>
             <select
-              className="min-h-11 w-full min-w-0 truncate rounded-lg border-slate-200 bg-white text-base"
+              className="min-h-11 w-full min-w-0 truncate rounded-lg border-brand-border bg-white text-base"
               onChange={(event) => setTargetNotebookId(event.target.value)}
               value={targetNotebookId}
             >
@@ -241,15 +241,15 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
         </div>
 
         {isSameTarget ? (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+          <p className="rounded-md bg-primary-tint px-3 py-2 text-sm font-semibold text-primary-text">
             출발 노트와 다른 도착 노트를 선택해주세요.
           </p>
         ) : null}
 
         <label className="grid min-w-0 gap-2">
-          <span className="text-sm font-bold text-slate-700">단어 검색</span>
+          <span className="text-sm font-bold text-brand-text">단어 검색</span>
           <input
-            className="min-h-11 w-full min-w-0 rounded-lg border-slate-200 bg-white text-base"
+            className="min-h-11 w-full min-w-0 rounded-lg border-brand-border bg-white text-base"
             onChange={(event) => handleSearchChange(event.target.value)}
             placeholder="단어, 읽기, 뜻 검색"
             value={searchQuery}
@@ -257,11 +257,11 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
         </label>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-          <p className="text-sm font-semibold text-slate-500">
+          <p className="text-sm font-semibold text-brand-muted">
             표시 {visibleWords.length}개 · 선택 {selectedCount}개
           </p>
           <button
-            className="min-h-11 w-full rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="min-h-11 w-full rounded-lg bg-brand-green px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={!canMove}
             onClick={() => void handleMoveWords()}
             type="button"
@@ -271,10 +271,10 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
         <div className="overflow-x-auto">
           <div className="min-w-[720px]">
-            <div className="grid grid-cols-[36px_1.1fr_0.9fr_1.2fr_0.8fr] items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">
+            <div className="grid grid-cols-[36px_1.1fr_0.9fr_1.2fr_0.8fr] items-center gap-2 border-b border-brand-border bg-brand-background px-3 py-2 text-xs font-bold text-brand-muted">
               <label className="grid place-items-center">
                 <span className="sr-only">현재 목록 전체 선택</span>
                 <input
@@ -282,7 +282,7 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
                     visibleWords.length > 0 &&
                     selectedWordIds.size === visibleWords.length
                   }
-                  className="rounded border-slate-300 text-slate-950 focus:ring-slate-950"
+                  className="rounded border-brand-border-strong text-brand-green focus:ring-brand-green"
                   onChange={handleSelectAllVisible}
                   type="checkbox"
                 />
@@ -297,13 +297,13 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
               <div className="max-h-[60vh] overflow-auto">
                 {visibleWords.map((word) => (
                   <label
-                    className="grid min-h-12 cursor-pointer grid-cols-[36px_1.1fr_0.9fr_1.2fr_0.8fr] items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0 hover:bg-slate-50"
+                    className="grid min-h-12 cursor-pointer grid-cols-[36px_1.1fr_0.9fr_1.2fr_0.8fr] items-center gap-2 border-b border-brand-border px-3 py-2 text-sm last:border-b-0 hover:bg-brand-background"
                     key={word.id}
                   >
                     <span className="grid place-items-center">
                       <input
                         checked={selectedWordIds.has(word.id)}
-                        className="rounded border-slate-300 text-slate-950 focus:ring-slate-950"
+                        className="rounded border-brand-border-strong text-brand-green focus:ring-brand-green"
                         onChange={() =>
                           setSelectedWordIds((currentWordIds) =>
                             toggleSelectedWord(currentWordIds, word.id),
@@ -312,16 +312,16 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
                         type="checkbox"
                       />
                     </span>
-                    <span className="truncate font-bold text-slate-950">
+                    <span className="truncate font-bold text-brand-text">
                       {getWordTerm(word)}
                     </span>
-                    <span className="truncate text-slate-500">
+                    <span className="truncate text-brand-muted">
                       {getWordReading(word) || "-"}
                     </span>
-                    <span className="truncate text-slate-600">
+                    <span className="truncate text-word-meaning">
                       {word.meaning || "-"}
                     </span>
-                    <span className="truncate text-slate-500">
+                    <span className="truncate text-brand-muted">
                       {getNotebookLabel(notebooks, word.notebookId)}
                     </span>
                   </label>
@@ -329,7 +329,7 @@ export function WordOrganizer({ language }: WordOrganizerProps) {
               </div>
             ) : (
               <div className="grid min-h-40 place-items-center px-4 py-10 text-center">
-                <p className="text-sm font-semibold text-slate-500">
+                <p className="text-sm font-semibold text-brand-muted">
                   {searchQuery.trim()
                     ? "조건에 맞는 단어가 없습니다."
                     : "이 출발 노트에 표시할 단어가 없습니다."}

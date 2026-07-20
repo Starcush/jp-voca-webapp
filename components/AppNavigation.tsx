@@ -62,7 +62,7 @@ function getNavigationItems({
     {
       href: buildWordListHref({ language, path: "/words/organize" }),
       icon: ArrowLeftRight,
-      isActive: pathname === "/words/organize",
+      isActive: pathname.startsWith("/words/organize"),
       label: "정리",
     },
     {

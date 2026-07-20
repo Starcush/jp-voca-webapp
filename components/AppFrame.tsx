@@ -35,15 +35,15 @@ export function AppFrame({
         </Suspense>
         <section className="mx-auto flex w-full max-w-md flex-col md:max-w-none">
           {showHeader ? (
-            <header className="flex items-center justify-between gap-4 pb-4">
+            <header className="mb-4 flex items-center justify-between gap-4 pb-1">
               <Link href="/words" className="min-w-0">
-                {eyebrow ? (
-                  <p className="text-xs font-semibold uppercase tracking-normal text-brand-muted">
-                    {eyebrow}
-                  </p>
-                ) : null}
-                <h1 className="truncate text-2xl font-bold tracking-normal text-brand-text">
-                  {title}
+                <h1 className="flex min-w-0 items-center gap-2 text-2xl font-bold tracking-normal text-brand-text">
+                  <span className="truncate">{title}</span>
+                  {eyebrow ? (
+                    <span aria-label={eyebrow} className="shrink-0 text-lg">
+                      {eyebrow}
+                    </span>
+                  ) : null}
                 </h1>
               </Link>
               {action}
