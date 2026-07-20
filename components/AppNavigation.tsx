@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { signOut } from "firebase/auth";
 import {
-  ArrowLeftRight,
   Camera,
+  CaseSensitive,
+  Languages,
   List,
   RotateCcw,
   type LucideIcon,
@@ -37,6 +38,10 @@ function getActiveLanguage(
   return defaultLanguage ?? DEFAULT_LANGUAGE;
 }
 
+function getOrganizeIcon(language: Language): LucideIcon {
+  return language === "en" ? CaseSensitive : Languages;
+}
+
 function getNavigationItems({
   language,
   notebookId,
@@ -61,7 +66,7 @@ function getNavigationItems({
     },
     {
       href: buildWordListHref({ language, path: "/words/organize" }),
-      icon: ArrowLeftRight,
+      icon: getOrganizeIcon(language),
       isActive: pathname.startsWith("/words/organize"),
       label: "정리",
     },

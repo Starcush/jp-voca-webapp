@@ -5,7 +5,7 @@ import { BookOpenText, Search } from "lucide-react";
 import { useState } from "react";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
 import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
-import { viewTabs } from "@/components/words/word-list-options";
+import { getViewTabs } from "@/components/words/word-list-options";
 import { languageOptions } from "@/lib/languages";
 import type { AppSession } from "@/lib/session";
 import type { ViewMode } from "@/components/words/types";
@@ -82,6 +82,7 @@ export function WordListHeader({
     notebookTitle: selectedNotebook?.title,
     selectedNotebookId,
   });
+  const viewTabs = getViewTabs(activeLanguage);
 
   function handleSearchClose() {
     setIsSearchOpen(false);
