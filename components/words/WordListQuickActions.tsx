@@ -23,19 +23,16 @@ export function WordListQuickActions({
   notebookId,
 }: WordListQuickActionsProps) {
   return (
-    <div className="fixed bottom-20 right-4 z-20 rounded-full border border-brand-border bg-white p-1 shadow-lg shadow-orange-900/10 md:bottom-6">
-      <Link
-        aria-label="현재 노트에 단어 추가"
-        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand-green px-3 text-xs font-black text-white"
-        href={buildWordListHref({
-          language,
-          notebookId,
-          path: "/words/new",
-        })}
-      >
-        <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.5} />
-        <span>추가</span>
-      </Link>
-    </div>
+    <Link
+      aria-label="현재 노트에 단어 추가"
+      className="fixed bottom-20 right-4 z-20 grid h-12 w-12 place-items-center rounded-full bg-brand-green text-white shadow-lg shadow-orange-900/20 md:bottom-6"
+      href={buildWordListHref({
+        language,
+        notebookId,
+        path: "/words/new",
+      })}
+    >
+      <Plus aria-hidden="true" className="h-6 w-6" strokeWidth={2.5} />
+    </Link>
   );
 }
