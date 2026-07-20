@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { WordCard } from "@/components/WordCard";
 import { buildWordListHref } from "@/components/words/word-list-links";
@@ -77,15 +78,15 @@ export function WordCardList({
 
   return (
     <>
-      <section className="grid gap-0 py-2">
+      <section className="grid gap-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-bold text-slate-500">
+          <p className="text-xs font-bold text-brand-muted">
             {isSelectionMode ? `선택 ${selectedCount}개` : visibleCountLabel}
           </p>
           {isSelectionMode ? (
             <div className="flex items-center gap-1.5">
               <button
-                className="min-h-9 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600"
+                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted"
                 onClick={onSelectVisibleWords}
                 type="button"
               >
@@ -100,7 +101,7 @@ export function WordCardList({
                 삭제
               </button>
               <button
-                className="min-h-9 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600"
+                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted"
                 onClick={onClearSelection}
                 type="button"
               >
@@ -109,7 +110,7 @@ export function WordCardList({
             </div>
           ) : (
             <button
-              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600"
+              className="min-h-9 rounded-md border border-brand-border bg-white px-3 text-xs font-bold text-brand-muted"
               onClick={() => onSelectionModeChange(true)}
               type="button"
             >
@@ -117,7 +118,7 @@ export function WordCardList({
             </button>
           )}
         </div>
-        <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="grid gap-2">
           {words.map((word) => (
             <WordCard
               activeLanguage={activeLanguage}
@@ -138,7 +139,7 @@ export function WordCardList({
       {hasMore ? (
         <div className="pb-24">
           <button
-            className="min-h-12 w-full rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 w-full rounded-lg border border-brand-border bg-white text-base font-bold text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoadingMore}
             onClick={onLoadMore}
             type="button"
@@ -151,14 +152,14 @@ export function WordCardList({
       )}
       <Link
         aria-label="단어 추가"
-        className="fixed bottom-20 right-5 z-20 grid h-14 w-14 place-items-center rounded-full bg-primary text-3xl font-light leading-none text-white shadow-lg md:bottom-6"
+        className="fixed bottom-20 right-5 z-20 grid h-12 w-12 place-items-center rounded-full bg-brand-green text-white shadow-lg shadow-orange-900/20 md:bottom-6"
         href={buildWordListHref({
           language: activeLanguage,
           notebookId,
           path: "/words/new",
         })}
       >
-        +
+        <Plus aria-hidden="true" className="h-6 w-6" strokeWidth={2.4} />
       </Link>
     </>
   );

@@ -46,10 +46,10 @@ export function WordCard({
   return (
     <article>
       <div
-        className={`flex items-start gap-2 border-b border-slate-100 border-l-[3px] px-2 py-2 ${
+        className={`flex items-start gap-2 rounded-xl py-3 transition-colors ${
           isFlagged
-            ? "border-l-[oklch(0.7_0.13_85)] bg-[oklch(0.97_0.02_85)]"
-            : "border-l-transparent bg-white"
+            ? "bg-white px-3 shadow-[0_3px_10px_rgba(36,28,61,0.12)] ring-1 ring-brand-flag/45"
+            : "bg-white px-3 shadow-[0_1px_3px_rgba(36,28,61,0.06)]"
         } ${
           isSelected ? "bg-primary-tint ring-1 ring-primary-border" : ""
         }`}
@@ -59,7 +59,7 @@ export function WordCard({
             <span className="sr-only">{term} 선택</span>
             <input
               checked={isSelected}
-              className="rounded border-slate-300 text-primary focus:ring-primary"
+              className="rounded border-brand-border-strong text-primary focus:ring-primary"
               onChange={onToggleSelect}
               type="checkbox"
             />
@@ -84,8 +84,8 @@ export function WordCard({
               aria-hidden="true"
               className={`h-2 w-2 rounded-full border ${
                 isFlagged
-                  ? "border-[oklch(0.7_0.13_85)] bg-[oklch(0.45_0.12_85)]"
-                  : "border-slate-300 bg-transparent"
+                  ? "border-brand-flag bg-brand-flag"
+                  : "border-brand-border-strong bg-transparent"
               }`}
             />
           </span>
@@ -95,17 +95,17 @@ export function WordCard({
                 maskedField === "kanji",
               )}`}
             >
-              <span className="break-words text-base font-bold leading-5 text-word-kanji">
+              <span className="break-words text-[17px] font-bold leading-6 text-word-kanji">
                 {term}
               </span>
               {reading ? (
-                <span className="break-words text-xs font-semibold text-primary">
+                <span className="break-words text-xs font-semibold text-brand-muted">
                   {reading}
                 </span>
               ) : null}
             </span>
             <span
-              className={`break-words text-sm font-medium leading-5 text-word-meaning ${getMaskedClass(
+              className={`break-words text-[13px] font-medium leading-5 text-word-meaning ${getMaskedClass(
                 maskedField === "meaning",
               )}`}
             >
@@ -113,7 +113,7 @@ export function WordCard({
             </span>
             {word.exampleSentence || word.exampleTranslation ? (
               <span
-                className={`grid gap-0.5 text-xs font-medium leading-5 text-slate-500 ${getMaskedClass(
+                className={`grid gap-0.5 text-xs font-normal leading-5 text-word-example ${getMaskedClass(
                   Boolean(maskedField),
                 )}`}
               >
@@ -132,7 +132,7 @@ export function WordCard({
           <div className="flex shrink-0 items-center gap-1 pt-0.5">
             <Link
               aria-label={`${term} 수정`}
-              className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 bg-white text-slate-500"
+              className="grid h-8 w-8 place-items-center rounded-lg text-neutral-500"
               href={`/words/${word.id}/edit?lang=${activeLanguage}`}
               title="수정"
             >
@@ -142,8 +142,8 @@ export function WordCard({
           ) : null}
       </div>
       {isFlagHintVisible ? (
-        <div className="relative ml-9 mr-3 mt-1 rounded-xl bg-slate-950 px-4 py-3 text-white shadow-xl">
-          <span className="absolute -top-1 left-3 h-3 w-3 rotate-45 bg-slate-950" />
+        <div className="relative ml-9 mr-3 mt-2 rounded-xl bg-brand-text px-4 py-3 text-white shadow-xl">
+          <span className="absolute -top-1 left-3 h-3 w-3 rotate-45 bg-brand-text" />
           <p className="text-sm font-bold">단어 옆 점을 탭해보세요</p>
           <p className="mt-2 text-sm font-medium leading-6 text-slate-200">
             지금 헷갈리는 단어에 임시 표시를 남길 수 있어요. 이해되면
@@ -151,7 +151,7 @@ export function WordCard({
             훑어볼 때 쓰는 메모예요.
           </p>
           <button
-            className="mt-3 min-h-9 rounded-md bg-white px-3 text-sm font-bold text-slate-950"
+            className="mt-3 min-h-9 rounded-md bg-white px-3 text-sm font-bold text-brand-text"
             onClick={onDismissFlagHint}
             type="button"
           >

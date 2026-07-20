@@ -99,21 +99,21 @@ export function WordListHeader({
   }
 
   return (
-    <header className="sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-slate-50/95 px-4 pb-3 pt-1 backdrop-blur md:static md:mx-0 md:rounded-t-xl md:border md:bg-white md:p-4">
+    <header className="sticky top-0 z-20 -mx-4 border-b border-brand-border bg-white px-4 pb-3 pt-5 text-brand-text shadow-[0_8px_20px_rgba(36,28,61,0.06)] md:static md:mx-0 md:rounded-t-xl md:border md:p-4">
       {isSearchOpen ? (
         <div className="grid grid-cols-[1fr_auto] items-center gap-2">
           <label>
             <span className="sr-only">단어 검색</span>
             <input
               autoFocus
-              className="min-h-11 w-full rounded-lg border-slate-200 bg-white text-base md:bg-slate-50"
+              className="min-h-11 w-full rounded-lg border-brand-border bg-brand-background text-base text-brand-text placeholder:text-brand-muted"
               onChange={(event) => onSearchQueryChange(event.target.value)}
               placeholder="단어, 읽기, 뜻, 예문 검색"
               value={searchQuery}
             />
           </label>
           <button
-            className="min-h-11 rounded-lg px-3 text-sm font-bold text-slate-600"
+            className="min-h-11 rounded-lg px-3 text-sm font-bold text-brand-muted"
             onClick={handleSearchClose}
             type="button"
           >
@@ -123,10 +123,10 @@ export function WordListHeader({
       ) : (
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-black tracking-normal text-slate-950">
+            <h1 className="truncate text-2xl font-black tracking-normal text-brand-text">
               단어장
             </h1>
-            <p className="mt-0.5 text-xs font-bold text-slate-500">
+            <p className="mt-0.5 text-xs font-bold text-brand-muted">
               {activeLanguageOption.label} · {totalWordCountLabel}
             </p>
           </div>
@@ -134,7 +134,7 @@ export function WordListHeader({
             <button
               aria-expanded={isLanguageOpen}
               aria-label="학습 언어 선택"
-              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-lg"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-lg shadow-sm"
               onClick={() => {
                 setIsLanguageOpen((currentValue) => !currentValue);
                 setIsNotebookOpen(false);
@@ -145,7 +145,7 @@ export function WordListHeader({
             </button>
             <button
               aria-label="단어 검색"
-              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-base font-black text-slate-700"
+              className="grid h-10 w-10 place-items-center rounded-lg border border-brand-border bg-white text-base font-black text-brand-muted shadow-sm"
               onClick={() => {
                 setIsSearchOpen(true);
                 setIsLanguageOpen(false);
@@ -156,7 +156,7 @@ export function WordListHeader({
               <Search aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
             </button>
             {isLanguageOpen ? (
-              <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+              <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-brand-border bg-white p-2 text-brand-text shadow-lg">
                 <div className="grid gap-1">
                   {languageOptions
                     .filter((language) => enabledLanguages.includes(language.code))
@@ -165,8 +165,8 @@ export function WordListHeader({
                         aria-pressed={activeLanguage === language.code}
                         className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                           activeLanguage === language.code
-                            ? "bg-primary text-white"
-                            : "text-slate-600 hover:bg-slate-50"
+                            ? "bg-brand-green text-white"
+                            : "text-brand-muted hover:bg-brand-background"
                         }`}
                         key={language.code}
                         onClick={() => handleLanguageSelect(language.code)}
@@ -183,7 +183,7 @@ export function WordListHeader({
                     ))}
                 </div>
                 <Link
-                  className="mt-2 grid min-h-10 place-items-center rounded-lg border border-slate-200 text-sm font-bold text-slate-600"
+                  className="mt-2 grid min-h-10 place-items-center rounded-lg border border-brand-border text-sm font-bold text-brand-muted"
                   href="/settings"
                 >
                   언어 관리
@@ -198,7 +198,7 @@ export function WordListHeader({
         <div className="flex items-center justify-between gap-3">
           <button
             aria-expanded={isNotebookOpen}
-            className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm"
+            className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-brand-border bg-white px-3 py-2 text-sm font-bold text-brand-text shadow-sm"
             onClick={() => {
               setIsNotebookOpen((currentValue) => !currentValue);
               setIsLanguageOpen(false);
@@ -211,22 +211,22 @@ export function WordListHeader({
               strokeWidth={2.2}
             />
             <span className="truncate">{notebookTitle}</span>
-            <span className="shrink-0 text-xs text-slate-500">
+            <span className="shrink-0 text-xs text-brand-muted">
               {activeNotebookCountLabel}
             </span>
-            <span aria-hidden="true" className="text-slate-400">
+            <span aria-hidden="true" className="text-brand-muted">
               {isNotebookOpen ? "⌃" : "⌄"}
             </span>
           </button>
 
-          <div className="grid shrink-0 grid-cols-3 rounded-full bg-slate-100 p-1">
+          <div className="grid shrink-0 grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm">
             {viewTabs.map((tab) => (
               <button
                 aria-pressed={viewMode === tab.value}
                 className={`min-h-8 rounded-full px-2 text-xs font-bold ${
                   viewMode === tab.value
                     ? "bg-primary text-white shadow-sm"
-                    : "text-slate-500"
+                    : "text-brand-muted"
                 }`}
                 key={tab.value}
                 onClick={() => onViewModeChange(tab.value)}
@@ -239,7 +239,7 @@ export function WordListHeader({
         </div>
 
         {isNotebookOpen ? (
-          <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="mt-2 grid gap-2 rounded-xl border border-brand-border bg-white p-2 text-brand-text shadow-sm">
             {notebooksErrorMessage ? (
               <p className="rounded-lg bg-status-negative-bg px-3 py-2 text-xs font-bold text-status-negative">
                 {notebooksErrorMessage}
@@ -249,8 +249,8 @@ export function WordListHeader({
               aria-pressed={!selectedNotebookId}
               className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                 !selectedNotebookId
-                  ? "bg-primary text-white"
-                  : "text-slate-600 hover:bg-slate-50"
+                  ? "bg-brand-green text-white"
+                  : "text-brand-muted hover:bg-brand-background"
               }`}
               onClick={() => handleNotebookSelect(undefined)}
               type="button"
@@ -262,8 +262,8 @@ export function WordListHeader({
               aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
               className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
                 selectedNotebookId === UNFILED_NOTEBOOK_ID
-                  ? "bg-primary text-white"
-                  : "text-slate-600 hover:bg-slate-50"
+                  ? "bg-brand-green text-white"
+                  : "text-brand-muted hover:bg-brand-background"
               }`}
               onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
               type="button"
@@ -275,8 +275,8 @@ export function WordListHeader({
                 aria-pressed={selectedNotebookId === notebook.id}
                 className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
                   selectedNotebookId === notebook.id
-                    ? "bg-primary text-white"
-                    : "text-slate-600 hover:bg-slate-50"
+                    ? "bg-brand-green text-white"
+                    : "text-brand-muted hover:bg-brand-background"
                 }`}
                 key={notebook.id}
                 onClick={() => handleNotebookSelect(notebook.id)}
@@ -286,7 +286,7 @@ export function WordListHeader({
               </button>
             ))}
             {isLoadingNotebooks ? (
-              <p className="px-3 py-2 text-sm font-bold text-slate-400">
+              <p className="px-3 py-2 text-sm font-bold text-brand-muted-soft">
                 노트를 불러오는 중
               </p>
             ) : null}

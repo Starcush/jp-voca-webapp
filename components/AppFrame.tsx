@@ -24,7 +24,11 @@ export function AppFrame({
   showHeader = true,
 }: AppFrameProps) {
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-4 pb-24 text-slate-950 md:pb-4">
+    <main
+      className={`min-h-dvh bg-brand-background px-4 pb-24 text-brand-text md:py-4 md:pb-4 ${
+        showHeader ? "pt-4" : "pt-0"
+      }`}
+    >
       <div className="mx-auto grid min-h-[calc(100dvh-2rem)] w-full max-w-6xl gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
         <Suspense fallback={null}>
           <AppNavigation />
@@ -34,11 +38,11 @@ export function AppFrame({
             <header className="flex items-center justify-between gap-4 pb-4">
               <Link href="/words" className="min-w-0">
                 {eyebrow ? (
-                  <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-normal text-brand-muted">
                     {eyebrow}
                   </p>
                 ) : null}
-                <h1 className="truncate text-2xl font-bold tracking-normal text-slate-950">
+                <h1 className="truncate text-2xl font-bold tracking-normal text-brand-text">
                   {title}
                 </h1>
               </Link>

@@ -118,17 +118,17 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
       <section className="grid gap-5">
         <CurrentNotebookNotice target={notebookTarget} />
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-base font-bold text-slate-950">
+        <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
+          <p className="text-base font-bold text-brand-text">
             {languageOption.label} 책 사진 올리기
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="mt-2 text-sm leading-6 text-brand-muted">
             사진에서 텍스트를 추출한 뒤, 문장별로 모르는 단어와 문법 표현을 선택해 단어장에 추가할 수 있습니다.
           </p>
           <div className="mt-4 grid gap-2">
-            <span className="text-sm font-semibold text-slate-700">사진</span>
+            <span className="text-sm font-semibold text-brand-text">사진</span>
             <div className="grid grid-cols-[1fr_auto] gap-2">
-              <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg border border-primary bg-primary-tint px-3 text-sm font-bold text-primary-text">
+              <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-text">
                 사진 선택
                 <input
                   accept="image/*"
@@ -149,13 +149,13 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
               </button>
             </div>
             {imageFile ? (
-              <p className="text-xs font-semibold text-slate-500">
+              <p className="text-xs font-semibold text-brand-muted">
                 선택됨: {imageFile.name}
               </p>
             ) : null}
           </div>
           {previewUrl ? (
-            <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+            <div className="mt-4 overflow-hidden rounded-lg border border-brand-border bg-brand-background">
               {/* eslint-disable-next-line @next/next/no-img-element -- Local blob previews are not served through Next image optimization. */}
               <img
                 alt="OCR 미리보기"
@@ -172,9 +172,9 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         </div>
 
         <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-700">추출된 텍스트</span>
+          <span className="text-sm font-bold text-brand-text">추출된 텍스트</span>
           <textarea
-            className="min-h-48 rounded-lg border-slate-200 bg-white text-base leading-7"
+            className="min-h-48 rounded-lg border-brand-border bg-white text-base leading-7"
             onChange={(event) => {
               setExtractedText(event.target.value);
             }}

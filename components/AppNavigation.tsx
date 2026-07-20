@@ -107,9 +107,9 @@ export function AppNavigation() {
 
   return (
     <>
-      <aside className="sticky top-4 hidden h-[calc(100dvh-2rem)] flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:flex">
+      <aside className="sticky top-4 hidden h-[calc(100dvh-2rem)] flex-col rounded-xl border border-brand-border bg-white p-3 shadow-sm md:flex">
         <Link
-          className="mb-4 rounded-lg px-3 py-2 text-xl font-black tracking-normal text-slate-950"
+          className="mb-4 rounded-lg px-3 py-2 text-xl font-black tracking-normal text-brand-text"
           href={buildWordListHref({ language: activeLanguage, path: "/words" })}
         >
           단어장
@@ -120,8 +120,8 @@ export function AppNavigation() {
               aria-current={item.isActive ? "page" : undefined}
               className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold ${
                 item.isActive
-                  ? "bg-primary text-white"
-                  : "text-slate-600 hover:bg-slate-50"
+                  ? "text-brand-green"
+                  : "text-brand-muted hover:bg-brand-background"
               }`}
               href={item.href}
               key={item.label}
@@ -133,21 +133,21 @@ export function AppNavigation() {
         </nav>
         <div className="mt-auto grid gap-2">
           <Link
-            className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-600"
+            className="flex min-h-10 items-center gap-2 rounded-lg border border-brand-border px-3 text-sm font-bold text-brand-muted"
             href="/settings"
           >
             <span aria-hidden="true">{activeLanguageOption.flag}</span>
             {activeLanguageOption.label}
           </Link>
           <Link
-            className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"
+            className="min-h-10 rounded-lg border border-brand-border px-3 py-2 text-sm font-bold text-brand-muted"
             href="/settings"
           >
             설정
           </Link>
           {session ? (
             <button
-              className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-10 rounded-lg border border-brand-border px-3 text-sm font-bold text-brand-muted disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSigningOut}
               onClick={handleSignOut}
               type="button"
@@ -160,7 +160,7 @@ export function AppNavigation() {
 
       <nav
         aria-label="주요 메뉴"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-border bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(36,28,61,0.1)] backdrop-blur md:hidden"
       >
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {items.map((item) => (
@@ -168,8 +168,8 @@ export function AppNavigation() {
               aria-current={item.isActive ? "page" : undefined}
               className={`grid min-h-12 place-items-center rounded-lg px-1 text-[11px] font-bold ${
                 item.isActive
-                  ? "bg-primary text-white"
-                  : "text-slate-500 hover:bg-slate-50"
+                  ? "text-brand-green"
+                  : "text-brand-muted hover:bg-brand-background"
               }`}
               href={item.href}
               key={item.label}
