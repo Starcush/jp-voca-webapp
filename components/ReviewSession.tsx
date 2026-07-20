@@ -80,7 +80,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
     setIsSaving(true);
 
     try {
-      await updateWordStudyStatus(currentWord.id, status);
+      await updateWordStudyStatus(currentWord, status);
       recordAnswer(status);
     } catch (error) {
       console.error("Failed to update review status.", error);

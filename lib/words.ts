@@ -21,6 +21,7 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { WORDS_COLLECTION, wordPath } from "@/lib/firestore-paths";
+import { buildFsrsStudyUpdate, createInitialFsrsWordFields } from "@/lib/fsrs";
 import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/languages";
 import type { Language } from "@/types/language";
 import type { NewWordInput, UpdateWordInput, Word, WordStatus } from "@/types/word";
@@ -45,6 +46,7 @@ function buildCreateWordData(uid: string, input: NewWordInput) {
     status: "unknown" as const,
     lastSeenAt: null,
     flaggedAt: null,
+    ...createInitialFsrsWordFields(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -86,6 +88,28 @@ function buildUpdateWordData(input: UpdateWordInput) {
     ...(input.status !== undefined ? { status: input.status } : {}),
     ...(input.lastSeenAt !== undefined ? { lastSeenAt: input.lastSeenAt } : {}),
     ...(input.flaggedAt !== undefined ? { flaggedAt: input.flaggedAt } : {}),
+    ...(input.fsrsDueAt !== undefined ? { fsrsDueAt: input.fsrsDueAt } : {}),
+    ...(input.fsrsStability !== undefined
+      ? { fsrsStability: input.fsrsStability }
+      : {}),
+    ...(input.fsrsDifficulty !== undefined
+      ? { fsrsDifficulty: input.fsrsDifficulty }
+      : {}),
+    ...(input.fsrsElapsedDays !== undefined
+      ? { fsrsElapsedDays: input.fsrsElapsedDays }
+      : {}),
+    ...(input.fsrsScheduledDays !== undefined
+      ? { fsrsScheduledDays: input.fsrsScheduledDays }
+      : {}),
+    ...(input.fsrsLearningSteps !== undefined
+      ? { fsrsLearningSteps: input.fsrsLearningSteps }
+      : {}),
+    ...(input.fsrsReps !== undefined ? { fsrsReps: input.fsrsReps } : {}),
+    ...(input.fsrsLapses !== undefined ? { fsrsLapses: input.fsrsLapses } : {}),
+    ...(input.fsrsState !== undefined ? { fsrsState: input.fsrsState } : {}),
+    ...(input.fsrsLastReviewAt !== undefined
+      ? { fsrsLastReviewAt: input.fsrsLastReviewAt }
+      : {}),
     updatedAt: serverTimestamp(),
   };
 }
@@ -253,15 +277,22 @@ export async function clearWordsNotebook(
   return targetWordIds.length;
 }
 
-export async function updateWordStudyStatus(wordId: string, status: WordStatus) {
-  const lastSeenAt = Timestamp.now();
+export async function updateWordStudyStatus(
+  wordOrId: string | Word,
+  status: WordStatus,
+) {
+  const word =
+    typeof wordOrId === "string" ? await getWord(wordOrId) : wordOrId;
 
-  await updateWord(wordId, {
-    status,
-    lastSeenAt,
-  });
+  if (!word) {
+    throw new Error("Word not found.");
+  }
 
-  return lastSeenAt;
+  const studyUpdate = buildFsrsStudyUpdate(word, status);
+
+  await updateWord(word.id, studyUpdate);
+
+  return studyUpdate;
 }
 
 /**

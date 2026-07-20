@@ -110,8 +110,7 @@ function getWordCountQueryKey(uid: string, language: Language) {
 function updateWordInList(
   word: Word,
   wordId: string,
-  status: WordStatus,
-  lastSeenAt: Word["lastSeenAt"],
+  studyUpdate: Partial<Word>,
 ) {
   if (word.id !== wordId) {
     return word;
@@ -119,8 +118,7 @@ function updateWordInList(
 
   return {
     ...word,
-    lastSeenAt,
-    status,
+    ...studyUpdate,
   };
 }
 
@@ -279,7 +277,7 @@ export function useWordListQuery({
     clearStudyStatusError();
 
     try {
-      const lastSeenAt = await updateWordStudyStatus(wordId, status);
+      const studyUpdate = await updateWordStudyStatus(wordId, status);
 
       queryClient.setQueriesData<InfiniteData<WordListPage>>(
         {
@@ -292,7 +290,7 @@ export function useWordListQuery({
                 pages: currentData.pages.map((page) => ({
                   ...page,
                   words: page.words.map((word) =>
-                    updateWordInList(word, wordId, status, lastSeenAt),
+                    updateWordInList(word, wordId, studyUpdate),
                   ),
                 })),
               }
@@ -302,7 +300,7 @@ export function useWordListQuery({
         getAllWordsQueryKey(session.uid, activeLanguage),
         (currentWords) =>
           currentWords?.map((word) =>
-            updateWordInList(word, wordId, status, lastSeenAt),
+            updateWordInList(word, wordId, studyUpdate),
           ),
       );
     } catch (error) {

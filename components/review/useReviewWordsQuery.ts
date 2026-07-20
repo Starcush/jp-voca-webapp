@@ -7,6 +7,7 @@ import {
   REVIEW_LIMIT,
   type ReviewDirection,
 } from "@/components/review/review-options";
+import { getFsrsDueTime, isFsrsWordDue } from "@/lib/fsrs";
 import type { AppSession } from "@/lib/session";
 import { listAllWords } from "@/lib/words";
 import type { Language } from "@/types/language";
@@ -20,17 +21,19 @@ type UseReviewWordsQueryInput = {
   session: AppSession | null;
 };
 
-function getLastSeenTime(word: Word) {
-  return word.lastSeenAt?.toMillis?.() ?? 0;
-}
-
 function getPriorityReviewWords(words: Word[]) {
   return [...words].sort((a, b) => {
+    const dueDifference = getFsrsDueTime(a) - getFsrsDueTime(b);
+
+    if (dueDifference !== 0) {
+      return dueDifference;
+    }
+
     if (a.status !== b.status) {
       return a.status === "unknown" ? -1 : 1;
     }
 
-    return getLastSeenTime(a) - getLastSeenTime(b);
+    return (a.lastSeenAt?.toMillis?.() ?? 0) - (b.lastSeenAt?.toMillis?.() ?? 0);
   });
 }
 
@@ -99,13 +102,16 @@ export function useReviewWordsQuery({
     queryFn: () => listAllWords(uid, language),
   });
   const modeWords = useMemo(
-    () =>
-      getPriorityReviewWords(
+    () => {
+      const now = new Date();
+
+      return getPriorityReviewWords(
         getDirectionWords(
           getNotebookWords(wordsQuery.data ?? [], notebookId),
           reviewDirection,
-        ),
-      ),
+        ).filter((word) => isFsrsWordDue(word, now)),
+      );
+    },
     [notebookId, reviewDirection, wordsQuery.data],
   );
   const reviewWords = useMemo(
