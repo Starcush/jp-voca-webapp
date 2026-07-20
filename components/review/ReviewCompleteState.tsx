@@ -7,7 +7,6 @@ import type { Language } from "@/types/language";
 
 type ReviewCompleteStateProps = {
   hasNextReviewSet: boolean;
-  isRandomMode: boolean;
   knownCount: number;
   language: Language;
   languageLabel: string;
@@ -27,7 +26,6 @@ type ReviewCompleteStateProps = {
  * @param props.unknownCount - 모르겠어요로 기록한 개수입니다.
  * @param props.remainingReviewCount - 아직 남아 있는 후보 단어 개수입니다.
  * @param props.hasNextReviewSet - 다음 20개 세트가 있는지 여부입니다.
- * @param props.isRandomMode - 현재 복습 모드가 전체 섞기인지 여부입니다.
  * @param props.language - 단어장 링크에 사용할 언어 코드입니다.
  * @param props.languageLabel - 현재 복습 언어의 표시 이름입니다.
  * @param props.notebookId - 단어장 링크에 유지할 노트 ID입니다.
@@ -36,7 +34,6 @@ type ReviewCompleteStateProps = {
  */
 export function ReviewCompleteState({
   hasNextReviewSet,
-  isRandomMode,
   knownCount,
   language,
   languageLabel,
@@ -56,11 +53,9 @@ export function ReviewCompleteState({
           이번 세트에서 {languageLabel} 단어 {reviewWordCount}개를 확인했습니다.
         </p>
         <p className="mt-1 text-sm font-medium leading-6 text-brand-muted">
-          {isRandomMode
-            ? "전체 섞기는 다시 시작할 때마다 새로 섞입니다."
-            : hasNextReviewSet
-              ? `아직 ${remainingReviewCount}개가 더 남아 있어요.`
-              : "현재 불러온 복습 세트를 모두 확인했습니다."}
+          {hasNextReviewSet
+            ? `아직 ${remainingReviewCount}개가 더 남아 있어요.`
+            : "현재 불러온 복습 세트를 모두 확인했습니다."}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -88,11 +83,7 @@ export function ReviewCompleteState({
           type="button"
         >
           <RotateCcw aria-hidden className="size-5" strokeWidth={2.2} />
-          {isRandomMode
-            ? "다시 섞어서 복습"
-            : hasNextReviewSet
-              ? "다음 20개 복습"
-              : "한 번 더 복습"}
+          {hasNextReviewSet ? "다음 20개 복습" : "한 번 더 복습"}
         </button>
         <Link
           className="min-h-12 rounded-lg border border-brand-border bg-white px-4 py-3 text-base font-bold text-brand-text shadow-sm"

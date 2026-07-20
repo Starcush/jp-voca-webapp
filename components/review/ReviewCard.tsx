@@ -1,17 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Eye } from "lucide-react";
 import { getWordReading, getWordTerm } from "@/lib/words";
 import type { Word, WordStatus } from "@/types/word";
 
 type ReviewCardProps = {
-  activeReviewModeLabel: string;
   currentIndex: number;
   isAnswerVisible: boolean;
   isSaving: boolean;
   languageLabel: string;
-  modeTabs: ReactNode;
   onRevealAnswer: () => void;
   onStudyStatus: (status: WordStatus) => void;
   readingLabel?: string;
@@ -29,20 +26,16 @@ type ReviewCardProps = {
  * @param props.isAnswerVisible - 정답 영역을 보여줄지 여부입니다.
  * @param props.isSaving - 학습 상태 저장 중인지 여부입니다.
  * @param props.languageLabel - 현재 복습 언어의 표시 이름입니다.
- * @param props.activeReviewModeLabel - 현재 복습 모드의 표시 이름입니다.
  * @param props.readingLabel - 언어별 읽기 라벨입니다.
- * @param props.modeTabs - 복습 모드 선택 탭입니다.
  * @param props.onRevealAnswer - 정답 보기 액션입니다.
  * @param props.onStudyStatus - 알았어요/모르겠어요 액션입니다.
  * @returns 현재 복습 카드와 정답 공개/학습 상태 버튼을 렌더링합니다.
  */
 export function ReviewCard({
-  activeReviewModeLabel,
   currentIndex,
   isAnswerVisible,
   isSaving,
   languageLabel,
-  modeTabs,
   onRevealAnswer,
   onStudyStatus,
   readingLabel,
@@ -56,13 +49,10 @@ export function ReviewCard({
   );
 
   return (
-    <section className="flex flex-1 flex-col gap-4">
-      {modeTabs}
+    <section className="flex flex-1 flex-col gap-3">
       <div className="grid gap-2">
         <div className="flex items-center justify-between text-sm font-bold text-brand-muted">
-          <span>
-          {languageLabel} · {activeReviewModeLabel}
-          </span>
+          <span>{languageLabel} 복습</span>
           <span className="text-brand-text">
             {currentIndex + 1} / {reviewWordCount}
           </span>
@@ -75,13 +65,13 @@ export function ReviewCard({
         </div>
       </div>
 
-      <article className="flex flex-1 flex-col justify-center rounded-xl border border-brand-border bg-white p-5 shadow-[0_2px_10px_rgba(36,28,61,0.06)]">
+      <article className="flex min-h-[18rem] flex-col justify-center rounded-xl border border-brand-border bg-white p-4 shadow-[0_2px_10px_rgba(36,28,61,0.06)] sm:min-h-[22rem]">
         <button
-          className="grid gap-4 rounded-lg px-2 py-8 text-center transition-colors hover:bg-brand-background/60"
+          className="grid gap-3 rounded-lg px-2 py-6 text-center transition-colors hover:bg-brand-background/60"
           onClick={onRevealAnswer}
           type="button"
         >
-          <p className="font-japanese text-4xl font-semibold leading-tight tracking-normal text-word-kanji">
+          <p className="font-japanese text-3xl font-semibold leading-tight tracking-normal text-word-kanji sm:text-4xl">
             {term}
           </p>
           {!isAnswerVisible ? (
@@ -93,7 +83,7 @@ export function ReviewCard({
         </button>
 
         {isAnswerVisible ? (
-          <div className="mt-6 grid gap-4 border-t border-brand-border pt-5">
+          <div className="mt-4 grid gap-3 border-t border-brand-border pt-4">
             {reading ? (
               <div>
                 <p className="text-xs font-bold text-brand-muted">
@@ -132,9 +122,9 @@ export function ReviewCard({
       </article>
 
       {isAnswerVisible ? (
-        <div className="grid grid-cols-2 gap-2 pb-20 md:pb-0">
+        <div className="grid grid-cols-2 gap-2 pb-2 md:pb-0">
           <button
-            className="min-h-12 rounded-lg border border-brand-border bg-white px-4 text-base font-black text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 rounded-lg border border-brand-border bg-white px-4 text-base font-black text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSaving}
             onClick={() => onStudyStatus("unknown")}
             type="button"
@@ -142,7 +132,7 @@ export function ReviewCard({
             모르겠어요
           </button>
           <button
-            className="min-h-12 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
+            className="min-h-11 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
             disabled={isSaving}
             onClick={() => onStudyStatus("known")}
             type="button"
@@ -150,16 +140,7 @@ export function ReviewCard({
             알았어요
           </button>
         </div>
-      ) : (
-        <button
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm"
-          onClick={onRevealAnswer}
-          type="button"
-        >
-          <Eye aria-hidden className="size-5" strokeWidth={2.2} />
-          정답 보기
-        </button>
-      )}
+      ) : null}
     </section>
   );
 }
