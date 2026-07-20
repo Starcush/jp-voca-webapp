@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { getWordFormErrorMessage } from "@/components/word-form/word-form-errors";
 import type {
@@ -66,10 +67,19 @@ export function useWordFormState({
   wordId,
 }: UseWordFormStateInput) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<WordFormState>(initialForm);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingReading, setIsGeneratingReading] = useState(false);
+
+  async function invalidateWordData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["words"] }),
+      queryClient.invalidateQueries({ queryKey: ["reviewWords"] }),
+      queryClient.invalidateQueries({ queryKey: ["wordOrganizer"] }),
+    ]);
+  }
 
   function updateField(field: WordFormField, value: string) {
     setForm((currentForm) => ({
@@ -119,6 +129,7 @@ export function useWordFormState({
         language,
         type: isEdit ? "updated" : "created",
       });
+      await invalidateWordData();
       router.replace(`/words?${params.toString()}`);
       router.refresh();
     } catch (error) {
@@ -140,6 +151,7 @@ export function useWordFormState({
     try {
       await deleteWord(wordId);
       storeWordSaveNotice({ language, type: "deleted" });
+      await invalidateWordData();
       router.replace(
         buildWordListHref({
           language,

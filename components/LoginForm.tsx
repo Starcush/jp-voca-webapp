@@ -30,7 +30,6 @@ export function LoginForm() {
   const [isRestoringSession, setIsRestoringSession] = useState(false);
   const isSignUp = authMode === "sign-up";
   const isLoginTransitioning =
-    Boolean(session) ||
     isRestoringSession ||
     isRoutingAfterLogin ||
     submittingMode === "sign-in" ||
@@ -44,7 +43,6 @@ export function LoginForm() {
         ? `/words?lang=${nextSession.defaultLanguage}`
         : "/onboarding/language",
     );
-    router.refresh();
   }, [router]);
 
   useEffect(() => {
