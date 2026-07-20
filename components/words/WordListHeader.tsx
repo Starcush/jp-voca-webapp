@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
+import {
+  NotebookDropdown,
+  type NotebookDropdownOption,
+} from "@/components/notebooks/NotebookDropdown";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
 import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import { getViewTabs } from "@/components/words/word-list-options";
@@ -82,16 +86,30 @@ export function WordListHeader({
     notebookTitle: selectedNotebook?.title,
     selectedNotebookId,
   });
+  const notebookOptions: NotebookDropdownOption[] = [
+    {
+      key: "all",
+      label: "전체",
+      meta: totalWordCountLabel,
+      value: undefined,
+    },
+    ...notebooks.map((notebook) => ({
+      key: notebook.id,
+      label: notebook.title,
+      value: notebook.id,
+    })),
+    {
+      key: UNFILED_NOTEBOOK_ID,
+      label: "미분류",
+      value: UNFILED_NOTEBOOK_ID,
+    },
+  ];
+  const selectedNotebookKey = selectedNotebookId ?? "all";
   const viewTabs = getViewTabs(activeLanguage);
 
   function handleSearchClose() {
     setIsSearchOpen(false);
     onSearchQueryChange("");
-  }
-
-  function handleNotebookSelect(nextNotebookId?: string) {
-    onNotebookChange(nextNotebookId);
-    setIsNotebookOpen(false);
   }
 
   function handleLanguageSelect(nextLanguage: Language) {
@@ -193,31 +211,27 @@ export function WordListHeader({
       )}
 
       <div className="mt-3">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            aria-expanded={isNotebookOpen}
-            className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-brand-border bg-white px-3 py-2 text-sm font-bold text-brand-text shadow-sm"
-            onClick={() => {
-              setIsNotebookOpen((currentValue) => !currentValue);
-              setIsLanguageOpen(false);
+        <div className="grid gap-2">
+          <NotebookDropdown
+            ariaLabel="노트 선택"
+            buttonLabel={notebookTitle}
+            buttonMeta={activeNotebookCountLabel}
+            className="min-w-0"
+            errorMessage={notebooksErrorMessage}
+            isLoading={isLoadingNotebooks}
+            isOpen={isNotebookOpen}
+            onOpenChange={(nextIsOpen) => {
+              setIsNotebookOpen(nextIsOpen);
+              if (nextIsOpen) {
+                setIsLanguageOpen(false);
+              }
             }}
-            type="button"
-          >
-            <BookOpenText
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0"
-              strokeWidth={2.2}
-            />
-            <span className="truncate">{notebookTitle}</span>
-            <span className="shrink-0 text-xs text-brand-muted">
-              {activeNotebookCountLabel}
-            </span>
-            <span aria-hidden="true" className="text-brand-muted">
-              {isNotebookOpen ? "⌃" : "⌄"}
-            </span>
-          </button>
+            onSelect={onNotebookChange}
+            options={notebookOptions}
+            selectedKey={selectedNotebookKey}
+          />
 
-          <div className="grid shrink-0 grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm">
+          <div className="grid grid-cols-3 rounded-full bg-brand-background p-1 shadow-sm">
             {viewTabs.map((tab) => (
               <button
                 aria-pressed={viewMode === tab.value}
@@ -236,60 +250,6 @@ export function WordListHeader({
           </div>
         </div>
 
-        {isNotebookOpen ? (
-          <div className="mt-2 grid gap-2 rounded-xl border border-brand-border bg-white p-2 text-brand-text shadow-sm">
-            {notebooksErrorMessage ? (
-              <p className="rounded-lg bg-status-negative-bg px-3 py-2 text-xs font-bold text-status-negative">
-                {notebooksErrorMessage}
-              </p>
-            ) : null}
-            <button
-              aria-pressed={!selectedNotebookId}
-              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
-                !selectedNotebookId
-                  ? "bg-brand-green text-white"
-                  : "text-brand-muted hover:bg-brand-background"
-              }`}
-              onClick={() => handleNotebookSelect(undefined)}
-              type="button"
-            >
-              전체
-              <span className="text-xs opacity-70">{totalWordCountLabel}</span>
-            </button>
-            {notebooks.map((notebook) => (
-              <button
-                aria-pressed={selectedNotebookId === notebook.id}
-                className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
-                  selectedNotebookId === notebook.id
-                    ? "bg-brand-green text-white"
-                    : "text-brand-muted hover:bg-brand-background"
-                }`}
-                key={notebook.id}
-                onClick={() => handleNotebookSelect(notebook.id)}
-                type="button"
-              >
-                <span className="truncate">{notebook.title}</span>
-              </button>
-            ))}
-            <button
-              aria-pressed={selectedNotebookId === UNFILED_NOTEBOOK_ID}
-              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-bold ${
-                selectedNotebookId === UNFILED_NOTEBOOK_ID
-                  ? "bg-brand-green text-white"
-                  : "text-brand-muted hover:bg-brand-background"
-              }`}
-              onClick={() => handleNotebookSelect(UNFILED_NOTEBOOK_ID)}
-              type="button"
-            >
-              미분류
-            </button>
-            {isLoadingNotebooks ? (
-              <p className="px-3 py-2 text-sm font-bold text-brand-muted-soft">
-                노트를 불러오는 중
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </header>
   );

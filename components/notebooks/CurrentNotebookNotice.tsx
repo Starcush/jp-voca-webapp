@@ -1,7 +1,10 @@
 "use client";
 
-import { BookOpenText } from "lucide-react";
 import { useState } from "react";
+import {
+  NotebookDropdown,
+  type NotebookDropdownOption,
+} from "@/components/notebooks/NotebookDropdown";
 import {
   getPersistedNotebookId,
   UNFILED_NOTEBOOK_ID,
@@ -171,87 +174,44 @@ export function CurrentNotebookSelector({
 }: CurrentNotebookSelectorProps) {
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
   const isWarning = target.status === "missing" || target.status === "error";
-
-  function handleNotebookSelect(nextNotebookId?: string) {
-    onNotebookChange(nextNotebookId);
-    setIsNotebookOpen(false);
-  }
+  const notebookOptions: NotebookDropdownOption[] = [
+    ...(target.status === "missing" && selectedNotebookId
+      ? [
+          {
+            key: "missing",
+            label: "알 수 없는 노트",
+            value: selectedNotebookId,
+          },
+        ]
+      : []),
+    ...notebooks.map((notebook) => ({
+      key: notebook.id,
+      label: notebook.title,
+      value: notebook.id,
+    })),
+    {
+      key: UNFILED_NOTEBOOK_ID,
+      label: "미분류",
+      value: getPersistedNotebookId(UNFILED_NOTEBOOK_ID),
+    },
+  ];
+  const selectedNotebookKey =
+    target.status === "missing" && selectedNotebookId
+      ? "missing"
+      : selectedNotebookId ?? UNFILED_NOTEBOOK_ID;
 
   return (
-    <aside className="relative w-full">
-      <p className="mb-2 text-xs font-bold text-brand-muted">저장 노트</p>
-      <button
-        aria-expanded={isNotebookOpen}
-        className={`flex min-w-0 w-full items-center gap-2 rounded-lg border bg-white px-3 py-2 text-left text-sm font-bold text-brand-text shadow-sm ${
-          isWarning ? "border-primary-border" : "border-brand-border"
-        }`}
-        disabled={isLoadingNotebooks}
-        onClick={() => setIsNotebookOpen((currentValue) => !currentValue)}
-        type="button"
-      >
-        <BookOpenText
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0"
-          strokeWidth={2.2}
-        />
-        <span className="min-w-0 flex-1 truncate">{target.title}</span>
-        {target.isChecking || isLoadingNotebooks ? (
-          <span className="shrink-0 text-xs text-brand-muted">확인 중</span>
-        ) : null}
-        <span aria-hidden="true" className="text-brand-muted">
-          {isNotebookOpen ? "⌃" : "⌄"}
-        </span>
-      </button>
-
-      {isWarning ? (
-        <p className="mt-2 rounded-lg bg-primary-tint px-3 py-2 text-xs font-semibold leading-5 text-primary-text">
-          {target.description}
-        </p>
-      ) : null}
-
-      {isNotebookOpen ? (
-        <div className="mt-2 grid w-full gap-2 rounded-xl border border-brand-border bg-white p-2 text-brand-text shadow-sm">
-          {target.status === "missing" && selectedNotebookId ? (
-            <button
-              aria-pressed
-              className="flex min-h-10 items-center justify-between rounded-lg bg-brand-green px-3 text-left text-sm font-bold text-white"
-              onClick={() => handleNotebookSelect(selectedNotebookId)}
-              type="button"
-            >
-              알 수 없는 노트
-            </button>
-          ) : null}
-          {notebooks.map((notebook) => (
-            <button
-              aria-pressed={selectedNotebookId === notebook.id}
-              className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
-                selectedNotebookId === notebook.id
-                  ? "bg-brand-green text-white"
-                  : "text-brand-muted hover:bg-brand-background"
-              }`}
-              key={notebook.id}
-              onClick={() => handleNotebookSelect(notebook.id)}
-              type="button"
-            >
-              <span className="truncate">{notebook.title}</span>
-            </button>
-          ))}
-          <button
-            aria-pressed={!selectedNotebookId}
-            className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-sm font-bold ${
-              !selectedNotebookId
-                ? "bg-brand-green text-white"
-                : "text-brand-muted hover:bg-brand-background"
-            }`}
-            onClick={() =>
-              handleNotebookSelect(getPersistedNotebookId(UNFILED_NOTEBOOK_ID))
-            }
-            type="button"
-          >
-            미분류
-          </button>
-        </div>
-      ) : null}
-    </aside>
+    <NotebookDropdown
+      buttonLabel={target.title}
+      disabled={isLoadingNotebooks}
+      isLoading={target.isChecking || isLoadingNotebooks}
+      isOpen={isNotebookOpen}
+      label="저장 노트"
+      onOpenChange={setIsNotebookOpen}
+      onSelect={onNotebookChange}
+      options={notebookOptions}
+      selectedKey={selectedNotebookKey}
+      warningMessage={isWarning ? target.description : undefined}
+    />
   );
 }
