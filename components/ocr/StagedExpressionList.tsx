@@ -100,7 +100,7 @@ export function StagedExpressionList({
   }
 
   return (
-    <section className="grid gap-3 pb-20">
+    <section className="grid gap-3 pb-[calc(env(safe-area-inset-bottom)+7rem)] md:pb-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-semibold text-brand-text">

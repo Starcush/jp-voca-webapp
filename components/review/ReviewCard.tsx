@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Eye } from "lucide-react";
 import { getWordReading, getWordTerm } from "@/lib/words";
 import type { Word, WordStatus } from "@/types/word";
 
@@ -50,63 +51,77 @@ export function ReviewCard({
 }: ReviewCardProps) {
   const term = getWordTerm(word);
   const reading = getWordReading(word);
+  const progressPercent = Math.round(
+    ((currentIndex + 1) / reviewWordCount) * 100,
+  );
 
   return (
     <section className="flex flex-1 flex-col gap-4">
       {modeTabs}
-      <div className="flex items-center justify-between text-sm font-semibold text-slate-500">
-        <span>
+      <div className="grid gap-2">
+        <div className="flex items-center justify-between text-sm font-bold text-brand-muted">
+          <span>
           {languageLabel} · {activeReviewModeLabel}
-        </span>
-        <span>
-          {currentIndex + 1} / {reviewWordCount}
-        </span>
+          </span>
+          <span className="text-brand-text">
+            {currentIndex + 1} / {reviewWordCount}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-brand-background">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
       </div>
 
-      <article className="flex flex-1 flex-col justify-center rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <article className="flex flex-1 flex-col justify-center rounded-xl border border-brand-border bg-white p-5 shadow-[0_2px_10px_rgba(36,28,61,0.06)]">
         <button
-          className="grid gap-4 text-center"
+          className="grid gap-4 rounded-lg px-2 py-8 text-center transition-colors hover:bg-brand-background/60"
           onClick={onRevealAnswer}
           type="button"
         >
-          <p className="text-4xl font-bold leading-tight tracking-normal text-word-kanji">
+          <p className="font-japanese text-4xl font-semibold leading-tight tracking-normal text-word-kanji">
             {term}
           </p>
           {!isAnswerVisible ? (
-            <p className="text-sm font-semibold text-slate-400">
+            <p className="inline-flex items-center justify-center gap-1 text-sm font-bold text-brand-muted">
+              <Eye aria-hidden className="size-4" strokeWidth={2.2} />
               눌러서 정답 보기
             </p>
           ) : null}
         </button>
 
         {isAnswerVisible ? (
-          <div className="mt-8 grid gap-4 border-t border-slate-100 pt-5">
+          <div className="mt-6 grid gap-4 border-t border-brand-border pt-5">
             {reading ? (
               <div>
-                <p className="text-xs font-bold text-slate-400">
+                <p className="text-xs font-bold text-brand-muted">
                   {readingLabel ?? "읽기"}
                 </p>
-                <p className="mt-1 text-base font-bold text-blue-600">{reading}</p>
+                <p className="font-japanese mt-1 text-base font-semibold text-primary-text">
+                  {reading}
+                </p>
               </div>
             ) : null}
             {word.meaning ? (
               <div>
-                <p className="text-xs font-bold text-slate-400">뜻</p>
-                <p className="mt-1 text-lg font-bold text-word-meaning">
+                <p className="text-xs font-bold text-brand-muted">뜻</p>
+                <p className="mt-1 text-lg font-semibold text-word-meaning">
                   {word.meaning}
                 </p>
               </div>
             ) : null}
             {word.exampleSentence || word.exampleTranslation ? (
               <div className="grid gap-1">
-                <p className="text-xs font-bold text-slate-400">예문</p>
+                <p className="text-xs font-bold text-brand-muted">예문</p>
                 {word.exampleSentence ? (
-                  <p className="text-sm font-semibold leading-6 text-slate-600">
+                  <p className="font-japanese text-sm font-medium leading-6 text-word-example">
                     {word.exampleSentence}
                   </p>
                 ) : null}
                 {word.exampleTranslation ? (
-                  <p className="text-sm leading-6 text-slate-500">
+                  <p className="text-sm leading-6 text-brand-muted">
                     {word.exampleTranslation}
                   </p>
                 ) : null}
@@ -117,9 +132,9 @@ export function ReviewCard({
       </article>
 
       {isAnswerVisible ? (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 pb-20 md:pb-0">
           <button
-            className="min-h-12 rounded-lg bg-red-600 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 rounded-lg border border-brand-border bg-white px-4 text-base font-black text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSaving}
             onClick={() => onStudyStatus("unknown")}
             type="button"
@@ -127,7 +142,7 @@ export function ReviewCard({
             모르겠어요
           </button>
           <button
-            className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
             disabled={isSaving}
             onClick={() => onStudyStatus("known")}
             type="button"
@@ -137,10 +152,11 @@ export function ReviewCard({
         </div>
       ) : (
         <button
-          className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm"
           onClick={onRevealAnswer}
           type="button"
         >
+          <Eye aria-hidden className="size-5" strokeWidth={2.2} />
           정답 보기
         </button>
       )}

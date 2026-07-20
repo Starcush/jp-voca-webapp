@@ -32,20 +32,20 @@ export function ReviewEmptyState({
   notebookId,
 }: ReviewEmptyStateProps) {
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 pb-20 text-center md:pb-0">
       <div className="w-full">
         {modeTabs}
       </div>
-      <div>
-        <p className="text-lg font-bold text-slate-950">
+      <div className="rounded-xl border border-brand-border bg-white px-5 py-6 shadow-[0_2px_10px_rgba(36,28,61,0.05)]">
+        <p className="text-lg font-black text-brand-text">
           {languageLabel} {emptyMessage}
         </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+        <p className="mt-2 text-sm font-medium leading-6 text-brand-muted">
           다른 복습 모드를 선택하거나 단어를 추가해보세요.
         </p>
       </div>
       <Link
-        className="min-h-12 rounded-lg bg-slate-950 px-5 py-3 text-base font-bold text-white"
+        className="min-h-12 rounded-lg bg-primary px-5 py-3 text-base font-black text-white shadow-sm"
         href={buildWordListHref({
           language,
           notebookId,

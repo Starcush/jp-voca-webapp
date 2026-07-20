@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 import { WordCard } from "@/components/WordCard";
-import { buildWordListHref } from "@/components/words/word-list-links";
+import { WordListQuickActions } from "@/components/words/WordListQuickActions";
 import type { ViewMode } from "@/components/words/types";
 import type { Language } from "@/types/language";
 import type { Word } from "@/types/word";
@@ -89,17 +87,7 @@ export function WordCardList({
       ) : (
         <div className="pb-16" />
       )}
-      <Link
-        aria-label="단어 추가"
-        className="fixed bottom-20 right-5 z-20 grid h-12 w-12 place-items-center rounded-full bg-brand-green text-white shadow-lg shadow-orange-900/20 md:bottom-6"
-        href={buildWordListHref({
-          language: activeLanguage,
-          notebookId,
-          path: "/words/new",
-        })}
-      >
-        <Plus aria-hidden="true" className="h-6 w-6" strokeWidth={2.4} />
-      </Link>
+      <WordListQuickActions language={activeLanguage} notebookId={notebookId} />
     </>
   );
 }

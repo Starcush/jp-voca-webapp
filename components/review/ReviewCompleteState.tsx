@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CheckCircle2, HelpCircle, RotateCcw } from "lucide-react";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import type { Language } from "@/types/language";
 
@@ -46,15 +47,15 @@ export function ReviewCompleteState({
   unknownCount,
 }: ReviewCompleteStateProps) {
   return (
-    <section className="flex flex-1 flex-col justify-center gap-5 text-center">
+    <section className="flex flex-1 flex-col justify-center gap-5 pb-20 text-center md:pb-0">
       <div>
-        <p className="text-2xl font-bold tracking-normal text-slate-950">
+        <p className="text-2xl font-black tracking-normal text-brand-text">
           복습 완료
         </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+        <p className="mt-2 text-sm font-medium leading-6 text-brand-muted">
           이번 세트에서 {languageLabel} 단어 {reviewWordCount}개를 확인했습니다.
         </p>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
+        <p className="mt-1 text-sm font-medium leading-6 text-brand-muted">
           {isRandomMode
             ? "전체 섞기는 다시 시작할 때마다 새로 섞입니다."
             : hasNextReviewSet
@@ -63,21 +64,30 @@ export function ReviewCompleteState({
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold text-slate-500">알았어요</p>
-          <p className="mt-1 text-2xl font-bold text-green-700">{knownCount}</p>
+        <div className="rounded-xl border border-primary-border bg-white p-4 shadow-[0_2px_10px_rgba(36,28,61,0.05)]">
+          <p className="inline-flex items-center justify-center gap-1 text-xs font-bold text-primary-text">
+            <CheckCircle2 aria-hidden className="size-4" strokeWidth={2.2} />
+            알았어요
+          </p>
+          <p className="mt-1 text-2xl font-black text-brand-text">{knownCount}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold text-slate-500">모르겠어요</p>
-          <p className="mt-1 text-2xl font-bold text-red-600">{unknownCount}</p>
+        <div className="rounded-xl border border-brand-border bg-white p-4 shadow-[0_2px_10px_rgba(36,28,61,0.05)]">
+          <p className="inline-flex items-center justify-center gap-1 text-xs font-bold text-brand-muted">
+            <HelpCircle aria-hidden className="size-4" strokeWidth={2.2} />
+            모르겠어요
+          </p>
+          <p className="mt-1 text-2xl font-black text-brand-text">
+            {unknownCount}
+          </p>
         </div>
       </div>
       <div className="grid gap-2">
         <button
-          className="min-h-12 rounded-lg bg-slate-950 text-base font-bold text-white"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm"
           onClick={onRestart}
           type="button"
         >
+          <RotateCcw aria-hidden className="size-5" strokeWidth={2.2} />
           {isRandomMode
             ? "다시 섞어서 복습"
             : hasNextReviewSet
@@ -85,7 +95,7 @@ export function ReviewCompleteState({
               : "한 번 더 복습"}
         </button>
         <Link
-          className="min-h-12 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-bold text-slate-700"
+          className="min-h-12 rounded-lg border border-brand-border bg-white px-4 py-3 text-base font-bold text-brand-text shadow-sm"
           href={buildWordListHref({
             language,
             notebookId,

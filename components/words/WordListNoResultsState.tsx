@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { buildWordListHref } from "@/components/words/word-list-links";
+import { WordListQuickActions } from "@/components/words/WordListQuickActions";
 import type { Language } from "@/types/language";
 
 type WordListNoResultsStateProps = {
@@ -54,17 +53,7 @@ export function WordListNoResultsState({
           </button>
         </div>
       ) : null}
-      <Link
-        aria-label="단어 추가"
-        className="fixed bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-primary text-3xl font-light leading-none text-white shadow-lg"
-        href={buildWordListHref({
-          language: activeLanguage,
-          notebookId,
-          path: "/words/new",
-        })}
-      >
-        +
-      </Link>
+      <WordListQuickActions language={activeLanguage} notebookId={notebookId} />
     </>
   );
 }

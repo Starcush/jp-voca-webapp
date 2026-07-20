@@ -245,13 +245,15 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         show={isExtracting || isEnrichingExpressions || isSavingWords}
       />
       <section className="grid gap-5">
-        <OcrStepProgress
-          activeStep={resolvedActiveStep}
-          canConfirmExpressions={canConfirmExpressions}
-          canSelectExpressions={canSelectExpressions}
-          onStepChange={handleStepChange}
-          stagedExpressionCount={stagedExpressions.length}
-        />
+        {resolvedActiveStep !== "confirm" ? (
+          <OcrStepProgress
+            activeStep={resolvedActiveStep}
+            canConfirmExpressions={canConfirmExpressions}
+            canSelectExpressions={canSelectExpressions}
+            onStepChange={handleStepChange}
+            stagedExpressionCount={stagedExpressions.length}
+          />
+        ) : null}
 
         {errorMessage ? (
           <p className="rounded-md bg-status-negative-bg px-3 py-2 text-sm font-semibold text-status-negative">

@@ -32,14 +32,14 @@ export function ReviewModeTabs({
 }: ReviewModeTabsProps) {
   return (
     <div className="grid gap-2">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-brand-background p-1 md:grid-cols-4">
         {reviewModes.map((mode) => (
           <button
             aria-pressed={reviewMode === mode.value}
-            className={`min-h-10 rounded-md px-2 text-sm font-bold ${
+            className={`min-h-9 rounded-xl px-2 text-xs font-black transition-colors ${
               reviewMode === mode.value
-                ? "bg-slate-950 text-white"
-                : "border border-slate-200 bg-white text-slate-600"
+                ? "bg-primary text-white shadow-sm"
+                : "text-brand-muted hover:bg-white"
             }`}
             disabled={isDisabled}
             key={mode.value}
@@ -50,7 +50,7 @@ export function ReviewModeTabs({
           </button>
         ))}
       </div>
-      <p className="text-xs font-semibold leading-5 text-slate-500">
+      <p className="text-xs font-semibold leading-5 text-brand-muted">
         {activeReviewMode.description}
       </p>
     </div>

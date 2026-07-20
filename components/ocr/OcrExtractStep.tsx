@@ -86,22 +86,7 @@ export function OcrExtractStep({
               추출
             </button>
           </div>
-          {imageFile ? (
-            <p className="text-xs font-semibold text-brand-muted">
-              선택됨: {imageFile.name}
-            </p>
-          ) : null}
         </div>
-        {previewUrl ? (
-          <div className="mt-4 overflow-hidden rounded-lg border border-brand-border bg-brand-background">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Local blob previews are not served through Next image optimization. */}
-            <img
-              alt="OCR 미리보기"
-              className="max-h-80 w-full object-contain"
-              src={previewUrl}
-            />
-          </div>
-        ) : null}
         {hasExtractedText ? (
           <section className="mt-4 grid gap-3 rounded-lg border border-primary/20 bg-white p-3 shadow-sm">
             <div className="flex items-start justify-between gap-3">
@@ -124,6 +109,23 @@ export function OcrExtractStep({
               </button>
             </div>
           </section>
+        ) : null}
+        {previewUrl ? (
+          <div className="mt-4 grid gap-2">
+            <div className="overflow-hidden rounded-lg border border-brand-border bg-brand-background">
+              {/* eslint-disable-next-line @next/next/no-img-element -- Local blob previews are not served through Next image optimization. */}
+              <img
+                alt="OCR 미리보기"
+                className="max-h-80 w-full object-contain"
+                src={previewUrl}
+              />
+            </div>
+            {imageFile ? (
+              <p className="text-xs font-semibold text-brand-muted">
+                선택됨: {imageFile.name}
+              </p>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </section>

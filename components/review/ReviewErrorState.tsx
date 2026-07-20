@@ -25,11 +25,11 @@ export function ReviewErrorState({
   return (
     <section className="grid gap-3 py-6">
       {modeTabs}
-      <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+      <p className="rounded-lg border border-status-negative-border bg-status-negative-bg px-4 py-3 text-sm font-semibold text-status-negative">
         {errorMessage}
       </p>
       <button
-        className="min-h-12 rounded-lg border border-slate-200 bg-white text-base font-bold text-slate-700"
+        className="min-h-12 rounded-lg border border-brand-border bg-white text-base font-bold text-brand-text shadow-sm"
         onClick={onRetry}
         type="button"
       >

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   getExamplePlaceholder,
   getMeaningPlaceholder,
@@ -7,18 +8,22 @@ import {
   getTermPlaceholder,
 } from "@/components/word-form/word-form-placeholders";
 import {
-  CurrentNotebookNotice,
+  CurrentNotebookSelector,
   useCurrentNotebookTarget,
   type CurrentNotebookTarget,
 } from "@/components/notebooks/CurrentNotebookNotice";
+import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
+import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import type { WordFormState } from "@/components/word-form/types";
 import { useWordFormQuery } from "@/components/word-form/useWordFormQuery";
 import { useWordFormState } from "@/components/word-form/useWordFormState";
+import { buildWordListHref } from "@/components/words/word-list-links";
 import { getLanguageOption } from "@/lib/languages";
 import type { AppSession } from "@/lib/session";
 import { getWordReading, getWordTerm } from "@/lib/words";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
+import type { Notebook } from "@/types/notebook";
 import type { Word } from "@/types/word";
 
 type WordFormProps = {
@@ -30,8 +35,12 @@ type WordFormProps = {
 
 type WordFormBodyProps = WordFormProps & {
   initialForm: WordFormState;
+  isLoadingNotebooks: boolean;
   loadErrorMessage: string;
   notebookTarget: CurrentNotebookTarget;
+  notebooks: Notebook[];
+  onNotebookChange: (notebookId?: string) => void;
+  selectedNotebookId?: string;
   session: AppSession | null;
 };
 
@@ -66,9 +75,16 @@ function toFormState(word: Word): WordFormState {
 export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) {
   const session = useSession() ?? null;
   const isEdit = mode === "edit";
+  const [selectedNotebookId, setSelectedNotebookId] = useState(
+    getPersistedNotebookId(notebookId),
+  );
   const notebookTarget = useCurrentNotebookTarget({
     language,
-    notebookId,
+    notebookId: selectedNotebookId,
+    session,
+  });
+  const { isLoadingNotebooks, notebooks } = useNotebooksQuery({
+    language,
     session,
   });
   const {
@@ -80,6 +96,20 @@ export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) 
     uid: session?.uid,
     wordId,
   });
+
+  function handleNotebookChange(nextNotebookId?: string) {
+    setSelectedNotebookId(nextNotebookId);
+
+    window.history.replaceState(
+      null,
+      "",
+      buildWordListHref({
+        language,
+        notebookId: nextNotebookId,
+        path: "/words/new",
+      }),
+    );
+  }
 
   if (isLoading) {
     return (
@@ -94,10 +124,14 @@ export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) 
       initialForm={word ? toFormState(word) : emptyForm}
       key={word?.id ?? `${mode}-${language}-${wordId ?? "new"}`}
       language={language}
+      isLoadingNotebooks={isLoadingNotebooks}
       loadErrorMessage={loadErrorMessage}
       mode={mode}
       notebookId={notebookTarget.resolvedNotebookId}
       notebookTarget={notebookTarget}
+      notebooks={notebooks}
+      onNotebookChange={handleNotebookChange}
+      selectedNotebookId={selectedNotebookId}
       session={session}
       wordId={wordId}
     />
@@ -106,11 +140,15 @@ export function WordForm({ language, mode, notebookId, wordId }: WordFormProps) 
 
 function WordFormBody({
   initialForm,
+  isLoadingNotebooks,
   language,
   loadErrorMessage,
   mode,
   notebookId,
   notebookTarget,
+  notebooks,
+  onNotebookChange,
+  selectedNotebookId,
   session,
   wordId,
 }: WordFormBodyProps) {
@@ -138,7 +176,15 @@ function WordFormBody({
 
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
-      {!isEdit ? <CurrentNotebookNotice target={notebookTarget} /> : null}
+      {!isEdit ? (
+        <CurrentNotebookSelector
+          isLoadingNotebooks={isLoadingNotebooks}
+          notebooks={notebooks}
+          onNotebookChange={onNotebookChange}
+          selectedNotebookId={selectedNotebookId}
+          target={notebookTarget}
+        />
+      ) : null}
 
       <label className="grid gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">

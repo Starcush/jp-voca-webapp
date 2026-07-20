@@ -23,9 +23,15 @@ export function ReviewLoadingState({
     <section className="flex flex-1 flex-col gap-6">
       {modeTabs}
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-semibold text-slate-500">
-          {languageLabel} 복습 단어를 불러오는 중
-        </p>
+        <div className="grid gap-3 rounded-xl border border-brand-border bg-white px-5 py-4 text-center shadow-[0_2px_10px_rgba(36,28,61,0.05)]">
+          <div
+            aria-hidden="true"
+            className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-border border-t-primary"
+          />
+          <p className="text-sm font-bold text-brand-muted">
+            {languageLabel} 복습 단어를 불러오는 중
+          </p>
+        </div>
       </div>
     </section>
   );
