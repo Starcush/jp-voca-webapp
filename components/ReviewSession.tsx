@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { REVIEW_LIMIT } from "@/components/review/review-options";
+import {
+  REVIEW_LIMIT,
+  type ReviewDirection,
+} from "@/components/review/review-options";
 import { ReviewCard } from "@/components/review/ReviewCard";
 import { ReviewCompleteState } from "@/components/review/ReviewCompleteState";
 import { ReviewEmptyState } from "@/components/review/ReviewEmptyState";
@@ -35,6 +38,8 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
   const session = useSession() ?? null;
   const languageOption = getLanguageOption(language);
   const [reviewOffset, setReviewOffset] = useState(0);
+  const [reviewDirection, setReviewDirection] =
+    useState<ReviewDirection>("termToMeaning");
   const [isSaving, setIsSaving] = useState(false);
   const {
     currentIndex,
@@ -55,6 +60,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
     language,
     notebookId,
     offset: reviewOffset,
+    reviewDirection,
     session,
   });
 
@@ -96,6 +102,16 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
     void refetchReviewWords();
   }
 
+  function handleReviewDirectionChange(nextReviewDirection: ReviewDirection) {
+    if (nextReviewDirection === reviewDirection) {
+      return;
+    }
+
+    setReviewDirection(nextReviewDirection);
+    setReviewOffset(0);
+    resetReviewProgress();
+  }
+
   const currentWord = reviewWords[currentIndex];
   const isComplete =
     reviewWords.length > 0 && currentIndex >= reviewWords.length;
@@ -124,7 +140,11 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
   if (reviewWords.length === 0) {
     return (
       <ReviewEmptyState
-        emptyMessage="복습할 단어가 없습니다"
+        emptyMessage={
+          reviewDirection === "meaningToTerm"
+            ? "뜻이 입력된 복습 단어가 없습니다"
+            : "복습할 단어가 없습니다"
+        }
         language={language}
         languageLabel={languageOption.label}
         notebookId={notebookId}
@@ -159,8 +179,10 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
       isSaving={isSaving}
       languageLabel={languageOption.label}
       onRevealAnswer={revealAnswer}
+      onReviewDirectionChange={handleReviewDirectionChange}
       onStudyStatus={(status) => void handleStudyStatus(status)}
       readingLabel={languageOption.readingLabel}
+      reviewDirection={reviewDirection}
       reviewWordCount={reviewWords.length}
       word={currentWord}
     />

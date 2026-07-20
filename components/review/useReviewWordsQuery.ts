@@ -3,7 +3,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { UNFILED_NOTEBOOK_ID } from "@/components/notebooks/notebook-constants";
-import { REVIEW_LIMIT } from "@/components/review/review-options";
+import {
+  REVIEW_LIMIT,
+  type ReviewDirection,
+} from "@/components/review/review-options";
 import type { AppSession } from "@/lib/session";
 import { listAllWords } from "@/lib/words";
 import type { Language } from "@/types/language";
@@ -13,6 +16,7 @@ type UseReviewWordsQueryInput = {
   language: Language;
   notebookId?: string;
   offset: number;
+  reviewDirection: ReviewDirection;
   session: AppSession | null;
 };
 
@@ -40,6 +44,14 @@ function getNotebookWords(words: Word[], notebookId?: string) {
   }
 
   return words.filter((word) => word.notebookId === notebookId);
+}
+
+function getDirectionWords(words: Word[], reviewDirection: ReviewDirection) {
+  if (reviewDirection === "termToMeaning") {
+    return words;
+  }
+
+  return words.filter((word) => word.meaning?.trim());
 }
 
 function getFirebaseErrorCode(error: unknown) {
@@ -70,12 +82,14 @@ function getReviewErrorMessage(error: unknown) {
  * @param input.language - 복습할 언어입니다.
  * @param input.notebookId - 복습할 노트 ID입니다. 없으면 언어 전체를 복습합니다.
  * @param input.offset - 전체 후보 목록에서 현재 세트가 시작되는 위치입니다.
+ * @param input.reviewDirection - 복습 카드에서 먼저 보여줄 면입니다.
  * @returns 현재 복습 세트, 전체 후보 개수, 로딩/에러 상태, 재조회 함수를 반환합니다.
  */
 export function useReviewWordsQuery({
   language,
   notebookId,
   offset,
+  reviewDirection,
   session,
 }: UseReviewWordsQueryInput) {
   const uid = session?.uid ?? "";
@@ -86,8 +100,13 @@ export function useReviewWordsQuery({
   });
   const modeWords = useMemo(
     () =>
-      getPriorityReviewWords(getNotebookWords(wordsQuery.data ?? [], notebookId)),
-    [notebookId, wordsQuery.data],
+      getPriorityReviewWords(
+        getDirectionWords(
+          getNotebookWords(wordsQuery.data ?? [], notebookId),
+          reviewDirection,
+        ),
+      ),
+    [notebookId, reviewDirection, wordsQuery.data],
   );
   const reviewWords = useMemo(
     () => modeWords.slice(offset, offset + REVIEW_LIMIT),

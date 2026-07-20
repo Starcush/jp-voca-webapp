@@ -1,6 +1,10 @@
 "use client";
 
 import { Eye } from "lucide-react";
+import {
+  REVIEW_DIRECTION_OPTIONS,
+  type ReviewDirection,
+} from "@/components/review/review-options";
 import { getWordReading, getWordTerm } from "@/lib/words";
 import type { Word, WordStatus } from "@/types/word";
 
@@ -10,8 +14,10 @@ type ReviewCardProps = {
   isSaving: boolean;
   languageLabel: string;
   onRevealAnswer: () => void;
+  onReviewDirectionChange: (reviewDirection: ReviewDirection) => void;
   onStudyStatus: (status: WordStatus) => void;
   readingLabel?: string;
+  reviewDirection: ReviewDirection;
   reviewWordCount: number;
   word: Word;
 };
@@ -28,7 +34,9 @@ type ReviewCardProps = {
  * @param props.languageLabel - 현재 복습 언어의 표시 이름입니다.
  * @param props.readingLabel - 언어별 읽기 라벨입니다.
  * @param props.onRevealAnswer - 정답 보기 액션입니다.
+ * @param props.onReviewDirectionChange - 복습 방향 전환 액션입니다.
  * @param props.onStudyStatus - 알았어요/모르겠어요 액션입니다.
+ * @param props.reviewDirection - 현재 복습 카드에서 먼저 보여줄 면입니다.
  * @returns 현재 복습 카드와 정답 공개/학습 상태 버튼을 렌더링합니다.
  */
 export function ReviewCard({
@@ -37,19 +45,41 @@ export function ReviewCard({
   isSaving,
   languageLabel,
   onRevealAnswer,
+  onReviewDirectionChange,
   onStudyStatus,
   readingLabel,
+  reviewDirection,
   reviewWordCount,
   word,
 }: ReviewCardProps) {
   const term = getWordTerm(word);
   const reading = getWordReading(word);
+  const isMeaningFirst = reviewDirection === "meaningToTerm";
+  const promptText = isMeaningFirst ? word.meaning : term;
   const progressPercent = Math.round(
     ((currentIndex + 1) / reviewWordCount) * 100,
   );
 
   return (
     <section className="flex flex-1 flex-col gap-3">
+      <div className="grid grid-cols-2 rounded-full bg-brand-background p-1 shadow-sm">
+        {REVIEW_DIRECTION_OPTIONS.map((option) => (
+          <button
+            aria-pressed={reviewDirection === option.value}
+            className={`min-h-8 rounded-full px-2 text-xs font-bold ${
+              reviewDirection === option.value
+                ? "bg-primary text-white shadow-sm"
+                : "text-brand-muted"
+            }`}
+            key={option.value}
+            onClick={() => onReviewDirectionChange(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-2">
         <div className="flex items-center justify-between text-sm font-bold text-brand-muted">
           <span>{languageLabel} 복습</span>
@@ -71,8 +101,14 @@ export function ReviewCard({
           onClick={onRevealAnswer}
           type="button"
         >
-          <p className="font-japanese text-3xl font-semibold leading-tight tracking-normal text-word-kanji sm:text-4xl">
-            {term}
+          <p
+            className={
+              isMeaningFirst
+                ? "text-2xl font-bold leading-tight text-word-meaning sm:text-3xl"
+                : "font-japanese text-3xl font-semibold leading-tight tracking-normal text-word-kanji sm:text-4xl"
+            }
+          >
+            {promptText}
           </p>
           {!isAnswerVisible ? (
             <p className="inline-flex items-center justify-center gap-1 text-sm font-bold text-brand-muted">
@@ -84,6 +120,14 @@ export function ReviewCard({
 
         {isAnswerVisible ? (
           <div className="mt-4 grid gap-3 border-t border-brand-border pt-4">
+            {isMeaningFirst ? (
+              <div>
+                <p className="text-xs font-bold text-brand-muted">정답</p>
+                <p className="font-japanese mt-1 text-2xl font-semibold leading-tight text-word-kanji">
+                  {term}
+                </p>
+              </div>
+            ) : null}
             {reading ? (
               <div>
                 <p className="text-xs font-bold text-brand-muted">
@@ -94,7 +138,7 @@ export function ReviewCard({
                 </p>
               </div>
             ) : null}
-            {word.meaning ? (
+            {!isMeaningFirst && word.meaning ? (
               <div>
                 <p className="text-xs font-bold text-brand-muted">뜻</p>
                 <p className="mt-1 text-lg font-semibold text-word-meaning">
