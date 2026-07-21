@@ -56,12 +56,15 @@ export function ReviewCard({
   const reading = getWordReading(word);
   const isMeaningFirst = reviewDirection === "meaningToTerm";
   const promptText = isMeaningFirst ? word.meaning : term;
+  const revealLabel = isMeaningFirst
+    ? "단어를 떠올린 뒤 탭하세요"
+    : "뜻을 떠올린 뒤 탭하세요";
   const progressPercent = Math.round(
     ((currentIndex + 1) / reviewWordCount) * 100,
   );
 
   return (
-    <section className="flex flex-1 flex-col gap-3">
+    <section className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="grid grid-cols-2 rounded-full bg-brand-background p-1 shadow-sm">
         {REVIEW_DIRECTION_OPTIONS.map((option) => (
           <button
@@ -80,7 +83,7 @@ export function ReviewCard({
         ))}
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-1.5">
         <div className="flex items-center justify-between text-sm font-bold text-brand-muted">
           <span>{languageLabel} 복습</span>
           <span className="text-brand-text">
@@ -95,9 +98,13 @@ export function ReviewCard({
         </div>
       </div>
 
-      <article className="flex min-h-[18rem] flex-col justify-center rounded-xl border border-brand-border bg-white p-4 shadow-[0_2px_10px_rgba(36,28,61,0.06)] sm:min-h-[22rem]">
+      <article
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto rounded-xl border border-brand-border bg-white p-3 shadow-[0_2px_10px_rgba(36,28,61,0.06)] ${
+          isAnswerVisible ? "" : "justify-center"
+        }`}
+      >
         <button
-          className="grid gap-3 rounded-lg px-2 py-6 text-center transition-colors hover:bg-brand-background/60"
+          className="grid shrink-0 gap-2 rounded-lg px-2 py-4 text-center transition-colors hover:bg-brand-background/60"
           onClick={onRevealAnswer}
           type="button"
         >
@@ -113,13 +120,13 @@ export function ReviewCard({
           {!isAnswerVisible ? (
             <p className="inline-flex items-center justify-center gap-1 text-sm font-bold text-brand-muted">
               <Eye aria-hidden className="size-4" strokeWidth={2.2} />
-              눌러서 정답 보기
+              {revealLabel}
             </p>
           ) : null}
         </button>
 
         {isAnswerVisible ? (
-          <div className="mt-4 grid gap-3 border-t border-brand-border pt-4">
+          <div className="mt-3 grid gap-2.5 border-t border-brand-border pt-3">
             {isMeaningFirst ? (
               <div>
                 <p className="text-xs font-bold text-brand-muted">정답</p>
@@ -166,9 +173,9 @@ export function ReviewCard({
       </article>
 
       {isAnswerVisible ? (
-        <div className="grid grid-cols-2 gap-2 pb-2 md:pb-0">
+        <div className="grid grid-cols-2 gap-2 pb-1 md:pb-0">
           <button
-            className="min-h-11 rounded-lg border border-brand-border bg-white px-4 text-base font-black text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-lg border border-brand-border bg-white px-4 text-base font-black text-brand-text shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSaving}
             onClick={() => onStudyStatus("unknown")}
             type="button"
@@ -176,7 +183,7 @@ export function ReviewCard({
             모르겠어요
           </button>
           <button
-            className="min-h-11 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
+            className="min-h-10 rounded-lg bg-primary px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
             disabled={isSaving}
             onClick={() => onStudyStatus("known")}
             type="button"

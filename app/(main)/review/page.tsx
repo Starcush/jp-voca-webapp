@@ -16,7 +16,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   const language = getLanguageOption(selectedLanguage);
 
   return (
-    <AppFrame title={`${language.label} 복습`}>
+    <AppFrame showHeader={false} title={`${language.label} 복습`}>
       <RequireSession>
         <ReviewSession
           key={`${selectedLanguage}:${notebookId ?? "all"}`}

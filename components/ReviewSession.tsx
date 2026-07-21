@@ -129,10 +129,12 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
       session={session}
     />
   );
+  const reviewLayoutClass =
+    "flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-2 pt-3 md:h-auto md:flex-1";
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 flex-col gap-3">
+      <div className={reviewLayoutClass}>
         {reviewNotebookSelector}
         <ReviewLoadingState languageLabel={languageOption.label} />
       </div>
@@ -141,7 +143,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
 
   if (errorMessage) {
     return (
-      <div className="flex flex-1 flex-col gap-3">
+      <div className={reviewLayoutClass}>
         {reviewNotebookSelector}
         <ReviewErrorState
           errorMessage={errorMessage}
@@ -156,7 +158,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
 
   if (reviewWords.length === 0) {
     return (
-      <div className="flex flex-1 flex-col gap-3">
+      <div className={reviewLayoutClass}>
         {reviewNotebookSelector}
         <ReviewEmptyState
           emptyMessage={
@@ -174,7 +176,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
 
   if (isComplete) {
     return (
-      <div className="flex flex-1 flex-col gap-3">
+      <div className={reviewLayoutClass}>
         {reviewNotebookSelector}
         <ReviewCompleteState
           hasNextReviewSet={hasNextReviewSet}
@@ -196,7 +198,7 @@ export function ReviewSession({ language, notebookId }: ReviewSessionProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className={reviewLayoutClass}>
       {reviewNotebookSelector}
       <ReviewCard
         currentIndex={currentIndex}
