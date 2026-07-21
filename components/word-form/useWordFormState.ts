@@ -11,6 +11,10 @@ import type {
 import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import type { AppSession } from "@/lib/session";
+import {
+  generateVocabularyReading,
+  suggestVocabulary,
+} from "@/lib/vocabulary-suggestions";
 import { createWord, deleteWord, updateWord } from "@/lib/words";
 import { storeWordSaveNotice } from "@/lib/word-save-notice";
 import type { Language } from "@/types/language";
@@ -55,7 +59,7 @@ function normalizeInput(
  * @param input.session - 현재 로그인 세션입니다.
  * @param input.termLabel - 필수 단어 필드의 사용자 표시 라벨입니다.
  * @param input.wordId - 수정/삭제할 단어 ID입니다.
- * @returns 폼 상태, 로딩 상태, 에러 메시지, 필드 수정/저장/삭제/읽기 생성 액션을 반환합니다.
+ * @returns 폼 상태, 로딩 상태, 에러 메시지, 필드 수정/저장/삭제/읽기·뜻 찾기 액션을 반환합니다.
  */
 export function useWordFormState({
   initialForm,
@@ -70,6 +74,7 @@ export function useWordFormState({
   const queryClient = useQueryClient();
   const [form, setForm] = useState<WordFormState>(initialForm);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isFindingVocabulary, setIsFindingVocabulary] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingReading, setIsGeneratingReading] = useState(false);
 
@@ -167,6 +172,65 @@ export function useWordFormState({
     }
   }
 
+  async function handleFindVocabulary() {
+    const term = form.term.trim();
+
+    if (!term) {
+      setErrorMessage(`${termLabel}를 먼저 입력해주세요.`);
+      return;
+    }
+
+    setErrorMessage("");
+    setIsFindingVocabulary(true);
+
+    try {
+      const userReading = form.reading.trim();
+      const suggestion = await suggestVocabulary({
+        language,
+        reading: userReading,
+        sentence: form.exampleSentence.trim(),
+        term,
+      });
+      const fallbackReading =
+        userReading || suggestion.reading
+          ? ""
+          : await generateVocabularyReading(language, term);
+      const nextReading = userReading || suggestion.reading || fallbackReading;
+      const nextMeaning = form.meaning.trim() || suggestion.meaning;
+
+      if (!nextMeaning && (language === "en" || !nextReading)) {
+        setErrorMessage(
+          language === "en"
+            ? "뜻을 찾지 못했습니다."
+            : "읽기와 뜻을 찾지 못했습니다.",
+        );
+        return;
+      }
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        meaning: nextMeaning || currentForm.meaning,
+        reading: nextReading || currentForm.reading,
+      }));
+
+      if (!suggestion.meaning) {
+        setErrorMessage(
+          language === "en"
+            ? "뜻을 찾지 못했습니다. 필요한 경우 직접 입력해주세요."
+            : "뜻을 찾지 못했습니다. 읽기만 채웠다면 뜻은 직접 입력해주세요.",
+        );
+      }
+    } catch {
+      setErrorMessage(
+        language === "en"
+          ? "뜻을 찾지 못했습니다."
+          : "읽기와 뜻을 찾지 못했습니다.",
+      );
+    } finally {
+      setIsFindingVocabulary(false);
+    }
+  }
+
   async function handleGenerateReading() {
     const text = form.term.trim();
 
@@ -179,23 +243,10 @@ export function useWordFormState({
     setIsGeneratingReading(true);
 
     try {
-      const response = await fetch(language === "zh" ? "/api/pinyin" : "/api/furigana", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      });
-      const data = (await response.json()) as {
-        furigana?: string;
-        pinyin?: string;
-        reading?: string;
-        error?: string;
-      };
-      const generatedReading = data.reading ?? data.furigana ?? data.pinyin;
+      const generatedReading = await generateVocabularyReading(language, text);
 
-      if (!response.ok || !generatedReading) {
-        throw new Error(data.error ?? "failed to generate reading");
+      if (!generatedReading) {
+        throw new Error("failed to generate reading");
       }
 
       updateField("reading", generatedReading);
@@ -214,8 +265,10 @@ export function useWordFormState({
     errorMessage,
     form,
     handleDelete,
+    handleFindVocabulary,
     handleGenerateReading,
     handleSubmit,
+    isFindingVocabulary,
     isGeneratingReading,
     isSubmitting,
     updateField,

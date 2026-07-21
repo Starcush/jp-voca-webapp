@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 import {
   getExamplePlaceholder,
   getMeaningPlaceholder,
@@ -159,8 +160,10 @@ function WordFormBody({
     errorMessage,
     form,
     handleDelete,
+    handleFindVocabulary,
     handleGenerateReading,
     handleSubmit,
+    isFindingVocabulary,
     isGeneratingReading,
     isSubmitting,
     updateField,
@@ -173,33 +176,60 @@ function WordFormBody({
     termLabel: languageOption.termLabel,
     wordId,
   });
+  const findingVocabularyMessage = languageOption.readingLabel
+    ? "읽기와 뜻을 찾는 중"
+    : "뜻을 찾는 중";
 
   return (
-    <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
-      {!isEdit ? (
-        <CurrentNotebookSelector
-          isLoadingNotebooks={isLoadingNotebooks}
-          notebooks={notebooks}
-          onNotebookChange={onNotebookChange}
-          selectedNotebookId={selectedNotebookId}
-          target={notebookTarget}
-        />
-      ) : null}
+    <>
+      <LoadingOverlay
+        message={findingVocabularyMessage}
+        show={isFindingVocabulary}
+      />
+      <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
+        {!isEdit ? (
+          <CurrentNotebookSelector
+            isLoadingNotebooks={isLoadingNotebooks}
+            notebooks={notebooks}
+            onNotebookChange={onNotebookChange}
+            selectedNotebookId={selectedNotebookId}
+            target={notebookTarget}
+          />
+        ) : null}
 
-      <label className="grid gap-2">
+        <label className="grid gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
           {languageOption.termLabel}
           <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-bold text-red-600">
             필수
           </span>
         </span>
-        <input
-          className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
-          onChange={(event) => updateField("term", event.target.value)}
-          placeholder={getTermPlaceholder(language)}
-          required
-          value={form.term}
-        />
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <input
+            className="min-h-12 rounded-lg border-slate-200 bg-white text-base"
+            onChange={(event) => updateField("term", event.target.value)}
+            placeholder={getTermPlaceholder(language)}
+            required
+            value={form.term}
+          />
+          <button
+            className="min-h-12 rounded-lg bg-primary px-3 text-sm font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
+            disabled={
+              isFindingVocabulary ||
+              isGeneratingReading ||
+              isSubmitting ||
+              !form.term.trim()
+            }
+            onClick={handleFindVocabulary}
+            type="button"
+          >
+            {isFindingVocabulary
+              ? "찾는 중"
+              : languageOption.readingLabel
+                ? "읽기·뜻"
+                : "뜻 찾기"}
+          </button>
+        </div>
       </label>
 
       {languageOption.readingLabel ? (
@@ -280,7 +310,7 @@ function WordFormBody({
         </p>
       ) : null}
 
-      <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
+      <div className="mb-5 mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
         <button
           className="min-h-12 rounded-lg bg-slate-950 px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isSubmitting}
@@ -298,7 +328,8 @@ function WordFormBody({
             삭제
           </button>
         ) : null}
-      </div>
-    </form>
+        </div>
+      </form>
+    </>
   );
 }

@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { getPersistedNotebookId } from "@/components/notebooks/notebook-constants";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import { useSession } from "@/lib/use-session";
+import {
+  generateVocabularyReading,
+  suggestVocabulary,
+} from "@/lib/vocabulary-suggestions";
 import { storeWordSaveNotice } from "@/lib/word-save-notice";
 import { createWord } from "@/lib/words";
 import type { Language } from "@/types/language";
@@ -16,19 +20,6 @@ import {
   type EnrichmentProgress,
   type StagedExpression,
 } from "./types";
-
-type VocabularyRequest = {
-  language: Language;
-  reading: string;
-  sentence: string;
-  term: string;
-};
-
-type VocabularySuggestion = {
-  failed: boolean;
-  meaning: string;
-  reading: string;
-};
 
 type EnrichedExpressionResult = {
   expression: StagedExpression;
@@ -54,66 +45,6 @@ function chunkExpressions(
 
 function normalizeExpressionText(text: string) {
   return text.replace(/\s+/g, " ").trim();
-}
-
-async function generateReading(language: Language, text: string) {
-  if (language === "en") {
-    return "";
-  }
-
-  const response = await fetch(language === "zh" ? "/api/pinyin" : "/api/furigana", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text }),
-  });
-  const data = (await response.json().catch(() => null)) as {
-    furigana?: unknown;
-    pinyin?: unknown;
-    reading?: unknown;
-  } | null;
-  const reading = data?.reading ?? data?.furigana ?? data?.pinyin;
-
-  if (!response.ok || typeof reading !== "string") {
-    return "";
-  }
-
-  return reading;
-}
-
-async function suggestVocabulary({
-  language,
-  reading,
-  sentence,
-  term,
-}: VocabularyRequest): Promise<VocabularySuggestion> {
-  const response = await fetch("/api/meaning", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      language,
-      reading,
-      sentence,
-      term,
-    }),
-  });
-  const data = (await response.json().catch(() => null)) as {
-    meaning?: unknown;
-    reading?: unknown;
-  } | null;
-
-  if (!response.ok || typeof data?.meaning !== "string") {
-    return { failed: true, meaning: "", reading: "" };
-  }
-
-  return {
-    failed: false,
-    meaning: data.meaning,
-    reading: typeof data.reading === "string" ? data.reading : "",
-  };
 }
 
 async function trackSavedExpressions(
@@ -158,7 +89,7 @@ async function enrichExpression(
     const fallbackReading =
       userReading || suggestion.reading
         ? ""
-        : await generateReading(language, term);
+        : await generateVocabularyReading(language, term);
     const reading = userReading || suggestion.reading || fallbackReading;
     const meaning = currentMeaning || suggestion.meaning;
     const failed =
