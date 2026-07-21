@@ -37,6 +37,8 @@ export function WordCard({
   const reading = getWordReading(word);
   const isFlagged = Boolean(word.flaggedAt);
   const languageTextClass = activeLanguage === "ja" ? "font-japanese" : "";
+  const meaningTextClass =
+    activeLanguage === "en" ? "text-primary-text" : "text-word-meaning";
 
   return (
     <article>
@@ -88,7 +90,7 @@ export function WordCard({
               ) : null}
             </span>
             <span
-              className={`break-words text-[0.8125rem] font-medium leading-5 text-word-meaning ${getMaskedClass(
+              className={`break-words text-[0.8125rem] font-medium leading-5 ${meaningTextClass} ${getMaskedClass(
                 maskedField === "meaning",
               )}`}
             >

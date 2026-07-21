@@ -474,6 +474,8 @@ function WordOrganizerRow({
   const reading = getWordReading(word);
   const meaning = word.meaning || "-";
   const languageTextClass = language === "ja" ? "font-japanese" : "";
+  const meaningTextClass =
+    language === "en" ? "text-primary-text" : "text-word-meaning";
 
   return (
     <label className="grid min-h-[68px] cursor-pointer grid-cols-[44px_minmax(0,1fr)] items-center border-b border-brand-border px-4 py-2 last:border-b-0 active:bg-brand-background">
@@ -500,7 +502,9 @@ function WordOrganizerRow({
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-5 text-word-meaning">
+        <span
+          className={`mt-0.5 line-clamp-2 text-[13px] font-medium leading-5 ${meaningTextClass}`}
+        >
           {meaning}
           {showNotebook ? (
             <span className="text-brand-muted"> · {notebookLabel}</span>
