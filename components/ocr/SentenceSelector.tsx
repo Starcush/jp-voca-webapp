@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type SentenceSelectorProps = {
   onAddExpression: (term: string, sourceSentence: string) => void;
@@ -26,16 +26,25 @@ export function SentenceSelector({
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const sentenceRef = useRef<HTMLDivElement>(null);
+  const selectionFrameRef = useRef<number | null>(null);
+  const selectionTimeoutRefs = useRef<number[]>([]);
   const lastSentenceIndex = Math.max(sentences.length - 1, 0);
   const activeSentenceIndex = Math.min(currentSentenceIndex, lastSentenceIndex);
   const currentSentence = sentences[activeSentenceIndex] ?? "";
 
-  function clearSelection() {
-    setSelectedText("");
-    window.getSelection()?.removeAllRanges();
-  }
+  const clearQueuedSelectionWork = useCallback(() => {
+    if (selectionFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionFrameRef.current);
+      selectionFrameRef.current = null;
+    }
 
-  function updateSelection() {
+    selectionTimeoutRefs.current.forEach((timeoutId) => {
+      window.clearTimeout(timeoutId);
+    });
+    selectionTimeoutRefs.current = [];
+  }, []);
+
+  const updateSelection = useCallback(() => {
     const selection = window.getSelection();
     const container = sentenceRef.current;
 
@@ -55,12 +64,50 @@ export function SentenceSelector({
     }
 
     setSelectedText(normalizeSelectedText(selection.toString()));
+  }, []);
+
+  const queueSelectionUpdate = useCallback(() => {
+    if (selectionFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionFrameRef.current);
+    }
+
+    selectionFrameRef.current = window.requestAnimationFrame(() => {
+      selectionFrameRef.current = null;
+      updateSelection();
+    });
+  }, [updateSelection]);
+
+  const scheduleSelectionUpdate = useCallback(() => {
+    selectionTimeoutRefs.current.forEach((timeoutId) => {
+      window.clearTimeout(timeoutId);
+    });
+    selectionTimeoutRefs.current = [];
+    queueSelectionUpdate();
+
+    selectionTimeoutRefs.current = [80, 180, 360].map((delay) =>
+      window.setTimeout(queueSelectionUpdate, delay),
+    );
+  }, [queueSelectionUpdate]);
+
+  function clearSelection() {
+    clearQueuedSelectionWork();
+    setSelectedText("");
+    window.getSelection()?.removeAllRanges();
   }
 
   function addSelectedExpression() {
     onAddExpression(selectedText, currentSentence);
     clearSelection();
   }
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", scheduleSelectionUpdate);
+
+    return () => {
+      document.removeEventListener("selectionchange", scheduleSelectionUpdate);
+      clearQueuedSelectionWork();
+    };
+  }, [clearQueuedSelectionWork, scheduleSelectionUpdate]);
 
   return (
     <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -105,10 +152,12 @@ export function SentenceSelector({
       </div>
 
       <div
-        className="select-text rounded-lg border border-slate-200 bg-slate-50 p-3 text-lg font-semibold leading-8 text-slate-950"
-        onKeyUp={updateSelection}
-        onMouseUp={updateSelection}
-        onTouchEnd={() => window.setTimeout(updateSelection, 0)}
+        className="select-text rounded-lg border border-slate-200 bg-slate-50 p-3 text-lg font-semibold leading-8 text-slate-950 [-webkit-user-select:text]"
+        onKeyUp={scheduleSelectionUpdate}
+        onMouseUp={scheduleSelectionUpdate}
+        onPointerUp={scheduleSelectionUpdate}
+        onSelect={scheduleSelectionUpdate}
+        onTouchEnd={scheduleSelectionUpdate}
         ref={sentenceRef}
         tabIndex={0}
       >
