@@ -124,7 +124,7 @@ function SentenceEditList({
   onUpdateSentence: (index: number, sentence: string) => void;
   sentences: string[];
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const validSentenceCount = sentences.filter(
     (sentence) => sentence.trim(),
   ).length;
@@ -270,6 +270,12 @@ export function OcrSelectStep({
         onReextractText={onReextractText}
         readingDirection={readingDirection}
       />
+      <SentenceSelector
+        key={language}
+        onAddExpression={onAddExpression}
+        sentences={sentences}
+      />
+      <StagedExpressionPreview expressions={stagedExpressions} />
       <SentenceEditList
         mergeSeparator={mergeSeparator}
         onMergeSentenceWithPrevious={onMergeSentenceWithPrevious}
@@ -278,12 +284,6 @@ export function OcrSelectStep({
         onUpdateSentence={onUpdateSentence}
         sentences={sentences}
       />
-      <SentenceSelector
-        key={language}
-        onAddExpression={onAddExpression}
-        sentences={sentences}
-      />
-      <StagedExpressionPreview expressions={stagedExpressions} />
     </section>
   );
 }

@@ -100,6 +100,11 @@ export function SentenceSelector({
     clearSelection();
   }
 
+  function selectSentence(index: number) {
+    setCurrentSentenceIndex(index);
+    clearSelection();
+  }
+
   useEffect(() => {
     document.addEventListener("selectionchange", scheduleSelectionUpdate);
 
@@ -110,15 +115,52 @@ export function SentenceSelector({
   }, [clearQueuedSelectionWork, scheduleSelectionUpdate]);
 
   return (
-    <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+    <section className="grid gap-3 rounded-xl border border-brand-border bg-white p-3 shadow-sm">
+      <div className="grid gap-1">
+        <p className="text-base font-black text-brand-text">
+          사진에서 찾은 문장
+        </p>
+        <p className="text-sm leading-5 text-brand-muted">
+          문장을 고른 뒤, 크게 보이는 문장에서 저장할 표현을 선택하세요.
+        </p>
+      </div>
+
+      <ol className="grid max-h-56 gap-2 overflow-y-auto pr-1">
+        {sentences.map((sentence, index) => {
+          const isActive = index === activeSentenceIndex;
+
+          return (
+            <li key={`selectable-sentence-${index}`}>
+              <button
+                aria-current={isActive ? "true" : undefined}
+                className={`grid w-full gap-1 rounded-lg border px-3 py-2 text-left transition-colors ${
+                  isActive
+                    ? "border-primary bg-primary/8 text-brand-text"
+                    : "border-brand-border bg-white text-brand-muted"
+                }`}
+                onClick={() => selectSentence(index)}
+                type="button"
+              >
+                <span className="text-xs font-black">문장 {index + 1}</span>
+                <span className="line-clamp-2 text-sm font-semibold leading-5">
+                  {sentence || "빈 문장"}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-background/70 p-3">
         <div className="min-w-0">
-          <p className="text-base font-bold text-slate-950">문장별 선택</p>
+          <p className="text-base font-black text-brand-text">
+            이 문장에서 고르기
+          </p>
           <p className="mt-1 text-sm leading-5 text-slate-500">
-            문장에서 단어, 문법, 짧은 구절을 선택하세요.
+            단어, 문법, 짧은 구절을 선택하면 바로 추가할 수 있어요.
           </p>
         </div>
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:w-48">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <button
             aria-label="이전 문장"
             className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -149,39 +191,39 @@ export function SentenceSelector({
             다음
           </button>
         </div>
-      </div>
 
-      <div
-        className="select-text rounded-lg border border-slate-200 bg-slate-50 p-3 text-lg font-semibold leading-8 text-slate-950 [-webkit-user-select:text]"
-        onKeyUp={scheduleSelectionUpdate}
-        onMouseUp={scheduleSelectionUpdate}
-        onPointerUp={scheduleSelectionUpdate}
-        onSelect={scheduleSelectionUpdate}
-        onTouchEnd={scheduleSelectionUpdate}
-        ref={sentenceRef}
-        tabIndex={0}
-      >
-        {currentSentence}
-      </div>
-
-      {selectedText ? (
-        <div className="grid gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[1fr_auto] sm:items-center">
-          <p className="min-w-0 truncate text-sm font-semibold text-slate-700">
-            선택: {selectedText}
-          </p>
-          <button
-            className="min-h-10 rounded-md bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={addSelectedExpression}
-            type="button"
-          >
-            추가
-          </button>
+        <div
+          className="select-text rounded-lg border border-brand-border bg-white p-3 text-xl font-semibold leading-9 text-brand-text [-webkit-user-select:text]"
+          onKeyUp={scheduleSelectionUpdate}
+          onMouseUp={scheduleSelectionUpdate}
+          onPointerUp={scheduleSelectionUpdate}
+          onSelect={scheduleSelectionUpdate}
+          onTouchEnd={scheduleSelectionUpdate}
+          ref={sentenceRef}
+          tabIndex={0}
+        >
+          {currentSentence || "선택할 문장이 없습니다."}
         </div>
-      ) : (
-        <p className="rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-500">
-          선택한 텍스트가 여기에 표시됩니다.
-        </p>
-      )}
+
+        {selectedText ? (
+          <div className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_auto] sm:items-center">
+            <p className="min-w-0 truncate text-sm font-semibold text-brand-text">
+              선택: {selectedText}
+            </p>
+            <button
+              className="min-h-10 rounded-md bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={addSelectedExpression}
+              type="button"
+            >
+              추가
+            </button>
+          </div>
+        ) : (
+          <p className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-brand-muted">
+            선택한 텍스트가 여기에 표시됩니다.
+          </p>
+        )}
+      </div>
     </section>
   );
 }
