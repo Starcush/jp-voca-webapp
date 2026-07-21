@@ -45,7 +45,7 @@ function getWordListErrorMessage(error: unknown) {
   const code = getFirebaseErrorCode(error);
 
   if (code === "failed-precondition") {
-    return "단어 목록 인덱스가 필요합니다. Firebase 콘솔에 뜨는 인덱스 생성 링크를 열어 uid 오름차순, createdAt 내림차순 인덱스를 만들어주세요.";
+    return "단어 목록 인덱스가 필요합니다. Firebase 콘솔에 뜨는 인덱스 생성 링크를 열어 uid 오름차순, language 오름차순, createdAt 내림차순 인덱스를 만들어주세요.";
   }
 
   if (code === "permission-denied") {
@@ -209,7 +209,7 @@ export function useWordListQuery({
 }: UseWordListQueryInput) {
   const queryClient = useQueryClient();
   const [studyStatusErrorMessage, setStudyStatusErrorMessage] = useState("");
-  const canLoadWords = Boolean(session?.uid && session.defaultLanguage);
+  const canLoadWords = Boolean(session?.uid);
   const uid = session?.uid ?? "";
   const wordPagesQuery = useInfiniteQuery({
     queryKey: getWordPagesQueryKey(uid, activeLanguage, highlightedWordId),

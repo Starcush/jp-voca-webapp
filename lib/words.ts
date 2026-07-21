@@ -17,6 +17,7 @@ import {
   writeBatch,
   type CollectionReference,
   type DocumentReference,
+  type QueryConstraint,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
@@ -134,6 +135,10 @@ export function wordDocument(wordId: string) {
   return doc(getDb(), wordPath(wordId)) as DocumentReference<Omit<Word, "id">>;
 }
 
+function getLanguageQueryConstraints(language: Language): QueryConstraint[] {
+  return language === DEFAULT_LANGUAGE ? [] : [where("language", "==", language)];
+}
+
 export async function listWordsPage(
   uid: string,
   language: Language,
@@ -146,6 +151,7 @@ export async function listWordsPage(
   do {
     const constraints = [
       where("uid", "==", uid),
+      ...getLanguageQueryConstraints(language),
       orderBy("createdAt", "desc"),
       limit(WORDS_PAGE_SIZE + 1),
     ];
@@ -180,6 +186,7 @@ export async function listAllWords(uid: string, language: Language) {
     query(
       wordsCollection(),
       where("uid", "==", uid),
+      ...getLanguageQueryConstraints(language),
       orderBy("createdAt", "desc"),
     ),
   );

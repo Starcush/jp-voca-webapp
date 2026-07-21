@@ -58,10 +58,13 @@ Rules 원본은 `firestore.rules` 파일을 기준으로 관리합니다. 사용
 
 ## Firestore 인덱스
 
-단어 목록은 `uid`로 필터링하고 `createdAt` 내림차순으로 정렬합니다. Firebase 콘솔에서 인덱스 생성 링크가 뜨면 그대로 열어서 아래 조합의 composite index를 생성하면 됩니다.
+단어 목록은 `uid`와 언어로 필터링하고 `createdAt` 내림차순으로 정렬합니다. Firebase 콘솔에서 인덱스 생성 링크가 뜨면 그대로 열어서 아래 조합의 composite index를 생성하면 됩니다.
 
 - Collection: `words`
 - Fields: `uid` ascending, `createdAt` descending
+- Fields: `uid` ascending, `language` ascending, `createdAt` descending
+
+기존 일본어 단어 중 `language` 필드가 없는 데이터도 목록에 보여야 하므로, 일본어 기본 목록은 `uid` + `createdAt` 인덱스를 계속 사용합니다. 영어/중국어처럼 언어 필드가 있는 목록은 `uid` + `language` + `createdAt` 인덱스를 사용합니다.
 
 ## 주요 명령어
 
