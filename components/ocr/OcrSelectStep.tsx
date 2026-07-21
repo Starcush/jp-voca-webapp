@@ -168,7 +168,7 @@ function SentenceEditList({
             return (
               <li
                 className="grid gap-2 rounded-lg border border-brand-border bg-brand-background/70 p-3"
-                key={`${index}:${sentence.slice(0, 12)}`}
+                key={`sentence-${index}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-black text-brand-muted">
