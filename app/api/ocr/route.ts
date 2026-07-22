@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { extractTextFromImage } from "@/lib/google-vision";
+import {
+  extractOcrResultFromImage,
+  extractTextFromImage,
+} from "@/lib/google-vision";
 import { isLanguage } from "@/lib/languages";
 import type { Language } from "@/types/language";
 import type { OcrReadingDirection } from "@/types/ocr";
@@ -32,6 +35,7 @@ export async function POST(request: Request) {
   const image = formData?.get("image");
   const languageValue = formData?.get("language");
   const readingDirectionValue = formData?.get("readingDirection");
+  const includeLayout = formData?.get("includeLayout") === "true";
   const language =
     typeof languageValue === "string" && isLanguage(languageValue)
       ? languageValue
@@ -65,6 +69,16 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await image.arrayBuffer());
+    if (includeLayout) {
+      const result = await extractOcrResultFromImage(
+        buffer,
+        languageHints[language],
+        readingDirection,
+      );
+
+      return NextResponse.json(result);
+    }
+
     const text = await extractTextFromImage(
       buffer,
       languageHints[language],

@@ -5,6 +5,7 @@ import type { MouseEvent } from "react";
 import {
   Camera,
   CaseSensitive,
+  Highlighter,
   Languages,
   List,
   RotateCcw,
@@ -23,14 +24,17 @@ type NavigationItem = {
   icon: LucideIcon;
   isActive: boolean;
   label: string;
+  mobileLabel?: string;
 };
 
 const fallbackNavigationItems: Array<{
   icon: LucideIcon;
   label: string;
+  mobileLabel?: string;
 }> = [
   { icon: List, label: "목록" },
   { icon: Camera, label: "가져오기" },
+  { icon: Highlighter, label: "가져오기(테스트)", mobileLabel: "테스트" },
   { icon: Languages, label: "정리" },
   { icon: RotateCcw, label: "복습" },
 ];
@@ -71,6 +75,17 @@ function getNavigationItems({
       icon: Camera,
       isActive: pathname === "/words/import",
       label: "가져오기",
+    },
+    {
+      href: buildWordListHref({
+        language,
+        notebookId,
+        path: "/words/import/photo",
+      }),
+      icon: Highlighter,
+      isActive: pathname === "/words/import/photo",
+      label: "가져오기(테스트)",
+      mobileLabel: "테스트",
     },
     {
       href: buildWordListHref({ language, path: "/words/organize" }),
@@ -119,14 +134,14 @@ export function AppNavigationFallback() {
         aria-hidden="true"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-border bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(36,28,61,0.1)] backdrop-blur md:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {fallbackNavigationItems.map((item) => (
             <div
               className="grid min-h-12 place-items-center rounded-lg px-1 text-xs font-bold text-brand-muted"
               key={item.label}
             >
               <item.icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
-              <span>{item.label}</span>
+              <span>{item.mobileLabel ?? item.label}</span>
             </div>
           ))}
         </div>
@@ -209,7 +224,7 @@ export function AppNavigation() {
         aria-label="주요 메뉴"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-border bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(36,28,61,0.1)] backdrop-blur md:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {items.map((item) => (
             <Link
               aria-current={item.isActive ? "page" : undefined}
@@ -223,7 +238,7 @@ export function AppNavigation() {
               onClick={(event) => handleNavigationClick(event, item.isActive)}
             >
               <item.icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
-              <span>{item.label}</span>
+              <span>{item.mobileLabel ?? item.label}</span>
             </Link>
           ))}
         </div>

@@ -24,7 +24,13 @@ function loadImage(file: File) {
   });
 }
 
-async function prepareImageForOcr(file: File) {
+/**
+ * 브라우저에서 선택한 이미지를 OCR 요청에 적당한 JPEG Blob으로 축소 변환합니다.
+ *
+ * @param file - 사용자가 선택한 원본 이미지 파일입니다.
+ * @returns OCR API에 전송할 리사이즈된 JPEG Blob을 반환합니다.
+ */
+export async function prepareImageForOcr(file: File) {
   const image = await loadImage(file);
   const scale = Math.min(
     1,
