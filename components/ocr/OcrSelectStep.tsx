@@ -65,7 +65,7 @@ function OcrRetryOptions({
   onReextractText: (direction: OcrReadingDirection) => void;
   readingDirection: OcrReadingDirection;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <section className="rounded-lg border border-brand-border bg-white px-3 py-2 shadow-sm">
@@ -139,7 +139,7 @@ function SentenceEditList({
       >
         <span className="min-w-0">
           <span className="block text-sm font-black text-brand-text">
-            문장 수정
+            추출 문장 수정
           </span>
           {isOpen ? (
             <span className="mt-1 block text-sm leading-5 text-brand-muted">
@@ -270,12 +270,6 @@ export function OcrSelectStep({
         onReextractText={onReextractText}
         readingDirection={readingDirection}
       />
-      <SentenceSelector
-        key={language}
-        onAddExpression={onAddExpression}
-        sentences={sentences}
-      />
-      <StagedExpressionPreview expressions={stagedExpressions} />
       <SentenceEditList
         mergeSeparator={mergeSeparator}
         onMergeSentenceWithPrevious={onMergeSentenceWithPrevious}
@@ -284,6 +278,12 @@ export function OcrSelectStep({
         onUpdateSentence={onUpdateSentence}
         sentences={sentences}
       />
+      <SentenceSelector
+        key={language}
+        onAddExpression={onAddExpression}
+        sentences={sentences}
+      />
+      <StagedExpressionPreview expressions={stagedExpressions} />
     </section>
   );
 }

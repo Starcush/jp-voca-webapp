@@ -8,7 +8,6 @@ import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import { OcrConfirmStep } from "@/components/ocr/OcrConfirmStep";
 import { OcrExtractStep } from "@/components/ocr/OcrExtractStep";
 import { OcrSelectStep } from "@/components/ocr/OcrSelectStep";
-import { OcrStepProgress } from "@/components/ocr/OcrStepProgress";
 import {
   canUseOcrImportStep,
   getResolvedOcrImportStep,
@@ -245,16 +244,6 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         show={isExtracting || isEnrichingExpressions || isSavingWords}
       />
       <section className="grid gap-5">
-        {resolvedActiveStep !== "confirm" ? (
-          <OcrStepProgress
-            activeStep={resolvedActiveStep}
-            canConfirmExpressions={canConfirmExpressions}
-            canSelectExpressions={canSelectExpressions}
-            onStepChange={handleStepChange}
-            stagedExpressionCount={stagedExpressions.length}
-          />
-        ) : null}
-
         {errorMessage ? (
           <p className="rounded-md bg-status-negative-bg px-3 py-2 text-sm font-semibold text-status-negative">
             {errorMessage}
