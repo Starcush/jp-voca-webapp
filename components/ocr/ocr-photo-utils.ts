@@ -89,12 +89,14 @@ export function joinSelectedText(tokens: OcrTextBox[], language: Language) {
  * 사진 위 OCR 토큰 하이라이트 색상을 반환합니다.
  *
  * @param isSelected - 사용자가 현재 선택한 토큰인지 여부입니다.
- * @returns primary 색상의 rgba 문자열을 반환합니다.
+ * @returns 선택 여부에 따라 농도가 다른 sky blue rgba 문자열을 반환합니다.
  */
 export function getTokenHighlightColor(isSelected: boolean) {
-  const primaryRgb = "252, 75, 31";
+  const highlightRgb = "150, 205, 235";
 
-  return `rgba(${primaryRgb}, ${isSelected ? 0.52 : 0.24})`;
+  return isSelected
+    ? `rgba(${highlightRgb}, 0.5)`
+    : `rgba(${highlightRgb}, 0.3)`;
 }
 
 /**
