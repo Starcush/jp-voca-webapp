@@ -16,6 +16,7 @@
     "postcss": "^8.5.10"
   },
   "dependencies": {
+    "@google-cloud/documentai": "^9.6.2",
     "@google-cloud/vision": "^5.3.7",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.101.2",

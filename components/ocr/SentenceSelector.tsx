@@ -120,37 +120,39 @@ export function SentenceSelector({
             단어, 문법, 짧은 구절을 선택하면 바로 추가할 수 있어요.
           </p>
         </div>
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-          <button
-            aria-label="이전 문장"
-            className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={activeSentenceIndex === 0}
-            onClick={() => {
-              setCurrentSentenceIndex(Math.max(activeSentenceIndex - 1, 0));
-              clearSelection();
-            }}
-            type="button"
-          >
-            이전
-          </button>
-          <p className="text-center text-sm font-bold text-slate-500">
-            {activeSentenceIndex + 1}/{sentences.length}
-          </p>
-          <button
-            aria-label="다음 문장"
-            className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={activeSentenceIndex >= sentences.length - 1}
-            onClick={() => {
-              setCurrentSentenceIndex(
-                Math.min(activeSentenceIndex + 1, sentences.length - 1),
-              );
-              clearSelection();
-            }}
-            type="button"
-          >
-            다음
-          </button>
-        </div>
+        {sentences.length > 1 ? (
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            <button
+              aria-label="이전 문장"
+              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activeSentenceIndex === 0}
+              onClick={() => {
+                setCurrentSentenceIndex(Math.max(activeSentenceIndex - 1, 0));
+                clearSelection();
+              }}
+              type="button"
+            >
+              이전
+            </button>
+            <p className="text-center text-sm font-bold text-slate-500">
+              {activeSentenceIndex + 1}/{sentences.length}
+            </p>
+            <button
+              aria-label="다음 문장"
+              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activeSentenceIndex >= sentences.length - 1}
+              onClick={() => {
+                setCurrentSentenceIndex(
+                  Math.min(activeSentenceIndex + 1, sentences.length - 1),
+                );
+                clearSelection();
+              }}
+              type="button"
+            >
+              다음
+            </button>
+          </div>
+        ) : null}
 
         <div
           className="select-text rounded-lg border border-brand-border bg-white p-3 text-xl font-semibold leading-9 text-brand-text [-webkit-user-select:text]"

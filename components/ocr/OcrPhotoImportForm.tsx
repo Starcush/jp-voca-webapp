@@ -12,10 +12,13 @@ import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import { OcrPhotoQueue } from "@/components/ocr/OcrPhotoQueue";
 import { OcrPhotoSaveStep } from "@/components/ocr/OcrPhotoSaveStep";
 import { OcrPhotoViewer } from "@/components/ocr/OcrPhotoViewer";
+import { SentenceSelector } from "@/components/ocr/SentenceSelector";
 import {
   clampZoom,
   extractPhotoLayout,
+  getHighlightRegions,
   joinSelectedText,
+  orderOcrTokens,
 } from "@/components/ocr/ocr-photo-utils";
 import { useStagedExpressions } from "@/components/ocr/useStagedExpressions";
 import { buildWordListHref } from "@/components/words/word-list-links";
@@ -30,12 +33,12 @@ type OcrPhotoImportFormProps = {
 };
 
 /**
- * 사진 위 OCR 텍스트 박스를 직접 드래그해 표현을 추가하는 실험형 가져오기 화면입니다.
+ * 사진에서 문장을 탭하고 해당 문장 텍스트에서 여러 표현을 추가하는 실험형 가져오기 화면입니다.
  *
  * @param props - OCR 요청과 저장에 사용할 언어 및 선택 노트입니다.
  * @param props.language - OCR 언어 힌트와 저장 언어입니다.
  * @param props.notebookId - URL에서 전달된 저장 대상 노트 ID입니다.
- * @returns 사진 위 텍스트 선택, 추가 예정 목록, 읽기/뜻 찾기와 저장 UI를 렌더링합니다.
+ * @returns 사진 위 문장 선택, 추가 예정 목록, 읽기/뜻 찾기와 저장 UI를 렌더링합니다.
  */
 export function OcrPhotoImportForm({
   language,
@@ -54,10 +57,6 @@ export function OcrPhotoImportForm({
   const [selectedTokenIds, setSelectedTokenIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [dragState, setDragState] = useState<{
-    action: "select" | "deselect";
-    startIndex: number;
-  } | null>(null);
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [isHighlightMode, setIsHighlightMode] = useState(true);
   const [showModeHint, setShowModeHint] = useState(false);
@@ -91,13 +90,18 @@ export function OcrPhotoImportForm({
     stagedExpressions,
     updateExpression,
   } = useStagedExpressions(language, notebookTarget.resolvedNotebookId);
+  const orderedTokens = useMemo(() => orderOcrTokens(tokens), [tokens]);
   const selectedTokens = useMemo(
-    () => tokens.filter((token) => selectedTokenIds.has(token.id)),
-    [selectedTokenIds, tokens],
+    () => orderedTokens.filter((token) => selectedTokenIds.has(token.id)),
+    [orderedTokens, selectedTokenIds],
   );
   const selectedText = useMemo(
     () => joinSelectedText(selectedTokens, language),
     [language, selectedTokens],
+  );
+  const highlightRegions = useMemo(
+    () => getHighlightRegions(orderedTokens),
+    [orderedTokens],
   );
   const previewUrl = useMemo(
     () => (imageFile ? URL.createObjectURL(imageFile) : ""),
@@ -120,17 +124,16 @@ export function OcrPhotoImportForm({
   }, [previewUrl]);
 
   useEffect(() => {
-    function stopDragging() {
-      setDragState(null);
+    function stopPointerInteraction() {
       setPanStart(null);
     }
 
-    window.addEventListener("pointerup", stopDragging);
-    window.addEventListener("pointercancel", stopDragging);
+    window.addEventListener("pointerup", stopPointerInteraction);
+    window.addEventListener("pointercancel", stopPointerInteraction);
 
     return () => {
-      window.removeEventListener("pointerup", stopDragging);
-      window.removeEventListener("pointercancel", stopDragging);
+      window.removeEventListener("pointerup", stopPointerInteraction);
+      window.removeEventListener("pointercancel", stopPointerInteraction);
     };
   }, []);
 
@@ -148,31 +151,21 @@ export function OcrPhotoImportForm({
     };
   }, [showModeHint]);
 
-  function updateSelectedRange(
-    startIndex: number,
-    endIndex: number,
-    action: "select" | "deselect",
-  ) {
-    const firstIndex = Math.min(startIndex, endIndex);
-    const lastIndex = Math.max(startIndex, endIndex);
-    const rangeIds = tokens
-      .slice(firstIndex, lastIndex + 1)
-      .map((token) => token.id);
+  function selectSentence(tokenIndex: number) {
+    const sentenceId = tokens[tokenIndex]?.sentenceId;
 
-    setSelectedTokenIds((currentIds) => {
-      const nextIds = new Set(currentIds);
+    if (!sentenceId) {
+      return;
+    }
 
-      rangeIds.forEach((tokenId) => {
-        if (action === "select") {
-          nextIds.add(tokenId);
-          return;
-        }
-
-        nextIds.delete(tokenId);
-      });
-
-      return nextIds;
-    });
+    setSelectedTokenIds(
+      new Set(
+        orderedTokens
+          .filter((token) => token.sentenceId === sentenceId)
+          .map((token) => token.id),
+      ),
+    );
+    setErrorMessage("");
   }
 
   function handleNotebookChange(nextNotebookId?: string) {
@@ -244,13 +237,29 @@ export function OcrPhotoImportForm({
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
 
-    return tokens.findIndex(
+    const tokenIndex = tokens.findIndex(
       (token) =>
         x >= token.x &&
         x <= token.x + token.width &&
         y >= token.y &&
         y <= token.y + token.height,
     );
+
+    if (tokenIndex >= 0) {
+      return tokenIndex;
+    }
+
+    const region = highlightRegions.find(
+      (highlightRegion) =>
+        x >= highlightRegion.x &&
+        x <= highlightRegion.x + highlightRegion.width &&
+        y >= highlightRegion.y &&
+        y <= highlightRegion.y + highlightRegion.height,
+    );
+
+    return region
+      ? tokens.findIndex((token) => token.sentenceId === region.sentenceId)
+      : -1;
   }
 
   function handleZoomIn() {
@@ -295,7 +304,6 @@ export function OcrPhotoImportForm({
     event.currentTarget.setPointerCapture(event.pointerId);
 
     if (!isSelectMode) {
-      setDragState(null);
       setPanStart({
         clientX: event.clientX,
         clientY: event.clientY,
@@ -308,14 +316,10 @@ export function OcrPhotoImportForm({
     const tokenIndex = getTokenIndexAtPointer(event);
 
     if (tokenIndex < 0) {
-      setDragState(null);
       return;
     }
 
-    const token = tokens[tokenIndex];
-    const action = selectedTokenIds.has(token.id) ? "deselect" : "select";
-    setDragState({ action, startIndex: tokenIndex });
-    updateSelectedRange(tokenIndex, tokenIndex, action);
+    selectSentence(tokenIndex);
   }
 
   function handleImagePointerMove(event: PointerEvent<HTMLDivElement>) {
@@ -324,17 +328,6 @@ export function OcrPhotoImportForm({
       return;
     }
 
-    if (!dragState) {
-      return;
-    }
-
-    const tokenIndex = getTokenIndexAtPointer(event);
-
-    if (tokenIndex < 0) {
-      return;
-    }
-
-    updateSelectedRange(dragState.startIndex, tokenIndex, dragState.action);
   }
 
   function handleImagePointerUp(event: PointerEvent<HTMLDivElement>) {
@@ -344,18 +337,16 @@ export function OcrPhotoImportForm({
       return;
     }
 
-    setDragState(null);
   }
 
-  function handleAddSelectedText() {
-    const error = addExpression(selectedText, selectedText);
+  function handleAddExpression(term: string, sourceSentence: string) {
+    const error = addExpression(term, sourceSentence);
 
     if (error) {
       setErrorMessage(error);
       return;
     }
 
-    setSelectedTokenIds(new Set());
     setShowSaveForm(false);
     setErrorMessage("");
   }
@@ -439,7 +430,7 @@ export function OcrPhotoImportForm({
                   사진 위에서 고르기
                 </p>
                 <p className="mt-2 text-sm leading-6 text-brand-muted">
-                  사진 속 글자를 형광펜처럼 쓸어 선택한 뒤, 선택한 표현만 추가 예정 목록에 담아보세요.
+                  모르는 단어가 있는 문장을 탭한 뒤, 아래 텍스트에서 여러 표현을 골라보세요.
                 </p>
               </div>
 
@@ -468,12 +459,9 @@ export function OcrPhotoImportForm({
               {previewUrl ? (
                 <OcrPhotoViewer
                   imageOverlayRef={imageOverlayRef}
+                  highlightRegions={highlightRegions}
                   isSelectMode={isSelectMode}
-                  onAddSelectedText={handleAddSelectedText}
-                  onClearDrag={() => {
-                    setDragState(null);
-                    setPanStart(null);
-                  }}
+                  onClearInteraction={() => setPanStart(null)}
                   onClearSelection={() => setSelectedTokenIds(new Set())}
                   onHighlightModeToggle={() =>
                     setIsHighlightMode((current) => !current)
@@ -488,8 +476,15 @@ export function OcrPhotoImportForm({
                   selectedText={selectedText}
                   selectedTokenIds={selectedTokenIds}
                   showModeHint={showModeHint}
-                  tokens={tokens}
                   zoomScale={zoomScale}
+                />
+              ) : null}
+
+              {selectedText ? (
+                <SentenceSelector
+                  key={selectedText}
+                  onAddExpression={handleAddExpression}
+                  sentences={[selectedText]}
                 />
               ) : null}
 

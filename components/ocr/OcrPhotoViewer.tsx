@@ -1,7 +1,10 @@
 import type { PointerEvent, RefObject } from "react";
-import { Highlighter, Plus, X, ZoomIn, ZoomOut } from "lucide-react";
-import { getTokenHighlightColor } from "@/components/ocr/ocr-photo-utils";
-import type { OcrTextBox } from "@/types/ocr";
+import { Highlighter, X, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  getTokenHighlightColor,
+  getTokenOutlineColor,
+} from "@/components/ocr/ocr-photo-utils";
+import type { OcrHighlightRegion } from "@/components/ocr/ocr-photo-utils";
 
 type PanOffset = {
   x: number;
@@ -9,10 +12,10 @@ type PanOffset = {
 };
 
 type OcrPhotoViewerProps = {
+  highlightRegions: OcrHighlightRegion[];
   imageOverlayRef: RefObject<HTMLDivElement | null>;
   isSelectMode: boolean;
-  onAddSelectedText: () => void;
-  onClearDrag: () => void;
+  onClearInteraction: () => void;
   onClearSelection: () => void;
   onHighlightModeToggle: () => void;
   onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
@@ -25,37 +28,35 @@ type OcrPhotoViewerProps = {
   selectedText: string;
   selectedTokenIds: Set<string>;
   showModeHint: boolean;
-  tokens: OcrTextBox[];
   zoomScale: number;
 };
 
-function getHighlightStyle(token: OcrTextBox, isSelected: boolean) {
-  const isHorizontal = token.width >= token.height;
-  const left = isHorizontal ? token.x + token.width * 0.04 : token.x + token.width * 0.22;
-  const top = isHorizontal ? token.y + token.height * 0.48 : token.y + token.height * 0.04;
-  const width = isHorizontal ? token.width * 0.92 : token.width * 0.56;
-  const height = isHorizontal ? token.height * 0.42 : token.height * 0.92;
-
+function getHighlightStyle(
+  region: OcrHighlightRegion,
+  isSelected: boolean,
+) {
   return {
     backgroundColor: getTokenHighlightColor(isSelected),
-    height: `${Math.max(height * 100, 1.3)}%`,
-    left: `${left * 100}%`,
-    top: `${top * 100}%`,
-    width: `${Math.max(width * 100, 1.3)}%`,
+    boxShadow: `inset 0 0 0 0.75px ${getTokenOutlineColor(isSelected)}`,
+    boxSizing: "border-box" as const,
+    height: `${region.height * 100}%`,
+    left: `${region.x * 100}%`,
+    top: `${region.y * 100}%`,
+    width: `${region.width * 100}%`,
   };
 }
 
 /**
- * 사진 위 OCR 텍스트 영역, 확대/축소, 이동/형광펜 선택 UI를 렌더링합니다.
+ * 사진 위 OCR 문장 영역, 확대/축소, 이동/선택 UI를 렌더링합니다.
  *
  * @param props - 사진 미리보기, OCR 토큰, 선택 상태, 확대/이동 상태와 포인터 이벤트 핸들러입니다.
- * @returns 사진 위 하이라이트 선택과 선택 텍스트 추가 UI를 렌더링합니다.
+ * @returns 사진 위 문장 후보 선택과 확대·이동 UI를 렌더링합니다.
  */
 export function OcrPhotoViewer({
+  highlightRegions,
   imageOverlayRef,
   isSelectMode,
-  onAddSelectedText,
-  onClearDrag,
+  onClearInteraction,
   onClearSelection,
   onHighlightModeToggle,
   onPointerDown,
@@ -68,12 +69,11 @@ export function OcrPhotoViewer({
   selectedText,
   selectedTokenIds,
   showModeHint,
-  tokens,
   zoomScale,
 }: OcrPhotoViewerProps) {
   return (
     <div className="grid gap-3">
-      {tokens.length > 0 ? (
+      {highlightRegions.length > 0 ? (
         <div className="flex items-center justify-end gap-2">
           <button
             aria-label="사진 축소"
@@ -131,30 +131,32 @@ export function OcrPhotoViewer({
             className="block max-h-[70vh] max-w-full object-contain"
             src={previewUrl}
           />
-          {tokens.length > 0 ? (
+          {highlightRegions.length > 0 ? (
             <div
               aria-label="사진 위 텍스트 선택 영역"
               className={`absolute inset-0 select-none touch-none ${
                 isSelectMode ? "cursor-crosshair" : "cursor-grab"
               }`}
               onPointerDown={onPointerDown}
-              onPointerLeave={onClearDrag}
+              onPointerLeave={onClearInteraction}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               ref={imageOverlayRef}
               role="application"
               tabIndex={0}
-              title="사진 위를 드래그해서 텍스트를 선택하세요"
+              title="모르는 단어가 있는 문장을 탭하세요"
             >
-              {tokens.map((token) => {
-                const isSelected = selectedTokenIds.has(token.id);
+              {highlightRegions.map((region) => {
+                const isSelected = region.tokenIds.some((tokenId) =>
+                  selectedTokenIds.has(tokenId),
+                );
 
                 return (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute rounded-full transition-colors"
-                    key={token.id}
-                    style={getHighlightStyle(token, isSelected)}
+                    className="pointer-events-none absolute rounded-[2px] transition-[background-color,box-shadow] duration-150"
+                    key={region.id}
+                    style={getHighlightStyle(region, isSelected)}
                   />
                 );
               })}
@@ -163,7 +165,7 @@ export function OcrPhotoViewer({
         </div>
       </div>
 
-      {tokens.length > 0 ? (
+      {highlightRegions.length > 0 ? (
         <div className="grid gap-3 rounded-lg border border-brand-border bg-white p-3">
           <div className="flex items-start gap-2">
             <Highlighter
@@ -172,10 +174,10 @@ export function OcrPhotoViewer({
             />
             <div className="min-w-0">
               <p className="text-sm font-black text-brand-text">
-                드래그해서 글자를 선택하세요
+                모르는 단어가 있는 문장을 탭하세요
               </p>
               <p className="mt-1 text-xs font-semibold leading-5 text-brand-muted">
-                선택된 영역은 진하게 표시됩니다. 다시 쓸면 선택을 지울 수 있어요.
+                앱이 문장 범위를 제안하고, 아래에서 여러 표현을 고를 수 있어요.
               </p>
             </div>
           </div>
@@ -183,7 +185,7 @@ export function OcrPhotoViewer({
           <div className="grid gap-2 rounded-lg bg-brand-background px-3 py-2">
             <div className="flex items-start justify-between gap-3">
               <p className="min-w-0 text-sm font-bold text-brand-text">
-                {selectedText || "선택한 텍스트가 여기에 표시됩니다."}
+                {selectedText || "선택한 문장이 여기에 표시됩니다."}
               </p>
               {selectedText ? (
                 <button
@@ -198,15 +200,6 @@ export function OcrPhotoViewer({
             </div>
           </div>
 
-          <button
-            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg bg-primary px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
-            disabled={!selectedText}
-            onClick={onAddSelectedText}
-            type="button"
-          >
-            <Plus aria-hidden className="size-4" />
-            선택한 표현 추가
-          </button>
         </div>
       ) : null}
     </div>

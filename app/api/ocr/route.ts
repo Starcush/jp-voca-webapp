@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  extractOcrResultFromImage,
-  extractTextFromImage,
-} from "@/lib/google-vision";
+import { extractDocumentAiResult } from "@/lib/google-document-ai";
+import { extractTextFromImage } from "@/lib/google-vision";
 import { isLanguage } from "@/lib/languages";
 import type { Language } from "@/types/language";
 import type { OcrReadingDirection } from "@/types/ocr";
@@ -24,6 +22,10 @@ const readingDirections = new Set<OcrReadingDirection>([
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
+    if (error.message.includes("documentai.processors.processOnline")) {
+      return "Document AI 호출 권한이 없습니다. Google Cloud에서 현재 서비스 계정에 Document AI API User 역할을 추가해주세요.";
+    }
+
     return error.message;
   }
 
@@ -70,10 +72,10 @@ export async function POST(request: Request) {
   try {
     const buffer = Buffer.from(await image.arrayBuffer());
     if (includeLayout) {
-      const result = await extractOcrResultFromImage(
+      const result = await extractDocumentAiResult(
         buffer,
+        image.type,
         languageHints[language],
-        readingDirection,
       );
 
       return NextResponse.json(result);

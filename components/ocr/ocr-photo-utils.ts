@@ -3,6 +3,166 @@ import type { Language } from "@/types/language";
 import type { OcrExtractionResult, OcrTextBox } from "@/types/ocr";
 
 /**
+ * 같은 문장과 줄 또는 열에 속한 OCR 토큰을 합친 하이라이트 영역입니다.
+ *
+ * @property height - 이미지 높이를 기준으로 정규화한 영역 높이입니다.
+ * @property id - 렌더링에 사용할 안정적인 영역 ID입니다.
+ * @property sentenceId - 영역이 속한 문장 그룹 ID입니다.
+ * @property tokenIds - 영역에 포함된 원본 OCR 토큰 ID 목록입니다.
+ * @property width - 이미지 너비를 기준으로 정규화한 영역 너비입니다.
+ * @property x - 이미지 왼쪽을 기준으로 정규화한 x 좌표입니다.
+ * @property y - 이미지 위쪽을 기준으로 정규화한 y 좌표입니다.
+ */
+export type OcrHighlightRegion = {
+  height: number;
+  id: string;
+  sentenceId: string;
+  tokenIds: string[];
+  width: number;
+  x: number;
+  y: number;
+};
+
+function getTokenCenter(token: OcrTextBox) {
+  return {
+    x: token.x + token.width / 2,
+    y: token.y + token.height / 2,
+  };
+}
+
+function isVerticalLayout(tokens: OcrTextBox[]) {
+  let horizontalMovements = 0;
+  let verticalMovements = 0;
+
+  for (let index = 1; index < tokens.length; index += 1) {
+    const previousCenter = getTokenCenter(tokens[index - 1]);
+    const currentCenter = getTokenCenter(tokens[index]);
+    const horizontalDistance = Math.abs(currentCenter.x - previousCenter.x);
+    const verticalDistance = Math.abs(currentCenter.y - previousCenter.y);
+
+    if (verticalDistance > horizontalDistance) {
+      verticalMovements += 1;
+    } else if (horizontalDistance > verticalDistance) {
+      horizontalMovements += 1;
+    }
+  }
+
+  if (verticalMovements !== horizontalMovements) {
+    return verticalMovements > horizontalMovements;
+  }
+
+  const tallTokenCount = tokens.filter(
+    (token) => token.height > token.width * 1.2,
+  ).length;
+  const wideTokenCount = tokens.filter(
+    (token) => token.width > token.height * 1.2,
+  ).length;
+
+  return tallTokenCount >= wideTokenCount;
+}
+
+/**
+ * Document AI 토큰을 서버가 판단한 읽기 순서로 정렬합니다.
+ *
+ * @param tokens - Document AI에서 받은 텍스트, 정규화 좌표와 읽기 순서입니다.
+ * @returns 서버의 readingOrder를 기준으로 정렬한 새 배열을 반환합니다.
+ */
+export function orderOcrTokens(tokens: OcrTextBox[]) {
+  return [...tokens].sort(
+    (first, second) => first.readingOrder - second.readingOrder,
+  );
+}
+
+function createHighlightRegion(
+  tokens: OcrTextBox[],
+  regionIndex: number,
+): OcrHighlightRegion {
+  const x = Math.min(...tokens.map((token) => token.x));
+  const y = Math.min(...tokens.map((token) => token.y));
+  const right = Math.max(...tokens.map((token) => token.x + token.width));
+  const bottom = Math.max(...tokens.map((token) => token.y + token.height));
+  const sentenceId = tokens[0].sentenceId;
+
+  return {
+    height: bottom - y,
+    id: `${sentenceId}:${regionIndex}`,
+    sentenceId,
+    tokenIds: tokens.map((token) => token.id),
+    width: right - x,
+    x,
+    y,
+  };
+}
+
+function startsNewHighlightRun(
+  currentRun: OcrTextBox[],
+  token: OcrTextBox,
+  isVertical: boolean,
+) {
+  const previousToken = currentRun.at(-1);
+
+  if (!previousToken) {
+    return true;
+  }
+
+  const previousCenter = getTokenCenter(previousToken);
+  const currentCenter = getTokenCenter(token);
+  const trackDistance = isVertical
+    ? Math.abs(currentCenter.x - previousCenter.x)
+    : Math.abs(currentCenter.y - previousCenter.y);
+  const trackSize = isVertical
+    ? Math.max(currentRun[0].width, token.width)
+    : Math.max(currentRun[0].height, token.height);
+  const previousProgress = isVertical
+    ? previousCenter.y
+    : previousCenter.x;
+  const currentProgress = isVertical ? currentCenter.y : currentCenter.x;
+  const progressSize = isVertical
+    ? Math.max(previousToken.height, token.height)
+    : Math.max(previousToken.width, token.width);
+  const hasWrapped =
+    currentProgress < previousProgress - progressSize * 1.5;
+
+  return hasWrapped || trackDistance > trackSize * 0.8;
+}
+
+/**
+ * OCR 단어 좌표를 문장별 줄 또는 열 단위의 연속된 하이라이트 영역으로 합칩니다.
+ *
+ * @param tokens - OCR 엔진에서 받은 읽기 순서, 단어 좌표와 문장 그룹 목록입니다.
+ * @returns 사진 위에 렌더링할 문장 하이라이트 영역 목록을 반환합니다.
+ */
+export function getHighlightRegions(tokens: OcrTextBox[]) {
+  const sentenceGroups = new Map<string, OcrTextBox[]>();
+
+  tokens.forEach((token) => {
+    const sentenceTokens = sentenceGroups.get(token.sentenceId) ?? [];
+    sentenceTokens.push(token);
+    sentenceGroups.set(token.sentenceId, sentenceTokens);
+  });
+
+  return Array.from(sentenceGroups.values()).flatMap((sentenceTokens) => {
+    const isVertical = isVerticalLayout(sentenceTokens);
+    const runs: OcrTextBox[][] = [];
+
+    sentenceTokens.forEach((token) => {
+      const currentRun = runs.at(-1);
+
+      if (!currentRun || startsNewHighlightRun(currentRun, token, isVertical)) {
+        runs.push([token]);
+        return;
+      }
+
+      currentRun.push(token);
+    });
+
+    return runs.map((run, regionIndex) =>
+      createHighlightRegion(run, regionIndex),
+    );
+  });
+}
+
+/**
  * 알 수 없는 OCR API 응답 값이 사진 위 텍스트 박스 형태인지 확인합니다.
  *
  * @param value - OCR API에서 받은 토큰 후보 값입니다.
@@ -19,6 +179,8 @@ export function isOcrTextBox(value: unknown): value is OcrTextBox {
     typeof candidate.height === "number" &&
     typeof candidate.id === "string" &&
     typeof candidate.pageIndex === "number" &&
+    typeof candidate.readingOrder === "number" &&
+    typeof candidate.sentenceId === "string" &&
     typeof candidate.text === "string" &&
     typeof candidate.width === "number" &&
     typeof candidate.x === "number" &&
@@ -86,17 +248,27 @@ export function joinSelectedText(tokens: OcrTextBox[], language: Language) {
 }
 
 /**
- * 사진 위 OCR 토큰 하이라이트 색상을 반환합니다.
+ * 모바일 OS의 사진 텍스트 선택과 유사한 OCR 하이라이트 색상을 반환합니다.
  *
- * @param isSelected - 사용자가 현재 선택한 토큰인지 여부입니다.
- * @returns 선택 여부에 따라 농도가 다른 sky blue rgba 문자열을 반환합니다.
+ * @param isSelected - 사용자가 현재 선택한 문장 영역인지 여부입니다.
+ * @returns 인식 영역은 옅은 노란색, 선택 영역은 반투명 시스템 블루로 반환합니다.
  */
 export function getTokenHighlightColor(isSelected: boolean) {
-  const highlightRgb = "150, 205, 235";
-
   return isSelected
-    ? `rgba(${highlightRgb}, 0.5)`
-    : `rgba(${highlightRgb}, 0.3)`;
+    ? "rgba(45, 125, 245, 0.46)"
+    : "rgba(255, 210, 55, 0.22)";
+}
+
+/**
+ * 모바일 OS의 사진 텍스트 선택과 유사한 OCR 하이라이트 외곽 색상을 반환합니다.
+ *
+ * @param isSelected - 사용자가 현재 선택한 문장 영역인지 여부입니다.
+ * @returns 선택 상태에 맞는 얇은 내부 외곽 색상을 반환합니다.
+ */
+export function getTokenOutlineColor(isSelected: boolean) {
+  return isSelected
+    ? "rgba(30, 105, 225, 0.72)"
+    : "rgba(230, 175, 15, 0.42)";
 }
 
 /**

@@ -1,10 +1,6 @@
 import { ImageAnnotatorClient } from "@google-cloud/vision";
 import { getGoogleCloudCredentials } from "@/lib/google-cloud-credentials";
-import type {
-  OcrExtractionResult,
-  OcrReadingDirection,
-  OcrTextBox,
-} from "@/types/ocr";
+import type { OcrReadingDirection } from "@/types/ocr";
 
 let visionClient: ImageAnnotatorClient | undefined;
 
@@ -49,9 +45,6 @@ type PositionedOcrToken = {
   centerX: number;
   centerY: number;
   height: number;
-  minX: number;
-  minY: number;
-  pageIndex: number;
   pageHeight: number;
   pageWidth: number;
   text: string;
@@ -103,8 +96,6 @@ function getWordBox(word: VisionWord) {
     centerX: minX + width / 2,
     centerY: minY + height / 2,
     height,
-    minX,
-    minY,
     width,
   };
 }
@@ -126,51 +117,34 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getPageTokens(page: VisionPage, pageIndex: number) {
+function getPageTokens(page: VisionPage) {
   const tokens: PositionedOcrToken[] = [];
   const pageHeight = page.height ?? 0;
   const pageWidth = page.width ?? 0;
 
   for (const block of page.blocks ?? []) {
     for (const paragraph of block.paragraphs ?? []) {
-      for (const word of paragraph.words ?? []) {
+      const paragraphTokens = (paragraph.words ?? []).flatMap((word) => {
         const text = getWordText(word);
         const box = getWordBox(word);
 
-        if (!text || !box) {
-          continue;
-        }
+        return text && box
+          ? [
+              {
+                ...box,
+                pageHeight,
+                pageWidth,
+                text,
+              },
+            ]
+          : [];
+      });
 
-        tokens.push({
-          ...box,
-          pageIndex,
-          pageHeight,
-          pageWidth,
-          text,
-        });
-      }
+      tokens.push(...paragraphTokens);
     }
   }
 
   return tokens;
-}
-
-function getTextBoxes(annotation: VisionTextAnnotation): OcrTextBox[] {
-  return (
-    annotation.pages?.flatMap((page, pageIndex) =>
-      getPageTokens(page, pageIndex)
-        .filter((token) => token.pageWidth > 0 && token.pageHeight > 0)
-        .map((token, tokenIndex) => ({
-          height: clamp(token.height / token.pageHeight, 0, 1),
-          id: `${pageIndex}:${tokenIndex}`,
-          pageIndex,
-          text: token.text,
-          width: clamp(token.width / token.pageWidth, 0, 1),
-          x: clamp(token.minX / token.pageWidth, 0, 1),
-          y: clamp(token.minY / token.pageHeight, 0, 1),
-        })),
-    ) ?? []
-  );
 }
 
 function removeVerticalModeNoise(tokens: PositionedOcrToken[]) {
@@ -310,8 +284,8 @@ function buildColumnBasedText(tokens: PositionedOcrToken[]) {
 function buildVerticalRightToLeftText(annotation: VisionTextAnnotation) {
   const pageTexts =
     annotation.pages
-      ?.map((page, pageIndex) => {
-        const tokens = removeVerticalModeNoise(getPageTokens(page, pageIndex));
+      ?.map((page) => {
+        const tokens = removeVerticalModeNoise(getPageTokens(page));
 
         return shouldBuildAsRows(tokens)
           ? buildRowBasedText(tokens)
@@ -348,28 +322,6 @@ export async function extractTextFromImage(
   languageHints: string[],
   readingDirection: OcrReadingDirection = "auto",
 ) {
-  const result = await extractOcrResultFromImage(
-    image,
-    languageHints,
-    readingDirection,
-  );
-
-  return result.text;
-}
-
-/**
- * Google Vision 문서 OCR 결과에서 기존 텍스트와 사진 위 선택용 단어 좌표를 함께 추출합니다.
- *
- * @param image - OCR에 사용할 이미지 버퍼입니다.
- * @param languageHints - Google Vision에 전달할 언어 힌트입니다.
- * @param readingDirection - OCR 결과 텍스트 조립에 사용할 읽기 방향입니다.
- * @returns 추출 텍스트와 이미지 위 단어 좌표 목록을 반환합니다.
- */
-export async function extractOcrResultFromImage(
-  image: Buffer,
-  languageHints: string[],
-  readingDirection: OcrReadingDirection = "auto",
-): Promise<OcrExtractionResult> {
   const [result] = await getVisionClient().documentTextDetection({
     image: {
       content: image,
@@ -384,11 +336,8 @@ export async function extractOcrResultFromImage(
     | undefined;
 
   if (!annotation) {
-    return { text: "", tokens: [] };
+    return "";
   }
 
-  return {
-    text: buildTextFromAnnotation(annotation, readingDirection),
-    tokens: getTextBoxes(annotation),
-  };
+  return buildTextFromAnnotation(annotation, readingDirection);
 }
