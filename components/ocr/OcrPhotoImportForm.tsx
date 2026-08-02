@@ -17,6 +17,7 @@ import {
   clampZoom,
   extractPhotoLayout,
   getHighlightRegions,
+  getTextViewportBounds,
   joinSelectedText,
   orderOcrTokens,
 } from "@/components/ocr/ocr-photo-utils";
@@ -59,6 +60,7 @@ export function OcrPhotoImportForm({
   );
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [isHighlightMode, setIsHighlightMode] = useState(true);
+  const [isTextFitEnabled, setIsTextFitEnabled] = useState(true);
   const [showModeHint, setShowModeHint] = useState(false);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState<{
@@ -68,6 +70,7 @@ export function OcrPhotoImportForm({
     y: number;
   } | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageOverlayRef = useRef<HTMLDivElement | null>(null);
   const notebookTarget = useCurrentNotebookTarget({
     language,
@@ -103,6 +106,11 @@ export function OcrPhotoImportForm({
     () => getHighlightRegions(orderedTokens),
     [orderedTokens],
   );
+  const textViewportBounds = useMemo(
+    () => getTextViewportBounds(orderedTokens),
+    [orderedTokens],
+  );
+  const hasExtractedLayout = tokens.length > 0;
   const previewUrl = useMemo(
     () => (imageFile ? URL.createObjectURL(imageFile) : ""),
     [imageFile],
@@ -190,6 +198,7 @@ export function OcrPhotoImportForm({
     clearExpressions();
     setShowSaveForm(false);
     setIsHighlightMode(true);
+    setIsTextFitEnabled(true);
     setPanOffset({ x: 0, y: 0 });
     setZoomScale(1);
     setErrorMessage("");
@@ -204,6 +213,7 @@ export function OcrPhotoImportForm({
     setIsExtracting(true);
     setErrorMessage("");
     setSelectedTokenIds(new Set());
+    setIsTextFitEnabled(true);
     setPanOffset({ x: 0, y: 0 });
     setZoomScale(1);
 
@@ -286,6 +296,13 @@ export function OcrPhotoImportForm({
 
       return nextScale;
     });
+  }
+
+  function handleTextFitToggle() {
+    setIsTextFitEnabled((current) => !current);
+    setIsHighlightMode(true);
+    setPanOffset({ x: 0, y: 0 });
+    setZoomScale(1);
   }
 
   function updatePan(event: PointerEvent<HTMLDivElement>) {
@@ -434,38 +451,49 @@ export function OcrPhotoImportForm({
                 </p>
               </div>
 
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-text">
-                  사진 선택
-                  <input
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) =>
-                      handleImageFileChange(event.target.files?.[0])
-                    }
-                    type="file"
-                  />
-                </label>
-                <button
-                  className="min-h-11 rounded-lg bg-primary px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!imageFile || isExtracting}
-                  onClick={() => void handleExtractText()}
-                  type="button"
-                >
-                  추출
-                </button>
-              </div>
+              <input
+                accept="image/*"
+        className="hidden"
+                onChange={(event) => {
+                  handleImageFileChange(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
+
+              {!hasExtractedLayout ? (
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button
+                    className="grid min-h-11 place-items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-text"
+                    onClick={() => fileInputRef.current?.click()}
+                    type="button"
+                  >
+                    {imageFile ? "사진 재선택" : "사진 선택"}
+                  </button>
+                  <button
+                    className="min-h-11 rounded-lg bg-primary px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!imageFile || isExtracting}
+                    onClick={() => void handleExtractText()}
+                    type="button"
+                  >
+                    추출
+                  </button>
+                </div>
+              ) : null}
 
               {previewUrl ? (
                 <OcrPhotoViewer
                   imageOverlayRef={imageOverlayRef}
                   highlightRegions={highlightRegions}
                   isSelectMode={isSelectMode}
+                  isTextFitEnabled={isTextFitEnabled}
                   onClearInteraction={() => setPanStart(null)}
-                  onClearSelection={() => setSelectedTokenIds(new Set())}
                   onHighlightModeToggle={() =>
                     setIsHighlightMode((current) => !current)
                   }
+                  onReselectImage={() => fileInputRef.current?.click()}
+                  onTextFitToggle={handleTextFitToggle}
                   onPointerDown={handleImagePointerDown}
                   onPointerMove={handleImagePointerMove}
                   onPointerUp={handleImagePointerUp}
@@ -473,9 +501,9 @@ export function OcrPhotoImportForm({
                   onZoomOut={handleZoomOut}
                   panOffset={panOffset}
                   previewUrl={previewUrl}
-                  selectedText={selectedText}
                   selectedTokenIds={selectedTokenIds}
                   showModeHint={showModeHint}
+                  textViewportBounds={textViewportBounds}
                   zoomScale={zoomScale}
                 />
               ) : null}

@@ -23,6 +23,56 @@ export type OcrHighlightRegion = {
   y: number;
 };
 
+/**
+ * 원본 이미지 좌표를 기준으로 화면에 표시할 정규화 영역입니다.
+ *
+ * @property height - 원본 이미지 높이를 1로 봤을 때 표시할 높이입니다.
+ * @property width - 원본 이미지 너비를 1로 봤을 때 표시할 너비입니다.
+ * @property x - 표시 영역이 시작하는 정규화 x 좌표입니다.
+ * @property y - 표시 영역이 시작하는 정규화 y 좌표입니다.
+ */
+export type OcrViewportBounds = {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+};
+
+/**
+ * OCR 텍스트 전체를 감싸고 지정한 여백을 더한 사진 표시 영역을 계산합니다.
+ *
+ * @param tokens - Document AI에서 받은 정규화 텍스트 좌표입니다.
+ * @param padding - 이미지 한 변을 1로 봤을 때 텍스트 바깥에 추가할 여백입니다.
+ * @returns 이미지 경계를 넘지 않는 텍스트 중심 표시 영역을 반환합니다.
+ */
+export function getTextViewportBounds(
+  tokens: OcrTextBox[],
+  padding = 0.05,
+): OcrViewportBounds {
+  if (tokens.length === 0) {
+    return { height: 1, width: 1, x: 0, y: 0 };
+  }
+
+  const safePadding = Math.max(0, padding);
+  const x = Math.max(0, Math.min(...tokens.map((token) => token.x)) - safePadding);
+  const y = Math.max(0, Math.min(...tokens.map((token) => token.y)) - safePadding);
+  const right = Math.min(
+    1,
+    Math.max(...tokens.map((token) => token.x + token.width)) + safePadding,
+  );
+  const bottom = Math.min(
+    1,
+    Math.max(...tokens.map((token) => token.y + token.height)) + safePadding,
+  );
+
+  return {
+    height: bottom - y,
+    width: right - x,
+    x,
+    y,
+  };
+}
+
 function getTokenCenter(token: OcrTextBox) {
   return {
     x: token.x + token.width / 2,

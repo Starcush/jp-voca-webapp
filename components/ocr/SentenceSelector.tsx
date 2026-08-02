@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Highlighter } from "lucide-react";
 
 type SentenceSelectorProps = {
   onAddExpression: (term: string, sourceSentence: string) => void;
@@ -26,6 +27,7 @@ export function SentenceSelector({
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const sentenceRef = useRef<HTMLDivElement>(null);
+  const isPointerSelectingRef = useRef(false);
   const selectionFrameRef = useRef<number | null>(null);
   const selectionTimeoutRefs = useRef<number[]>([]);
   const lastSentenceIndex = Math.max(sentences.length - 1, 0);
@@ -49,7 +51,6 @@ export function SentenceSelector({
     const container = sentenceRef.current;
 
     if (!selection || selection.isCollapsed || !container) {
-      setSelectedText("");
       return;
     }
 
@@ -59,11 +60,14 @@ export function SentenceSelector({
       !container.contains(selection.anchorNode) ||
       !container.contains(selection.focusNode)
     ) {
-      setSelectedText("");
       return;
     }
 
-    setSelectedText(normalizeSelectedText(selection.toString()));
+    const nextSelectedText = normalizeSelectedText(selection.toString());
+
+    if (nextSelectedText) {
+      setSelectedText(nextSelectedText);
+    }
   }, []);
 
   const queueSelectionUpdate = useCallback(() => {
@@ -89,6 +93,26 @@ export function SentenceSelector({
     );
   }, [queueSelectionUpdate]);
 
+  const handleSelectionChange = useCallback(() => {
+    if (!isPointerSelectingRef.current) {
+      scheduleSelectionUpdate();
+    }
+  }, [scheduleSelectionUpdate]);
+
+  const startPointerSelection = useCallback(() => {
+    isPointerSelectingRef.current = true;
+    clearQueuedSelectionWork();
+  }, [clearQueuedSelectionWork]);
+
+  const finishPointerSelection = useCallback(() => {
+    if (!isPointerSelectingRef.current) {
+      return;
+    }
+
+    isPointerSelectingRef.current = false;
+    scheduleSelectionUpdate();
+  }, [scheduleSelectionUpdate]);
+
   function clearSelection() {
     clearQueuedSelectionWork();
     setSelectedText("");
@@ -101,91 +125,92 @@ export function SentenceSelector({
   }
 
   useEffect(() => {
-    document.addEventListener("selectionchange", scheduleSelectionUpdate);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener("pointerup", finishPointerSelection);
+    document.addEventListener("pointercancel", finishPointerSelection);
 
     return () => {
-      document.removeEventListener("selectionchange", scheduleSelectionUpdate);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      document.removeEventListener("pointerup", finishPointerSelection);
+      document.removeEventListener("pointercancel", finishPointerSelection);
       clearQueuedSelectionWork();
     };
-  }, [clearQueuedSelectionWork, scheduleSelectionUpdate]);
+  }, [clearQueuedSelectionWork, finishPointerSelection, handleSelectionChange]);
 
   return (
     <section className="grid gap-3 rounded-xl border border-brand-border bg-white p-3 shadow-sm">
-      <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-background/70 p-3">
-        <div className="min-w-0">
-          <p className="text-base font-black text-brand-text">
-            이 문장에서 고르기
-          </p>
-          <p className="mt-1 text-sm leading-5 text-slate-500">
-            단어, 문법, 짧은 구절을 선택하면 바로 추가할 수 있어요.
-          </p>
-        </div>
-        {sentences.length > 1 ? (
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-            <button
-              aria-label="이전 문장"
-              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={activeSentenceIndex === 0}
-              onClick={() => {
-                setCurrentSentenceIndex(Math.max(activeSentenceIndex - 1, 0));
-                clearSelection();
-              }}
-              type="button"
-            >
-              이전
-            </button>
-            <p className="text-center text-sm font-bold text-slate-500">
-              {activeSentenceIndex + 1}/{sentences.length}
-            </p>
-            <button
-              aria-label="다음 문장"
-              className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={activeSentenceIndex >= sentences.length - 1}
-              onClick={() => {
-                setCurrentSentenceIndex(
-                  Math.min(activeSentenceIndex + 1, sentences.length - 1),
-                );
-                clearSelection();
-              }}
-              type="button"
-            >
-              다음
-            </button>
-          </div>
-        ) : null}
-
-        <div
-          className="select-text rounded-lg border border-brand-border bg-white p-3 text-xl font-semibold leading-9 text-brand-text [-webkit-user-select:text]"
-          onKeyUp={scheduleSelectionUpdate}
-          onMouseUp={scheduleSelectionUpdate}
-          onPointerUp={scheduleSelectionUpdate}
-          onSelect={scheduleSelectionUpdate}
-          onTouchEnd={scheduleSelectionUpdate}
-          ref={sentenceRef}
-          tabIndex={0}
-        >
-          {currentSentence || "선택할 문장이 없습니다."}
-        </div>
-
-        {selectedText ? (
-          <div className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_auto] sm:items-center">
-            <p className="min-w-0 truncate text-sm font-semibold text-brand-text">
-              선택: {selectedText}
-            </p>
-            <button
-              className="min-h-10 rounded-md bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={addSelectedExpression}
-              type="button"
-            >
-              추가
-            </button>
-          </div>
-        ) : (
-          <p className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-brand-muted">
-            선택한 텍스트가 여기에 표시됩니다.
-          </p>
-        )}
+      <div className="flex items-center gap-2">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700">
+          <Highlighter aria-hidden className="size-4" />
+        </span>
+        <p className="text-base font-black text-brand-text">
+          이 문장에서 고르기
+        </p>
       </div>
+
+      {sentences.length > 1 ? (
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+          <button
+            aria-label="이전 문장"
+            className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={activeSentenceIndex === 0}
+            onClick={() => {
+              setCurrentSentenceIndex(Math.max(activeSentenceIndex - 1, 0));
+              clearSelection();
+            }}
+            type="button"
+          >
+            이전
+          </button>
+          <p className="text-center text-sm font-bold text-slate-500">
+            {activeSentenceIndex + 1}/{sentences.length}
+          </p>
+          <button
+            aria-label="다음 문장"
+            className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={activeSentenceIndex >= sentences.length - 1}
+            onClick={() => {
+              setCurrentSentenceIndex(
+                Math.min(activeSentenceIndex + 1, sentences.length - 1),
+              );
+              clearSelection();
+            }}
+            type="button"
+          >
+            다음
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        aria-label="문장에서 단어 또는 표현 선택"
+        className="select-text rounded-lg border border-brand-border bg-white p-3 text-xl font-semibold leading-9 text-brand-text [-webkit-user-select:text]"
+        onKeyUp={scheduleSelectionUpdate}
+        onPointerCancel={finishPointerSelection}
+        onPointerDown={startPointerSelection}
+        onPointerUp={finishPointerSelection}
+        ref={sentenceRef}
+        tabIndex={0}
+      >
+        <span className="rounded-sm bg-amber-200 px-1 py-0.5 [box-decoration-break:clone] [-webkit-box-decoration-break:clone] selection:bg-blue-500 selection:text-white">
+          {currentSentence || "선택할 문장이 없습니다."}
+        </span>
+      </div>
+
+      {selectedText ? (
+        <div className="grid gap-2 rounded-lg bg-brand-background p-2 sm:grid-cols-[1fr_auto] sm:items-center">
+          <p className="min-w-0 truncate text-sm font-semibold text-brand-text">
+            선택: {selectedText}
+          </p>
+          <button
+            className="min-h-10 rounded-md bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={addSelectedExpression}
+            type="button"
+          >
+            추가
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
