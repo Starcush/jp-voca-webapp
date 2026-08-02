@@ -24,11 +24,21 @@ export function OcrPhotoQueue({
 
   return (
     <section className="grid gap-3 rounded-lg border border-brand-border bg-white p-4 shadow-sm">
-      <div>
-        <p className="text-base font-black text-brand-text">
-          담은 표현 {expressions.length}개
-        </p>
-        <p className="mt-1 text-sm font-semibold text-brand-muted">
+      <div className="grid gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-base font-black text-brand-text">
+            담은 표현 {expressions.length}개
+          </p>
+          <button
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-xs font-black text-white sm:text-sm"
+            onClick={onNext}
+            type="button"
+          >
+            <span>찾기 & 저장하러 가기</span>
+            <ChevronRight aria-hidden className="size-4" />
+          </button>
+        </div>
+        <p className="text-sm font-semibold text-brand-muted">
           더 고른 뒤 한 번에 읽기와 뜻을 찾을 수 있습니다.
         </p>
       </div>
@@ -38,7 +48,7 @@ export function OcrPhotoQueue({
             className="flex min-h-10 items-center justify-between gap-3 rounded-lg bg-brand-background px-3 py-2"
             key={expression.id}
           >
-            <span className="min-w-0 truncate text-sm font-black text-brand-text">
+            <span className="min-w-0 truncate text-base font-normal leading-6 text-brand-text">
               {expression.term}
             </span>
             <button
@@ -52,14 +62,6 @@ export function OcrPhotoQueue({
           </li>
         ))}
       </ul>
-      <button
-        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg bg-primary px-4 text-sm font-black text-white"
-        onClick={onNext}
-        type="button"
-      >
-        <span>찾기 & 저장하러 가기</span>
-        <ChevronRight aria-hidden className="size-4" />
-      </button>
     </section>
   );
 }
