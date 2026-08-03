@@ -1,31 +1,9 @@
-import { join } from "node:path";
 import { NextResponse } from "next/server";
-import * as kuromoji from "kuromoji";
-import type { IpadicFeatures, Tokenizer } from "kuromoji";
+import type { IpadicFeatures } from "kuromoji";
+import { getJapaneseTokenizer } from "@/lib/japanese-tokenizer";
 import { suggestVocabularyWithAi } from "@/lib/openai-meaning";
 
 export const runtime = "nodejs";
-
-let tokenizerPromise: Promise<Tokenizer<IpadicFeatures>> | undefined;
-
-function getTokenizer() {
-  tokenizerPromise ??= new Promise((resolve, reject) => {
-    kuromoji
-      .builder({
-        dicPath: join(process.cwd(), "node_modules/kuromoji/dict"),
-      })
-      .build((error, tokenizer) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(tokenizer);
-      });
-  });
-
-  return tokenizerPromise;
-}
 
 function katakanaToHiragana(value: string) {
   return value.replace(/[\u30a1-\u30f6]/g, (character) =>
@@ -57,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tokenizer = await getTokenizer();
+    const tokenizer = await getJapaneseTokenizer();
     const furigana = toFurigana(tokenizer.tokenize(text));
 
     if (!containsHanCharacter(furigana)) {

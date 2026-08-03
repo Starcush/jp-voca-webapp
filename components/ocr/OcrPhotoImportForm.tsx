@@ -511,6 +511,7 @@ export function OcrPhotoImportForm({
               {selectedText ? (
                 <SentenceSelector
                   key={selectedText}
+                  language={language}
                   onAddExpression={handleAddExpression}
                   sentences={[selectedText]}
                 />

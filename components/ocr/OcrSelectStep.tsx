@@ -280,6 +280,7 @@ export function OcrSelectStep({
       />
       <SentenceSelector
         key={language}
+        language={language}
         onAddExpression={onAddExpression}
         sentences={sentences}
       />
