@@ -298,6 +298,27 @@ export function joinSelectedText(tokens: OcrTextBox[], language: Language) {
 }
 
 /**
+ * Document AI 토큰을 문장 그룹별 읽기 순서로 합칩니다.
+ *
+ * @param tokens - Document AI가 반환한 문장 ID와 읽기 순서를 포함한 토큰입니다.
+ * @param language - 영어 문장의 단어 사이 공백을 유지하기 위한 현재 언어입니다.
+ * @returns 사진과 문장별 선택 모드가 함께 사용할 문장 문자열 목록을 반환합니다.
+ */
+export function getOcrSentences(tokens: OcrTextBox[], language: Language) {
+  const sentenceGroups = new Map<string, OcrTextBox[]>();
+
+  orderOcrTokens(tokens).forEach((token) => {
+    const sentenceTokens = sentenceGroups.get(token.sentenceId) ?? [];
+    sentenceTokens.push(token);
+    sentenceGroups.set(token.sentenceId, sentenceTokens);
+  });
+
+  return Array.from(sentenceGroups.values())
+    .map((sentenceTokens) => joinSelectedText(sentenceTokens, language))
+    .filter(Boolean);
+}
+
+/**
  * 모바일 OS의 사진 텍스트 선택과 유사한 OCR 하이라이트 색상을 반환합니다.
  *
  * @param isSelected - 사용자가 현재 선택한 문장 영역인지 여부입니다.

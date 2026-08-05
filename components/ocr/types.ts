@@ -50,3 +50,5 @@ export type StagedExpression = {
   term: string;
   useExample: boolean;
 };
+/** OCR 가져오기 화면에서 문장을 고르는 두 가지 방식입니다. */
+export type OcrImportMode = "photo" | "sentence";

@@ -12,23 +12,29 @@ import { useNotebooksQuery } from "@/components/notebooks/useNotebooksQuery";
 import { OcrPhotoQueue } from "@/components/ocr/OcrPhotoQueue";
 import { OcrPhotoSaveStep } from "@/components/ocr/OcrPhotoSaveStep";
 import { OcrPhotoViewer } from "@/components/ocr/OcrPhotoViewer";
+import { OcrImportModeTabs } from "@/components/ocr/OcrImportModeTabs";
+import { OcrSentenceMode } from "@/components/ocr/OcrSentenceMode";
 import { SentenceSelector } from "@/components/ocr/SentenceSelector";
 import {
   clampZoom,
-  extractPhotoLayout,
   getHighlightRegions,
+  getOcrSentences,
   getTextViewportBounds,
   joinSelectedText,
   orderOcrTokens,
 } from "@/components/ocr/ocr-photo-utils";
+import { useOcrLayoutMutation } from "@/components/ocr/useOcrLayoutMutation";
 import { useStagedExpressions } from "@/components/ocr/useStagedExpressions";
+import type { OcrImportMode } from "@/components/ocr/types";
 import { buildWordListHref } from "@/components/words/word-list-links";
 import { getLanguageOption } from "@/lib/languages";
+import { splitTextIntoSentences } from "@/lib/sentence-splitter";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
 import type { OcrTextBox } from "@/types/ocr";
 
 type OcrPhotoImportFormProps = {
+  initialMode?: OcrImportMode;
   language: Language;
   notebookId?: string;
 };
@@ -42,6 +48,7 @@ type OcrPhotoImportFormProps = {
  * @returns 사진 위 문장 선택, 추가 예정 목록, 읽기/뜻 찾기와 저장 UI를 렌더링합니다.
  */
 export function OcrPhotoImportForm({
+  initialMode = "sentence",
   language,
   notebookId,
 }: OcrPhotoImportFormProps) {
@@ -50,8 +57,9 @@ export function OcrPhotoImportForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [tokens, setTokens] = useState<OcrTextBox[]>([]);
   const [extractedText, setExtractedText] = useState("");
+  const [editableSentences, setEditableSentences] = useState<string[]>([]);
+  const [mode, setMode] = useState<OcrImportMode>(initialMode);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isExtracting, setIsExtracting] = useState(false);
   const [selectedNotebookId, setSelectedNotebookId] = useState(
     getPersistedNotebookId(notebookId),
   );
@@ -72,6 +80,7 @@ export function OcrPhotoImportForm({
   const [zoomScale, setZoomScale] = useState(1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageOverlayRef = useRef<HTMLDivElement | null>(null);
+  const ocrMutation = useOcrLayoutMutation();
   const notebookTarget = useCurrentNotebookTarget({
     language,
     notebookId: selectedNotebookId,
@@ -111,6 +120,8 @@ export function OcrPhotoImportForm({
     [orderedTokens],
   );
   const hasExtractedLayout = tokens.length > 0;
+  const hasExtractedResult = hasExtractedLayout || extractedText.trim().length > 0;
+  const isExtracting = ocrMutation.isPending;
   const previewUrl = useMemo(
     () => (imageFile ? URL.createObjectURL(imageFile) : ""),
     [imageFile],
@@ -178,22 +189,37 @@ export function OcrPhotoImportForm({
 
   function handleNotebookChange(nextNotebookId?: string) {
     setSelectedNotebookId(nextNotebookId);
+    replaceImportUrl(mode, nextNotebookId);
+  }
 
-    window.history.replaceState(
-      null,
-      "",
+  function replaceImportUrl(nextMode: OcrImportMode, nextNotebookId?: string) {
+    const href = new URL(
       buildWordListHref({
         language,
         notebookId: nextNotebookId,
-        path: "/words/import/photo",
+        path: "/words/import",
       }),
+      window.location.origin,
     );
+
+    if (nextMode === "photo") {
+      href.searchParams.set("mode", "photo");
+    }
+
+    window.history.replaceState(null, "", `${href.pathname}${href.search}`);
+  }
+
+  function handleModeChange(nextMode: OcrImportMode) {
+    setMode(nextMode);
+    setErrorMessage("");
+    replaceImportUrl(nextMode, selectedNotebookId);
   }
 
   function handleImageFileChange(file?: File) {
     setImageFile(file ?? null);
     setTokens([]);
     setExtractedText("");
+    setEditableSentences([]);
     setSelectedTokenIds(new Set());
     clearExpressions();
     setShowSaveForm(false);
@@ -210,7 +236,6 @@ export function OcrPhotoImportForm({
       return;
     }
 
-    setIsExtracting(true);
     setErrorMessage("");
     setSelectedTokenIds(new Set());
     setIsTextFitEnabled(true);
@@ -218,12 +243,20 @@ export function OcrPhotoImportForm({
     setZoomScale(1);
 
     try {
-      const result = await extractPhotoLayout(imageFile, language);
+      const result = await ocrMutation.mutateAsync({ imageFile, language });
+      const layoutSentences = getOcrSentences(result.tokens, language);
+      const sentences =
+        layoutSentences.length > 0
+          ? layoutSentences
+          : splitTextIntoSentences(result.text, language);
       setExtractedText(result.text);
       setTokens(result.tokens);
+      setEditableSentences(sentences);
 
-      if (result.tokens.length === 0) {
-        setErrorMessage("사진 위에서 선택할 텍스트 영역을 찾지 못했습니다.");
+      if (!result.text.trim() && result.tokens.length === 0) {
+        setErrorMessage("사진에서 텍스트를 찾지 못했습니다. 더 선명한 사진으로 다시 시도해주세요.");
+      } else if (sentences.length === 0) {
+        setErrorMessage("선택할 문장을 만들지 못했습니다.");
       }
     } catch (error) {
       setErrorMessage(
@@ -231,9 +264,15 @@ export function OcrPhotoImportForm({
           ? error.message
           : "사진에서 텍스트를 추출하지 못했습니다.",
       );
-    } finally {
-      setIsExtracting(false);
     }
+  }
+
+  function updateSentence(index: number, sentence: string) {
+    setEditableSentences((currentSentences) =>
+      currentSentences.map((currentSentence, sentenceIndex) =>
+        sentenceIndex === index ? sentence : currentSentence,
+      ),
+    );
   }
 
   function getTokenIndexAtPointer(event: PointerEvent<HTMLDivElement>) {
@@ -441,19 +480,25 @@ export function OcrPhotoImportForm({
               target={notebookTarget}
             />
 
+            <OcrImportModeTabs mode={mode} onChange={handleModeChange} />
+
             <section className="grid gap-4 rounded-lg border border-brand-border bg-white p-4 shadow-sm">
               <div>
                 <p className="text-base font-black text-brand-text">
-                  사진 위에서 고르기
+                  {mode === "sentence"
+                    ? "추출한 문장별로 고르기"
+                    : "사진 위에서 고르기"}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-brand-muted">
-                  모르는 단어가 있는 문장을 탭한 뒤, 아래 텍스트에서 여러 표현을 골라보세요.
+                  {mode === "sentence"
+                    ? "추출한 문장을 하나씩 확인하고, 모르는 표현을 골라보세요."
+                    : "모르는 단어가 있는 문장을 탭한 뒤, 아래 텍스트에서 여러 표현을 골라보세요."}
                 </p>
               </div>
 
               <input
                 accept="image/*"
-        className="hidden"
+                className="hidden"
                 onChange={(event) => {
                   handleImageFileChange(event.target.files?.[0]);
                   event.currentTarget.value = "";
@@ -462,7 +507,7 @@ export function OcrPhotoImportForm({
                 type="file"
               />
 
-              {!hasExtractedLayout ? (
+              {!hasExtractedResult ? (
                 <div className="grid grid-cols-[1fr_auto] gap-2">
                   <button
                     className="grid min-h-11 place-items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-bold text-brand-text"
@@ -482,7 +527,18 @@ export function OcrPhotoImportForm({
                 </div>
               ) : null}
 
-              {previewUrl ? (
+              {previewUrl && mode === "sentence" && !hasExtractedResult ? (
+                <div className="overflow-hidden rounded-lg border border-brand-border bg-brand-background">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Local blob previews are not served through Next image optimization. */}
+                  <img
+                    alt="OCR 미리보기"
+                    className="max-h-80 w-full object-contain"
+                    src={previewUrl}
+                  />
+                </div>
+              ) : null}
+
+              {previewUrl && mode === "photo" ? (
                 <OcrPhotoViewer
                   imageOverlayRef={imageOverlayRef}
                   highlightRegions={highlightRegions}
@@ -508,18 +564,29 @@ export function OcrPhotoImportForm({
                 />
               ) : null}
 
-              {selectedText ? (
+              {editableSentences.length > 0 && mode === "sentence" ? (
+                <OcrSentenceMode
+                  imageName={imageFile?.name}
+                  language={language}
+                  onAddExpression={handleAddExpression}
+                  onReselectImage={() => fileInputRef.current?.click()}
+                  onUpdateSentence={updateSentence}
+                  sentences={editableSentences}
+                />
+              ) : null}
+
+              {selectedText && mode === "photo" ? (
                 <SentenceSelector
-                  key={selectedText}
+                  key={`${language}:photo:${selectedText}`}
                   language={language}
                   onAddExpression={handleAddExpression}
                   sentences={[selectedText]}
                 />
               ) : null}
 
-              {extractedText && tokens.length === 0 ? (
+              {mode === "photo" && extractedText && tokens.length === 0 ? (
                 <p className="rounded-lg bg-brand-background px-3 py-2 text-sm font-semibold leading-6 text-brand-muted">
-                  텍스트는 추출됐지만 사진 위 선택 영역은 만들지 못했습니다. 기존 문장 확인 방식으로 가져오기를 시도해주세요.
+                  텍스트는 추출됐지만 사진 위 선택 영역은 만들지 못했습니다. 문장별로 고르기를 이용해주세요.
                 </p>
               ) : null}
             </section>
