@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Highlighter } from "lucide-react";
+import { Highlighter, Minus, Plus } from "lucide-react";
 import { useTextSegmentsQuery } from "@/components/ocr/useTextSegmentsQuery";
 import type { Language } from "@/types/language";
 
 type SentenceSelectorProps = {
   language: Language;
   onAddExpression: (term: string, sourceSentence: string) => void;
+  onUpdateSentence?: (index: number, sentence: string) => void;
   sentences: string[];
 };
 
@@ -27,14 +28,17 @@ function normalizeSelectedText(text: string) {
  * @param props.language - 탭할 단어의 경계를 판별할 문장 언어입니다.
  * @param props.sentences - OCR 원문에서 분리된 문장 목록입니다.
  * @param props.onAddExpression - 사용자가 선택한 표현과 원문 문장을 부모로 전달하는 콜백입니다.
+ * @param props.onUpdateSentence - 현재 문장을 수정해 부모 상태에 반영하는 선택적 콜백입니다.
  * @returns 현재 문장, 선택한 텍스트, 표현 추가 버튼, 이전/다음 문장 이동 UI를 렌더링합니다.
  */
 export function SentenceSelector({
   language,
   onAddExpression,
+  onUpdateSentence,
   sentences,
 }: SentenceSelectorProps) {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
+  const [localSentences, setLocalSentences] = useState(() => sentences);
   const [selectedSegmentRange, setSelectedSegmentRange] =
     useState<SegmentRange | null>(null);
   const [selectedText, setSelectedText] = useState("");
@@ -42,9 +46,10 @@ export function SentenceSelector({
   const isPointerSelectingRef = useRef(false);
   const selectionFrameRef = useRef<number | null>(null);
   const selectionTimeoutRefs = useRef<number[]>([]);
-  const lastSentenceIndex = Math.max(sentences.length - 1, 0);
+  const editableSentences = onUpdateSentence ? sentences : localSentences;
+  const lastSentenceIndex = Math.max(editableSentences.length - 1, 0);
   const activeSentenceIndex = Math.min(currentSentenceIndex, lastSentenceIndex);
-  const currentSentence = sentences[activeSentenceIndex] ?? "";
+  const currentSentence = editableSentences[activeSentenceIndex] ?? "";
   const segmentsQuery = useTextSegmentsQuery(language, currentSentence);
   const segments = useMemo(
     () => segmentsQuery.data?.segments ?? [],
@@ -184,6 +189,21 @@ export function SentenceSelector({
     clearSelection();
   }
 
+  function updateCurrentSentence(sentence: string) {
+    clearSelection();
+
+    if (onUpdateSentence) {
+      onUpdateSentence(activeSentenceIndex, sentence);
+      return;
+    }
+
+    setLocalSentences((currentSentences) =>
+      currentSentences.map((currentValue, index) =>
+        index === activeSentenceIndex ? sentence : currentValue,
+      ),
+    );
+  }
+
   function selectRange(start: number, end: number) {
     const selection = window.getSelection();
     const container = sentenceRef.current;
@@ -279,15 +299,15 @@ export function SentenceSelector({
         </span>
         <div>
           <p className="text-base font-black text-brand-text">
-            이 문장에서 고르기
+            모르는 표현 고르기
           </p>
           <p className="text-xs font-semibold text-brand-muted">
-            단어는 탭하고, 긴 표현은 드래그하세요.
+            단어를 탭하고, 필요하면 선택 영역을 조절하세요.
           </p>
         </div>
       </div>
 
-      {sentences.length > 1 ? (
+      {editableSentences.length > 1 ? (
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <button
             aria-label="이전 문장"
@@ -302,15 +322,18 @@ export function SentenceSelector({
             이전
           </button>
           <p className="text-center text-sm font-bold text-slate-500">
-            {activeSentenceIndex + 1}/{sentences.length}
+            {activeSentenceIndex + 1}/{editableSentences.length}
           </p>
           <button
             aria-label="다음 문장"
             className="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={activeSentenceIndex >= sentences.length - 1}
+            disabled={activeSentenceIndex >= editableSentences.length - 1}
             onClick={() => {
               setCurrentSentenceIndex(
-                Math.min(activeSentenceIndex + 1, sentences.length - 1),
+                Math.min(
+                  activeSentenceIndex + 1,
+                  editableSentences.length - 1,
+                ),
               );
               clearSelection();
             }}
@@ -320,6 +343,15 @@ export function SentenceSelector({
           </button>
         </div>
       ) : null}
+
+      <label className="grid gap-1.5">
+        <span className="text-xs font-bold text-brand-muted">문장 수정</span>
+        <textarea
+          className="min-h-20 resize-y rounded-lg border-brand-border bg-white text-base leading-7 text-brand-text"
+          onChange={(event) => updateCurrentSentence(event.target.value)}
+          value={currentSentence}
+        />
+      </label>
 
       <div
         aria-label="문장에서 단어 또는 표현 선택"
@@ -372,39 +404,67 @@ export function SentenceSelector({
           </div>
 
           {selectedSegmentRange ? (
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={selectedWordIndexes.length <= 1}
-                onClick={() => shrinkSelection("left")}
-                type="button"
-              >
-                왼쪽 빼기
-              </button>
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-text disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={previousWordIndex < 0}
-                onClick={() => expandSelection("left")}
-                type="button"
-              >
-                ← 왼쪽 추가
-              </button>
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-text disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={nextWordIndex < 0}
-                onClick={() => expandSelection("right")}
-                type="button"
-              >
-                오른쪽 추가 →
-              </button>
-              <button
-                className="min-h-9 rounded-md border border-brand-border bg-white px-2 text-xs font-bold text-brand-muted disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={selectedWordIndexes.length <= 1}
-                onClick={() => shrinkSelection("right")}
-                type="button"
-              >
-                오른쪽 빼기
-              </button>
+            <div className="grid gap-2 border-t border-brand-border/70 pt-2">
+              <p className="text-xs font-bold text-brand-muted">
+                선택 영역 조절
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-brand-muted">
+                    앞 단어
+                  </span>
+                  <div className="inline-flex gap-1.5">
+                    <button
+                      aria-label="앞 단어 빼기"
+                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={selectedWordIndexes.length <= 1}
+                      onClick={() => shrinkSelection("left")}
+                      title="앞 단어 빼기"
+                      type="button"
+                    >
+                      <Minus aria-hidden className="size-4" />
+                    </button>
+                    <button
+                      aria-label="앞 단어 추가"
+                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={previousWordIndex < 0}
+                      onClick={() => expandSelection("left")}
+                      title="앞 단어 추가"
+                      type="button"
+                    >
+                      <Plus aria-hidden className="size-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-brand-muted">
+                    뒤 단어
+                  </span>
+                  <div className="inline-flex gap-1.5">
+                    <button
+                      aria-label="뒤 단어 빼기"
+                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={selectedWordIndexes.length <= 1}
+                      onClick={() => shrinkSelection("right")}
+                      title="뒤 단어 빼기"
+                      type="button"
+                    >
+                      <Minus aria-hidden className="size-4" />
+                    </button>
+                    <button
+                      aria-label="뒤 단어 추가"
+                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={nextWordIndex < 0}
+                      onClick={() => expandSelection("right")}
+                      title="뒤 단어 추가"
+                      type="button"
+                    >
+                      <Plus aria-hidden className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
         </div>

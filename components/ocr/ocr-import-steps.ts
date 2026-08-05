@@ -1,5 +1,3 @@
-import type { OcrReadingDirection } from "@/types/ocr";
-
 /**
  * OCR 가져오기 화면의 단계 값입니다.
  */
@@ -17,18 +15,6 @@ export type OcrImportStepOption = {
   label: string;
   value: OcrImportStep;
 };
-
-/**
- * 일본어 OCR 읽기 방향 선택 옵션입니다.
- */
-export const readingDirectionOptions: Array<{
-  label: string;
-  value: OcrReadingDirection;
-}> = [
-  { label: "기본", value: "auto" },
-  { label: "가로쓰기", value: "horizontal" },
-  { label: "세로쓰기 보정", value: "vertical-rl" },
-];
 
 /**
  * OCR 가져오기 화면의 단계 탭 목록입니다.

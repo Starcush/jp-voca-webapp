@@ -21,7 +21,6 @@ import { getLanguageOption } from "@/lib/languages";
 import { splitTextIntoSentences } from "@/lib/sentence-splitter";
 import { useSession } from "@/lib/use-session";
 import type { Language } from "@/types/language";
-import type { OcrReadingDirection } from "@/types/ocr";
 
 type OcrImportFormProps = {
   language: Language;
@@ -46,17 +45,12 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     editableSentences,
     errorMessage,
     extractedText,
-    mergeSentenceWithPrevious,
     prepareSentences,
-    readingDirection,
-    removeSentence,
     resetForImage,
     selectedNotebookId,
     setActiveStep,
     setErrorMessage,
-    setReadingDirection,
     setSelectedNotebookId,
-    splitSentenceByLines,
     updateSentence,
   } = useOcrImportState(getPersistedNotebookId(notebookId));
   const notebookTarget = useCurrentNotebookTarget({
@@ -69,7 +63,7 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     session,
   });
   const { extractText, imageFile, isExtracting, previewUrl, setImageFile } =
-    useOcrImage(language, readingDirection);
+    useOcrImage(language, "auto");
   const {
     addExpression,
     clearExpressions,
@@ -95,7 +89,6 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     sentence.trim(),
   );
   const canConfirmExpressions = stagedExpressions.length > 0;
-  const sentenceMergeSeparator = language === "en" ? " " : "";
   const resolvedActiveStep = getResolvedOcrImportStep({
     activeStep,
     canConfirmExpressions,
@@ -128,16 +121,11 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
     resetForImage();
   }
 
-  async function handleExtractText(
-    options: {
-      nextStep?: OcrImportStep;
-      readingDirection?: OcrReadingDirection;
-    } = {},
-  ) {
+  async function handleExtractText() {
     clearErrorMessage();
 
     try {
-      const text = await extractText(options.readingDirection);
+      const text = await extractText();
       const sentences = splitTextIntoSentences(text, language);
       completeExtraction(text, sentences);
       clearExpressions();
@@ -147,10 +135,6 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
         return;
       }
 
-      if (options.nextStep === "select") {
-        prepareSentences(sentences);
-        scrollToStepTop();
-      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -158,14 +142,6 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           : "텍스트를 추출하지 못했습니다.",
       );
     }
-  }
-
-  function handleReextractText(direction: OcrReadingDirection) {
-    setReadingDirection(direction);
-    void handleExtractText({
-      nextStep: "select",
-      readingDirection: direction,
-    });
   }
 
   function handlePrepareSentences() {
@@ -274,15 +250,9 @@ export function OcrImportForm({ language, notebookId }: OcrImportFormProps) {
           <OcrSelectStep
             canConfirmExpressions={canConfirmExpressions}
             language={language}
-            mergeSeparator={sentenceMergeSeparator}
             onAddExpression={handleAddExpression}
             onBack={() => handleStepChange("extract")}
             onConfirm={() => handleStepChange("confirm")}
-            onMergeSentenceWithPrevious={mergeSentenceWithPrevious}
-            onReextractText={handleReextractText}
-            onRemoveSentence={removeSentence}
-            readingDirection={readingDirection}
-            onSplitSentenceByLines={splitSentenceByLines}
             onUpdateSentence={updateSentence}
             sentences={selectableSentences}
             stagedExpressions={stagedExpressions}
