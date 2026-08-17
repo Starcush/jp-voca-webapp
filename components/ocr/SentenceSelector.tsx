@@ -12,13 +12,37 @@ type SentenceSelectorProps = {
   sentences: string[];
 };
 
-type SegmentRange = {
+type TextRange = {
   end: number;
   start: number;
 };
 
+type SegmentOffset = TextRange;
+
+type DomPoint = {
+  node: Node;
+  offset: number;
+};
+
 function normalizeSelectedText(text: string) {
   return text.replace(/\s+/g, " ").trim();
+}
+
+function getGraphemeBoundaries(text: string) {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  const boundaries = Array.from(segmenter.segment(text), ({ index }) => index);
+
+  return Array.from(new Set([0, ...boundaries, text.length])).sort(
+    (left, right) => left - right,
+  );
+}
+
+function getTextOffset(container: HTMLElement, node: Node, offset: number) {
+  const prefixRange = document.createRange();
+  prefixRange.selectNodeContents(container);
+  prefixRange.setEnd(node, offset);
+
+  return prefixRange.toString().length;
 }
 
 /**
@@ -39,9 +63,7 @@ export function SentenceSelector({
 }: SentenceSelectorProps) {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [localSentences, setLocalSentences] = useState(() => sentences);
-  const [selectedSegmentRange, setSelectedSegmentRange] =
-    useState<SegmentRange | null>(null);
-  const [selectedText, setSelectedText] = useState("");
+  const [selectedRange, setSelectedRange] = useState<TextRange | null>(null);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const isPointerSelectingRef = useRef(false);
   const selectionFrameRef = useRef<number | null>(null);
@@ -55,28 +77,40 @@ export function SentenceSelector({
     () => segmentsQuery.data?.segments ?? [],
     [segmentsQuery.data?.segments],
   );
+  const segmentOffsets = useMemo(() => {
+    return segments.reduce<SegmentOffset[]>((offsets, segment) => {
+      const start = offsets.at(-1)?.end ?? 0;
 
-  const selectedWordIndexes = selectedSegmentRange
-    ? segments
-        .map((segment, index) => (segment.isWord ? index : -1))
-        .filter(
-          (index) =>
-            index >= selectedSegmentRange.start &&
-            index <= selectedSegmentRange.end,
-        )
-    : [];
-  const previousWordIndex = selectedSegmentRange
-    ? segments.findLastIndex(
-        (segment, index) =>
-          segment.isWord && index < selectedSegmentRange.start,
+      return [...offsets, { end: start + segment.text.length, start }];
+    }, []);
+  }, [segments]);
+  const graphemeBoundaries = useMemo(
+    () => getGraphemeBoundaries(currentSentence),
+    [currentSentence],
+  );
+  const selectedText = useMemo(
+    () =>
+      selectedRange
+        ? normalizeSelectedText(
+            currentSentence.slice(selectedRange.start, selectedRange.end),
+          )
+        : "",
+    [currentSentence, selectedRange],
+  );
+  const nextStartBoundary = selectedRange
+    ? graphemeBoundaries.find((boundary) => boundary > selectedRange.start)
+    : undefined;
+  const previousStartBoundary = selectedRange
+    ? graphemeBoundaries.findLast(
+        (boundary) => boundary < selectedRange.start,
       )
-    : -1;
-  const nextWordIndex = selectedSegmentRange
-    ? segments.findIndex(
-        (segment, index) =>
-          segment.isWord && index > selectedSegmentRange.end,
-      )
-    : -1;
+    : undefined;
+  const nextEndBoundary = selectedRange
+    ? graphemeBoundaries.find((boundary) => boundary > selectedRange.end)
+    : undefined;
+  const previousEndBoundary = selectedRange
+    ? graphemeBoundaries.findLast((boundary) => boundary < selectedRange.end)
+    : undefined;
 
   const clearQueuedSelectionWork = useCallback(() => {
     if (selectionFrameRef.current !== null) {
@@ -107,29 +141,13 @@ export function SentenceSelector({
       return;
     }
 
-    const nextSelectedText = normalizeSelectedText(selection.toString());
+    if (selection.rangeCount > 0 && normalizeSelectedText(selection.toString())) {
+      const range = selection.getRangeAt(0);
+      const start = getTextOffset(container, range.startContainer, range.startOffset);
+      const end = getTextOffset(container, range.endContainer, range.endOffset);
 
-    if (nextSelectedText) {
-      setSelectedText(nextSelectedText);
-
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const selectedIndexes = Array.from(
-          container.querySelectorAll<HTMLElement>("[data-segment-index]"),
-        )
-          .filter(
-            (element) =>
-              element.dataset.isWord === "true" && range.intersectsNode(element),
-          )
-          .map((element) => Number(element.dataset.segmentIndex))
-          .filter(Number.isInteger);
-
-        if (selectedIndexes.length > 0) {
-          setSelectedSegmentRange({
-            end: Math.max(...selectedIndexes),
-            start: Math.min(...selectedIndexes),
-          });
-        }
+      if (start < end) {
+        setSelectedRange({ end, start });
       }
     }
   }, []);
@@ -179,9 +197,19 @@ export function SentenceSelector({
 
   function clearSelection() {
     clearQueuedSelectionWork();
-    setSelectedSegmentRange(null);
-    setSelectedText("");
-    window.getSelection()?.removeAllRanges();
+    setSelectedRange(null);
+
+    const selection = window.getSelection();
+    const container = sentenceRef.current;
+    const isSentenceSelection =
+      selection &&
+      container &&
+      ((selection.anchorNode && container.contains(selection.anchorNode)) ||
+        (selection.focusNode && container.contains(selection.focusNode)));
+
+    if (isSentenceSelection) {
+      selection.removeAllRanges();
+    }
   }
 
   function addSelectedExpression() {
@@ -204,39 +232,63 @@ export function SentenceSelector({
     );
   }
 
-  function selectRange(start: number, end: number) {
-    const selection = window.getSelection();
+  function getDomPoint(offset: number, edge: "start" | "end"): DomPoint | null {
     const container = sentenceRef.current;
 
-    if (!selection || !container) {
+    if (!container || segmentOffsets.length === 0) {
+      return null;
+    }
+
+    const elements = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-segment-index]"),
+    );
+    const preferredIndex = segmentOffsets.findIndex((segmentOffset, index) => {
+      if (edge === "start" && offset === segmentOffset.end) {
+        return index === segmentOffsets.length - 1;
+      }
+
+      return offset >= segmentOffset.start && offset <= segmentOffset.end;
+    });
+    const nextIndex =
+      edge === "start" &&
+      preferredIndex >= 0 &&
+      offset === segmentOffsets[preferredIndex].end &&
+      preferredIndex < segmentOffsets.length - 1
+        ? preferredIndex + 1
+        : preferredIndex;
+    const element = elements[nextIndex];
+    const textNode = element?.firstChild;
+
+    if (!textNode || nextIndex < 0) {
+      return null;
+    }
+
+    return {
+      node: textNode,
+      offset: Math.max(0, offset - segmentOffsets[nextIndex].start),
+    };
+  }
+
+  function selectRange(start: number, end: number) {
+    const selection = window.getSelection();
+
+    if (!selection || start >= end) {
       return;
     }
 
-    const firstSegment = container.querySelector<HTMLElement>(
-      `[data-segment-index="${start}"]`,
-    );
-    const lastSegment = container.querySelector<HTMLElement>(
-      `[data-segment-index="${end}"]`,
-    );
+    const startPoint = getDomPoint(start, "start");
+    const endPoint = getDomPoint(end, "end");
 
-    if (!firstSegment || !lastSegment) {
+    if (!startPoint || !endPoint) {
       return;
     }
 
     const range = document.createRange();
-    range.setStartBefore(firstSegment);
-    range.setEndAfter(lastSegment);
+    range.setStart(startPoint.node, startPoint.offset);
+    range.setEnd(endPoint.node, endPoint.offset);
     selection.removeAllRanges();
     selection.addRange(range);
-    setSelectedSegmentRange({ end, start });
-    setSelectedText(
-      normalizeSelectedText(
-        segments
-          .slice(start, end + 1)
-          .map((segment) => segment.text)
-          .join(""),
-      ),
-    );
+    setSelectedRange({ end, start });
   }
 
   function selectTappedWord(index: number) {
@@ -246,35 +298,46 @@ export function SentenceSelector({
       return;
     }
 
-    selectRange(index, index);
+    const segmentOffset = segmentOffsets[index];
+
+    if (segmentOffset) {
+      selectRange(segmentOffset.start, segmentOffset.end);
+    }
   }
 
   function expandSelection(side: "left" | "right") {
-    if (!selectedSegmentRange) {
+    if (!selectedRange) {
       return;
     }
 
-    if (side === "left" && previousWordIndex >= 0) {
-      selectRange(previousWordIndex, selectedSegmentRange.end);
+    if (side === "left" && previousStartBoundary !== undefined) {
+      selectRange(previousStartBoundary, selectedRange.end);
     }
 
-    if (side === "right" && nextWordIndex >= 0) {
-      selectRange(selectedSegmentRange.start, nextWordIndex);
+    if (side === "right" && nextEndBoundary !== undefined) {
+      selectRange(selectedRange.start, nextEndBoundary);
     }
   }
 
   function shrinkSelection(side: "left" | "right") {
-    if (!selectedSegmentRange || selectedWordIndexes.length <= 1) {
+    if (!selectedRange) {
       return;
     }
 
-    if (side === "left") {
-      selectRange(selectedWordIndexes[1], selectedSegmentRange.end);
-    } else {
-      selectRange(
-        selectedSegmentRange.start,
-        selectedWordIndexes[selectedWordIndexes.length - 2],
-      );
+    if (
+      side === "left" &&
+      nextStartBoundary !== undefined &&
+      nextStartBoundary < selectedRange.end
+    ) {
+      selectRange(nextStartBoundary, selectedRange.end);
+    }
+
+    if (
+      side === "right" &&
+      previousEndBoundary !== undefined &&
+      previousEndBoundary > selectedRange.start
+    ) {
+      selectRange(selectedRange.start, previousEndBoundary);
     }
   }
 
@@ -302,7 +365,7 @@ export function SentenceSelector({
             모르는 표현 고르기
           </p>
           <p className="text-xs font-semibold text-brand-muted">
-            단어를 탭하고, 필요하면 선택 영역을 조절하세요.
+            단어를 탭하고, 필요하면 앞뒤를 한 글자씩 조절하세요.
           </p>
         </div>
       </div>
@@ -403,7 +466,7 @@ export function SentenceSelector({
             </button>
           </div>
 
-          {selectedSegmentRange ? (
+          {selectedRange ? (
             <div className="grid gap-2 border-t border-brand-border/70 pt-2">
               <p className="text-xs font-bold text-brand-muted">
                 선택 영역 조절
@@ -411,56 +474,62 @@ export function SentenceSelector({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-bold text-brand-muted">
-                    앞 단어
+                    앞쪽
                   </span>
                   <div className="inline-flex gap-1.5">
                     <button
-                      aria-label="앞 단어 빼기"
-                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
-                      disabled={selectedWordIndexes.length <= 1}
+                      aria-label="앞쪽 한 글자 빼기"
+                      className="grid size-12 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={
+                        nextStartBoundary === undefined ||
+                        nextStartBoundary >= selectedRange.end
+                      }
                       onClick={() => shrinkSelection("left")}
-                      title="앞 단어 빼기"
+                      title="앞쪽 한 글자 빼기"
                       type="button"
                     >
-                      <Minus aria-hidden className="size-4" />
+                      <Minus aria-hidden className="size-5" />
                     </button>
                     <button
-                      aria-label="앞 단어 추가"
-                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
-                      disabled={previousWordIndex < 0}
+                      aria-label="앞쪽 한 글자 추가"
+                      className="grid size-12 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={previousStartBoundary === undefined}
                       onClick={() => expandSelection("left")}
-                      title="앞 단어 추가"
+                      title="앞쪽 한 글자 추가"
                       type="button"
                     >
-                      <Plus aria-hidden className="size-4" />
+                      <Plus aria-hidden className="size-5" />
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-bold text-brand-muted">
-                    뒤 단어
+                    뒤쪽
                   </span>
                   <div className="inline-flex gap-1.5">
                     <button
-                      aria-label="뒤 단어 빼기"
-                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
-                      disabled={selectedWordIndexes.length <= 1}
+                      aria-label="뒤쪽 한 글자 빼기"
+                      className="grid size-12 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={
+                        previousEndBoundary === undefined ||
+                        previousEndBoundary <= selectedRange.start
+                      }
                       onClick={() => shrinkSelection("right")}
-                      title="뒤 단어 빼기"
+                      title="뒤쪽 한 글자 빼기"
                       type="button"
                     >
-                      <Minus aria-hidden className="size-4" />
+                      <Minus aria-hidden className="size-5" />
                     </button>
                     <button
-                      aria-label="뒤 단어 추가"
-                      className="grid size-9 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
-                      disabled={nextWordIndex < 0}
+                      aria-label="뒤쪽 한 글자 추가"
+                      className="grid size-12 place-items-center rounded-lg border border-brand-border bg-white text-brand-text shadow-sm transition-colors hover:border-primary-border hover:text-primary disabled:cursor-not-allowed disabled:text-brand-muted-soft disabled:shadow-none"
+                      disabled={nextEndBoundary === undefined}
                       onClick={() => expandSelection("right")}
-                      title="뒤 단어 추가"
+                      title="뒤쪽 한 글자 추가"
                       type="button"
                     >
-                      <Plus aria-hidden className="size-4" />
+                      <Plus aria-hidden className="size-5" />
                     </button>
                   </div>
                 </div>
